@@ -219,7 +219,7 @@ impl Z80A {
 
     fn fetch(&mut self) -> u8 {
         let data = self.memory.borrow().read(self.PC);
-        self.PC = self.PC + 1;
+        self.PC += 1;
         data
     }
 
