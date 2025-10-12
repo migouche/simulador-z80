@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::{cell::RefCell, ops::Add};
 use std::rc::Rc;
 use std::usize;
 
@@ -15,11 +15,13 @@ enum GPR {
     L,
 }
 
+#[derive(PartialEq)]
 enum RegisterPair {
     BC,
     DE,
     HL,
     AF,
+    SP,
 }
 
 enum RegSet {
@@ -32,16 +34,29 @@ enum IndexRegister {
     IY,
 }
 
+enum SpecialRegisters {
+    PC,
+    SP,
+    IX,
+    IY,
+    I,
+    R,
+    A,
+}
+
 enum AddressingMode {
     Immediate(u8),
     ImmediateExtended(u16),
+    Absolute(u16),
     ZeroPage,
     Relative(u8),
     Extended,
     Indexed(IndexRegister, u8),
     Register(GPR),
+    Special(SpecialRegisters),
     Implied,
     RegisterIndirect(RegisterPair),
+    RegisterPair(RegisterPair),
 }
 
 enum Flag {
@@ -106,6 +121,7 @@ impl RegisterSet {
             RegisterPair::BC => ((self.B as u16) << 8) | (self.C as u16),
             RegisterPair::DE => ((self.D as u16) << 8) | (self.E as u16),
             RegisterPair::HL => ((self.H as u16) << 8) | (self.L as u16),
+            RegisterPair::SP => panic!("SP is not part of RegisterSet"),
         }
     }
 
@@ -127,6 +143,7 @@ impl RegisterSet {
                 self.H = (value >> 8) as u8;
                 self.L = (value & 0xFF) as u8;
             }
+            RegisterPair::SP => panic!("SP is not part of RegisterSet"),
         }
     }
 
@@ -245,6 +262,42 @@ impl Z80A {
         }
     }
 
+    // TABLES FROM http://www.z80.info/decoding.htm
+
+    fn table_r(p: u8) -> AddressingMode {
+        match p {
+            0 => AddressingMode::Register(GPR::B),
+            1 => AddressingMode::Register(GPR::C),
+            2 => AddressingMode::Register(GPR::D),
+            3 => AddressingMode::Register(GPR::E),
+            4 => AddressingMode::Register(GPR::H),
+            5 => AddressingMode::Register(GPR::L),
+            6 => AddressingMode::RegisterIndirect(RegisterPair::HL),
+            7 => AddressingMode::Register(GPR::A),
+            _ => panic!("Invalid p value"), // should never happen
+        }
+    }
+
+    fn table_rp(p: u8) -> RegisterPair {
+        match p {
+            0 => RegisterPair::BC,
+            1 => RegisterPair::DE,
+            2 => RegisterPair::HL,
+            3 => RegisterPair::SP,
+            _ => panic!("Invalid p value"), // should never happen
+        }
+    }
+
+    fn table_rp2(p: u8) -> RegisterPair {
+        match p {
+            0 => RegisterPair::BC,
+            1 => RegisterPair::DE,
+            2 => RegisterPair::HL,
+            3 => RegisterPair::AF,
+            _ => panic!("Invalid p value"), // should never happen
+        }
+    }
+
 
 
 
@@ -270,7 +323,9 @@ impl Z80A {
                 1 => {
                     if q {
                         // 16-bit load immediate/add
-                        () // TODO: LD rp[p], nn
+                        // LD rp[p], nn
+                        let nn = self.fetch_word();
+                        self.ld_16(AddressingMode::RegisterPair(Self::table_rp(p)), AddressingMode::ImmediateExtended(nn));
                     } else {
                         () // TODO: ADD HL, rp[p]
                     }
@@ -278,14 +333,20 @@ impl Z80A {
 
                 2 => match (q, p) {
                     // Indirect loading
-                    (false, 0) => (),                   // TODO: LD (BC), A
-                    (false, 1) => (),                   // TODO: LD (DE), A
-                    (false, 2) => (),                   // TODO: LD (nn), HL
-                    (false, 3) => (),                   // TODO: LD (nn), A
-                    (true, 0) => (),                    // TODO: LD A, (BC)
-                    (true, 1) => (),                    // TODO: LD A, (DE)
-                    (true, 2) => (),                    // TODO: LD HL, (nn)
-                    (true, 3) => (),                    // TODO: LD A, (nn)
+                    (false, 0) => self.ld(AddressingMode::RegisterIndirect(RegisterPair::BC), AddressingMode::Register(GPR::A)),                  // LD (BC), A
+                    (false, 1) => self.ld(AddressingMode::RegisterIndirect(RegisterPair::DE), AddressingMode::Register(GPR::A)),                  // LD (DE), A
+                    (false, 2) => self.ld(AddressingMode::RegisterIndirect(RegisterPair::HL), AddressingMode::Register(GPR::H)),                  // LD (nn), HL
+                    (false, 3) => self.ld(AddressingMode::RegisterIndirect(RegisterPair::SP), AddressingMode::Register(GPR::A)),                  // LD (nn), A
+                    (true, 0) => self.ld(AddressingMode::Register(GPR::A), AddressingMode::RegisterIndirect(RegisterPair::BC)),                   // LD A, (BC)
+                    (true, 1) => self.ld(AddressingMode::Register(GPR::A), AddressingMode::RegisterIndirect(RegisterPair::DE)),                   // LD A, (DE)
+                    (true, 2) => {
+                        let addr = self.fetch_word();
+                        self.ld_16(AddressingMode::RegisterPair(RegisterPair::HL), AddressingMode::Absolute(addr))
+                    },         // LD HL, (nn)
+                    (true, 3) => {
+                        let addr = self.fetch_word();
+                        self.ld(AddressingMode::Register(GPR::A), AddressingMode::Absolute(addr))
+                    },                   // LD A, (nn)
                     _ => panic!("Invalid q, p values"), // should never happen
                 },
 
@@ -300,7 +361,10 @@ impl Z80A {
 
                 4 => (), // TODO: INC r[y]
                 5 => (), // TODO: DEC r[y]
-                6 => (), // TODO: LD r[y], n
+                6 => {
+                    let n = self.fetch();
+                    self.ld(Self::table_r(y), AddressingMode::Immediate(n))
+                }, //  LD r[y], n
                 7 => {
                     // Assorted operations on accumulator/flags
                     match y {
@@ -582,6 +646,78 @@ impl Z80A {
 
     fn execute_instruction(&mut self, opcode: u8) {
         self.decode(opcode);
+    }
+
+    // register ops
+
+    fn ld(&mut self, dest: AddressingMode, src: AddressingMode){
+        let value = match src {
+            AddressingMode::Register(r) => self.main_set.get_register(r),
+            AddressingMode::Immediate(n) => n,
+            AddressingMode::RegisterIndirect(rp) => {
+                let address = self.main_set.get_pair(rp);
+                self.memory.borrow().read(address)
+            },
+            AddressingMode::Absolute(address) => self.memory.borrow().read(address),
+            AddressingMode::Indexed(index, displacement) => {
+                let base = match index {
+                    IndexRegister::IX => self.IX,
+                    IndexRegister::IY => self.IY,
+                };
+                let address = base.wrapping_add(displacement as u16);
+                self.memory.borrow().read(address)
+            },
+            AddressingMode::Special(reg) => match reg {
+                SpecialRegisters::A => self.main_set.A,
+                SpecialRegisters::I => self.I,
+                SpecialRegisters::R => self.R,
+                _ => panic!("Unsupported special register for LD"),
+            },
+            _ => panic!("Unsupported source addressing mode for LD"),
+
+        };
+
+        match dest {
+            AddressingMode::Register(r) => self.main_set.set_register(r, value),
+            AddressingMode::RegisterIndirect(rp) => {
+                let address = self.main_set.get_pair(rp);
+                self.memory.borrow_mut().write(address, value)
+            },
+            AddressingMode::Absolute(address) => {
+                self.memory.borrow_mut().write(address, value)
+            },
+            AddressingMode::Indexed(index, displacement) => {
+                let base = match index {
+                    IndexRegister::IX => self.IX,
+                    IndexRegister::IY => self.IY,
+                };
+                let address = base.wrapping_add(displacement as u16);
+                self.memory.borrow_mut().write(address, value)
+            },
+            AddressingMode::Special(reg) => match reg {
+                SpecialRegisters::A => self.main_set.A = value,
+                SpecialRegisters::I => self.I = value,
+                SpecialRegisters::R => self.R = value,
+                _ => panic!("Unsupported special register for LD"),
+            },
+            _ => panic!("Unsupported destination addressing mode for LD"),
+        }
+    }
+
+    fn ld_16(&mut self, dest: AddressingMode, src: AddressingMode){
+        let value = match src {
+            AddressingMode::ImmediateExtended(nn) => nn,
+            AddressingMode::Absolute(nn) => self.memory.borrow().read_word(nn),
+            _ => panic!("Unsupported source addressing mode for LD 16"),
+        };
+        match dest {
+            AddressingMode::RegisterPair(rp) => if rp == RegisterPair::SP {
+                self.SP = value;
+            } else {
+                self.main_set.set_pair(rp, value);
+            },
+            _ => panic!("Unsupported destination addressing mode for LD 16"),
+        }
     }
 }
 
