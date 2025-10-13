@@ -22,6 +22,7 @@ enum RegisterPair {
     HL,
     AF,
     SP,
+    
 }
 
 enum RegSet {
@@ -42,6 +43,10 @@ enum SpecialRegisters {
     I,
     R,
     A,
+    IXH,
+    IXL,
+    IYH,
+    IYL,
 }
 
 enum AddressingMode {
@@ -278,26 +283,27 @@ impl Z80A {
         }
     }
 
-    fn table_rp(p: u8) -> RegisterPair {
+    fn table_rp(p: u8) -> AddressingMode {
         match p {
-            0 => RegisterPair::BC,
-            1 => RegisterPair::DE,
-            2 => RegisterPair::HL,
-            3 => RegisterPair::SP,
+            0 => AddressingMode::RegisterPair(RegisterPair::BC),
+            1 => AddressingMode::RegisterPair(RegisterPair::DE),
+            2 => AddressingMode::RegisterPair(RegisterPair::HL),
+            3 => AddressingMode::RegisterPair(RegisterPair::SP),
             _ => panic!("Invalid p value"), // should never happen
         }
     }
 
-    fn table_rp2(p: u8) -> RegisterPair {
+    fn table_rp2(p: u8) -> AddressingMode {
         match p {
-            0 => RegisterPair::BC,
-            1 => RegisterPair::DE,
-            2 => RegisterPair::HL,
-            3 => RegisterPair::AF,
+            0 => AddressingMode::RegisterPair(RegisterPair::BC),
+            1 => AddressingMode::RegisterPair(RegisterPair::DE),
+            2 => AddressingMode::RegisterPair(RegisterPair::HL),
+            3 => AddressingMode::RegisterPair(RegisterPair::AF),
             _ => panic!("Invalid p value"), // should never happen
         }
     }
 
+    //fn transform_register()
 
 
 
@@ -314,7 +320,7 @@ impl Z80A {
                         RegSet::Main,
                         RegisterPair::AF,
                         RegSet::Alt,
-                    ),
+                    ), // EX AF, AF'
                     2 => (),                        // TODO: DJNZ d
                     3..=7 => (),                    // TODO: JR cc[y-4], d
                     _ => panic!("Invalid y value"), // should never happen
@@ -325,7 +331,7 @@ impl Z80A {
                         // 16-bit load immediate/add
                         // LD rp[p], nn
                         let nn = self.fetch_word();
-                        self.ld_16(AddressingMode::RegisterPair(Self::table_rp(p)), AddressingMode::ImmediateExtended(nn));
+                        self.ld_16(Self::table_rp(p), AddressingMode::ImmediateExtended(nn));
                     } else {
                         () // TODO: ADD HL, rp[p]
                     }
@@ -335,8 +341,14 @@ impl Z80A {
                     // Indirect loading
                     (false, 0) => self.ld(AddressingMode::RegisterIndirect(RegisterPair::BC), AddressingMode::Register(GPR::A)),                  // LD (BC), A
                     (false, 1) => self.ld(AddressingMode::RegisterIndirect(RegisterPair::DE), AddressingMode::Register(GPR::A)),                  // LD (DE), A
-                    (false, 2) => self.ld(AddressingMode::RegisterIndirect(RegisterPair::HL), AddressingMode::Register(GPR::H)),                  // LD (nn), HL
-                    (false, 3) => self.ld(AddressingMode::RegisterIndirect(RegisterPair::SP), AddressingMode::Register(GPR::A)),                  // LD (nn), A
+                    (false, 2) => {
+                        let addr = self.fetch_word();
+                        self.ld(AddressingMode::Absolute(addr), AddressingMode::RegisterIndirect(RegisterPair::HL))
+                    },                  // LD (nn), HL
+                    (false, 3) => {
+                        let addr = self.fetch_word();
+                        self.ld(AddressingMode::Absolute(addr), AddressingMode::Register(GPR::A))
+                    },                  // LD (nn), A
                     (true, 0) => self.ld(AddressingMode::Register(GPR::A), AddressingMode::RegisterIndirect(RegisterPair::BC)),                   // LD A, (BC)
                     (true, 1) => self.ld(AddressingMode::Register(GPR::A), AddressingMode::RegisterIndirect(RegisterPair::DE)),                   // LD A, (DE)
                     (true, 2) => {
@@ -388,7 +400,8 @@ impl Z80A {
                         // 8-bit loading
                         panic!("Invalid y value") // should never happen
                     } else {
-                        () // TODO: LD r[y], r[z]
+                        self.ld(Self::table_r(y), Self::table_r(z)) // LD r[y], r[z]
+
                     }
                 }
             },
@@ -528,10 +541,10 @@ impl Z80A {
                 }
                 6 => (), // TODO: IM y
                 7 => match y {
-                    0 => (),                        // TODO: LD I, A
-                    1 => (),                        // TODO: LD R, A
-                    2 => (),                        // TODO: LD A, I
-                    3 => (),                        // TODO: LD A, R
+                    0 => self.ld(AddressingMode::Special(SpecialRegisters::I), AddressingMode::Register(GPR::A)),//  LD I, A
+                    1 => self.ld(AddressingMode::Special(SpecialRegisters::R), AddressingMode::Register(GPR::A)),//  LD R, A
+                    2 => self.ld(AddressingMode::Register(GPR::A), AddressingMode::Special(SpecialRegisters::I)),//  LD A, I
+                    3 => self.ld(AddressingMode::Register(GPR::A), AddressingMode::Special(SpecialRegisters::R)),//  LD A, R
                     4 => (),                        // TODO: RRD
                     5 => (),                        // TODO: RLD
                     6 => (),                        // TODO: NOP
@@ -698,6 +711,10 @@ impl Z80A {
                 SpecialRegisters::A => self.main_set.A = value,
                 SpecialRegisters::I => self.I = value,
                 SpecialRegisters::R => self.R = value,
+                SpecialRegisters::IXH => self.IX = (self.IX & 0x00FF) | ((value as u16) << 8),
+                SpecialRegisters::IXL => self.IX = (self.IX & 0xFF00) | (value as u16),
+                SpecialRegisters::IYH => self.IY = (self.IY & 0x00FF) | ((value as u16) << 8),
+                SpecialRegisters::IYL => self.IY = (self.IY & 0xFF00) | (value as u16),
                 _ => panic!("Unsupported special register for LD"),
             },
             _ => panic!("Unsupported destination addressing mode for LD"),
