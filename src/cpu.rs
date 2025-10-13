@@ -75,6 +75,7 @@ enum Flag {
     S,
 }
 
+#[derive(Clone, Copy)]
 enum PrefixAddressing {
     HL, // HL, H, L
     IX, // IX, IXH, IXL
@@ -267,6 +268,13 @@ impl Z80A {
         }
     }
 
+    fn set_register_pair(&mut self, pair: RegisterPair, value: u16) {
+        match pair {
+            RegisterPair::SP => self.SP = value,
+            _ => self.main_set.set_pair(pair, value),
+        }
+    }
+
     // TABLES FROM http://www.z80.info/decoding.htm
 
     fn table_r(p: u8) -> AddressingMode {
@@ -303,7 +311,27 @@ impl Z80A {
         }
     }
 
-    //fn transform_register()
+    fn transform_register(reg: AddressingMode, addressing: PrefixAddressing) -> AddressingMode {
+        match addressing {
+            PrefixAddressing::HL => reg,
+            PrefixAddressing::IX => match reg {
+                AddressingMode::Register(GPR::H) => AddressingMode::Special(SpecialRegisters::IXH),
+                AddressingMode::Register(GPR::L) => AddressingMode::Special(SpecialRegisters::IXL),
+                AddressingMode::RegisterIndirect(RegisterPair::HL) => {
+                    AddressingMode::Indexed(IndexRegister::IX, 0)
+                }
+                _ => reg,
+            },
+            PrefixAddressing::IY => match reg {
+                AddressingMode::Register(GPR::H) => AddressingMode::Special(SpecialRegisters::IYH),
+                AddressingMode::Register(GPR::L) => AddressingMode::Special(SpecialRegisters::IYL),
+                AddressingMode::RegisterIndirect(RegisterPair::HL) => {
+                    AddressingMode::Indexed(IndexRegister::IY, 0)
+                }
+                _ => reg
+            },
+        }
+    }
 
 
 
@@ -343,8 +371,8 @@ impl Z80A {
                     (false, 1) => self.ld(AddressingMode::RegisterIndirect(RegisterPair::DE), AddressingMode::Register(GPR::A)),                  // LD (DE), A
                     (false, 2) => {
                         let addr = self.fetch_word();
-                        self.ld(AddressingMode::Absolute(addr), AddressingMode::RegisterIndirect(RegisterPair::HL))
-                    },                  // LD (nn), HL
+                        self.ld(AddressingMode::Absolute(addr), Self::transform_register(AddressingMode::RegisterPair(RegisterPair::HL), addressing))
+                    },                  // LD (nn), HL or LD (nn), IX/IY
                     (false, 3) => {
                         let addr = self.fetch_word();
                         self.ld(AddressingMode::Absolute(addr), AddressingMode::Register(GPR::A))
@@ -353,8 +381,8 @@ impl Z80A {
                     (true, 1) => self.ld(AddressingMode::Register(GPR::A), AddressingMode::RegisterIndirect(RegisterPair::DE)),                   // LD A, (DE)
                     (true, 2) => {
                         let addr = self.fetch_word();
-                        self.ld_16(AddressingMode::RegisterPair(RegisterPair::HL), AddressingMode::Absolute(addr))
-                    },         // LD HL, (nn)
+                        self.ld_16(Self::transform_register(AddressingMode::RegisterPair(RegisterPair::HL), addressing), AddressingMode::Absolute(addr))
+                    },         // LD HL, (nn) or LD IX/IY, (nn)
                     (true, 3) => {
                         let addr = self.fetch_word();
                         self.ld(AddressingMode::Register(GPR::A), AddressingMode::Absolute(addr))
@@ -375,8 +403,8 @@ impl Z80A {
                 5 => (), // TODO: DEC r[y]
                 6 => {
                     let n = self.fetch();
-                    self.ld(Self::table_r(y), AddressingMode::Immediate(n))
-                }, //  LD r[y], n
+                    self.ld(Self::transform_register(Self::table_r(y), addressing), AddressingMode::Immediate(n))
+                }, //  LD r[y], n (still have to transform r[y] if IX/IY prefixed)
                 7 => {
                     // Assorted operations on accumulator/flags
                     match y {
@@ -400,7 +428,7 @@ impl Z80A {
                         // 8-bit loading
                         panic!("Invalid y value") // should never happen
                     } else {
-                        self.ld(Self::table_r(y), Self::table_r(z)) // LD r[y], r[z]
+                        self.ld(Self::transform_register(Self::table_r(y), addressing), Self::transform_register(Self::table_r(z), addressing)) // LD r[y], r[z] (still have to transform r[y] and r[z] if IX/IY prefixed)
 
                     }
                 }
@@ -446,19 +474,25 @@ impl Z80A {
                     2 => (), // TODO: OUT (n), A
                     3 => (), // TODO: IN A, (n)
                     4 => {
-                        // EX (SP), HL
-                        let w = self.memory.borrow().read_word(self.SP);
-                        self.memory
-                            .borrow_mut()
-                            .write_word(self.SP, self.main_set.get_pair(RegisterPair::HL));
-                        self.main_set.set_pair(RegisterPair::HL, w);
+                        // EX (SP), HL (or EX (SP), IX/IY if prefixed)
+                        let temp_l = self.memory.borrow().read(self.SP);
+                        let temp_h = self.memory.borrow().read(self.SP.wrapping_add(1));
+                        let hl = self.main_set.get_pair(RegisterPair::HL);
+                        self.memory.borrow_mut().write(self.SP, (hl & 0xFF) as u8);
+                        self.memory.borrow_mut().write(self.SP.wrapping_add(1), (hl >> 8) as u8);
+                        let register_pair = Self::transform_register(AddressingMode::RegisterPair(RegisterPair::HL), addressing);
+                        if let AddressingMode::RegisterPair(rp) = register_pair {
+                            self.set_register_pair(rp, ((temp_h as u16) << 8) | (temp_l as u16));
+                        } else {
+                            panic!("Invalid addressing mode for EX (SP), HL/IX/IY"); // should never happen
+                        }
                     }
                     5 => self.swap_registers(
                         RegisterPair::DE,
                         RegSet::Main,
                         RegisterPair::HL,
                         RegSet::Main,
-                    ), // EX DE, HL
+                    ), // EX DE, HL (NOTE: REMAINS UNCHANGED)
                     6 => (),                        // TODO: DI
                     7 => (),                        // TODO: EI
                     _ => panic!("Invalid y value"), // should never happen
