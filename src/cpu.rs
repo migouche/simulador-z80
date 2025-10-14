@@ -15,7 +15,7 @@ enum GPR {
     L,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 enum RegisterPair {
     BC,
     DE,
@@ -56,7 +56,7 @@ enum AddressingMode {
     ZeroPage,
     Relative(u8),
     Extended,
-    Indexed(IndexRegister, u8),
+    Indexed(IndexRegister, i8),
     Register(GPR),
     Special(SpecialRegisters),
     Implied,
@@ -247,7 +247,13 @@ impl Z80A {
     }
 
     fn fetch_word(&mut self) -> u16 {
-        ((self.fetch() as u16) << 8) | (self.fetch() as u16)
+        let low = self.fetch() as u16;
+        let high = self.fetch() as u16;
+        (high << 8) | low
+    }
+
+    fn fetch_displacement(&mut self) -> i8 {
+        self.fetch() as i8
     }
 
     fn swap_registers(
@@ -311,14 +317,17 @@ impl Z80A {
         }
     }
 
-    fn transform_register(reg: AddressingMode, addressing: PrefixAddressing) -> AddressingMode {
+    fn transform_register(&mut self, reg: AddressingMode, addressing: PrefixAddressing) -> AddressingMode {
         match addressing {
             PrefixAddressing::HL => reg,
             PrefixAddressing::IX => match reg {
                 AddressingMode::Register(GPR::H) => AddressingMode::Special(SpecialRegisters::IXH),
                 AddressingMode::Register(GPR::L) => AddressingMode::Special(SpecialRegisters::IXL),
                 AddressingMode::RegisterIndirect(RegisterPair::HL) => {
-                    AddressingMode::Indexed(IndexRegister::IX, 0)
+                    AddressingMode::Indexed(IndexRegister::IX, self.fetch_displacement())
+                }
+                AddressingMode::RegisterPair(RegisterPair::HL) => {
+                    AddressingMode::Special(SpecialRegisters::IX)
                 }
                 _ => reg,
             },
@@ -326,7 +335,10 @@ impl Z80A {
                 AddressingMode::Register(GPR::H) => AddressingMode::Special(SpecialRegisters::IYH),
                 AddressingMode::Register(GPR::L) => AddressingMode::Special(SpecialRegisters::IYL),
                 AddressingMode::RegisterIndirect(RegisterPair::HL) => {
-                    AddressingMode::Indexed(IndexRegister::IY, 0)
+                    AddressingMode::Indexed(IndexRegister::IY, self.fetch_displacement())
+                }
+                AddressingMode::RegisterPair(RegisterPair::HL) => {
+                    AddressingMode::Special(SpecialRegisters::IY)
                 }
                 _ => reg
             },
@@ -371,7 +383,8 @@ impl Z80A {
                     (false, 1) => self.ld(AddressingMode::RegisterIndirect(RegisterPair::DE), AddressingMode::Register(GPR::A)),                  // LD (DE), A
                     (false, 2) => {
                         let addr = self.fetch_word();
-                        self.ld(AddressingMode::Absolute(addr), Self::transform_register(AddressingMode::RegisterPair(RegisterPair::HL), addressing))
+                        let transformed = self.transform_register(AddressingMode::RegisterPair(RegisterPair::HL), addressing);
+                        self.ld_16(AddressingMode::Absolute(addr), transformed)
                     },                  // LD (nn), HL or LD (nn), IX/IY
                     (false, 3) => {
                         let addr = self.fetch_word();
@@ -381,7 +394,8 @@ impl Z80A {
                     (true, 1) => self.ld(AddressingMode::Register(GPR::A), AddressingMode::RegisterIndirect(RegisterPair::DE)),                   // LD A, (DE)
                     (true, 2) => {
                         let addr = self.fetch_word();
-                        self.ld_16(Self::transform_register(AddressingMode::RegisterPair(RegisterPair::HL), addressing), AddressingMode::Absolute(addr))
+                        let transformed = self.transform_register(AddressingMode::RegisterPair(RegisterPair::HL), addressing);
+                        self.ld_16(transformed, AddressingMode::Absolute(addr))
                     },         // LD HL, (nn) or LD IX/IY, (nn)
                     (true, 3) => {
                         let addr = self.fetch_word();
@@ -403,7 +417,8 @@ impl Z80A {
                 5 => (), // TODO: DEC r[y]
                 6 => {
                     let n = self.fetch();
-                    self.ld(Self::transform_register(Self::table_r(y), addressing), AddressingMode::Immediate(n))
+                    let dest = self.transform_register(Self::table_r(y), addressing);
+                    self.ld(dest, AddressingMode::Immediate(n))
                 }, //  LD r[y], n (still have to transform r[y] if IX/IY prefixed)
                 7 => {
                     // Assorted operations on accumulator/flags
@@ -428,8 +443,11 @@ impl Z80A {
                         // 8-bit loading
                         panic!("Invalid y value") // should never happen
                     } else {
-                        self.ld(Self::transform_register(Self::table_r(y), addressing), Self::transform_register(Self::table_r(z), addressing)) // LD r[y], r[z] (still have to transform r[y] and r[z] if IX/IY prefixed)
-
+                        let dest = self.transform_register(Self::table_r(y), addressing);
+                        let src = self.transform_register(Self::table_r(z), addressing);
+                        self.ld(dest, src); // LD r[y], r[z] (still have to transform r[y] and r[z] if IX/IY prefixed)
+                        // TODO: if there is a (HL), there should be no more changes
+                        
                     }
                 }
             },
@@ -477,10 +495,15 @@ impl Z80A {
                         // EX (SP), HL (or EX (SP), IX/IY if prefixed)
                         let temp_l = self.memory.borrow().read(self.SP);
                         let temp_h = self.memory.borrow().read(self.SP.wrapping_add(1));
-                        let hl = self.main_set.get_pair(RegisterPair::HL);
-                        self.memory.borrow_mut().write(self.SP, (hl & 0xFF) as u8);
-                        self.memory.borrow_mut().write(self.SP.wrapping_add(1), (hl >> 8) as u8);
-                        let register_pair = Self::transform_register(AddressingMode::RegisterPair(RegisterPair::HL), addressing);
+                        let register_pair = self.transform_register(AddressingMode::RegisterPair(RegisterPair::HL), addressing);
+
+                        let rp = if let AddressingMode::RegisterPair(rp) = register_pair {
+                            self.main_set.get_pair(rp)
+                        } else {
+                            panic!("Invalid addressing mode for EX (SP), HL/IX/IY"); // should never happen
+                        };
+                        self.memory.borrow_mut().write(self.SP, (rp & 0xFF) as u8);
+                        self.memory.borrow_mut().write(self.SP.wrapping_add(1), (rp >> 8) as u8);
                         if let AddressingMode::RegisterPair(rp) = register_pair {
                             self.set_register_pair(rp, ((temp_h as u16) << 8) | (temp_l as u16));
                         } else {
@@ -558,9 +581,11 @@ impl Z80A {
                 }
                 3 => {
                     if q {
-                        () // TODO: LD (nn), rp[p]
+                        let addr = self.fetch_word();
+                        self.ld_16(AddressingMode::Absolute(addr), Self::table_rp(p)) // LD (nn), rp[p]
                     } else {
-                        () // TODO: LD rp[p], (nn)
+                        let addr = self.fetch_word();
+                        self.ld_16(Self::table_rp(p), AddressingMode::Absolute(addr)) // LD rp[p], (nn)
                     }
                 }
                 4 => (), // TODO: NEG
@@ -711,7 +736,7 @@ impl Z80A {
                     IndexRegister::IX => self.IX,
                     IndexRegister::IY => self.IY,
                 };
-                let address = base.wrapping_add(displacement as u16);
+                let address = base.wrapping_add_signed(displacement as i16);
                 self.memory.borrow().read(address)
             },
             AddressingMode::Special(reg) => match reg {
@@ -738,7 +763,7 @@ impl Z80A {
                     IndexRegister::IX => self.IX,
                     IndexRegister::IY => self.IY,
                 };
-                let address = base.wrapping_add(displacement as u16);
+                let address = base.wrapping_add_signed(displacement as i16);
                 self.memory.borrow_mut().write(address, value)
             },
             AddressingMode::Special(reg) => match reg {
@@ -759,14 +784,32 @@ impl Z80A {
         let value = match src {
             AddressingMode::ImmediateExtended(nn) => nn,
             AddressingMode::Absolute(nn) => self.memory.borrow().read_word(nn),
+            AddressingMode::RegisterPair(rp) => {
+                if rp == RegisterPair::SP {
+                    self.SP
+                } else {
+                    self.main_set.get_pair(rp)
+                }
+            },
+            AddressingMode::Special(SpecialRegisters::IX) => self.IX,
+            AddressingMode::Special(SpecialRegisters::IY) => self.IY,
             _ => panic!("Unsupported source addressing mode for LD 16"),
         };
+        
         match dest {
-            AddressingMode::RegisterPair(rp) => if rp == RegisterPair::SP {
-                self.SP = value;
-            } else {
-                self.main_set.set_pair(rp, value);
+            AddressingMode::RegisterPair(rp) => {
+                if rp == RegisterPair::SP {
+                    self.SP = value;
+                } else {
+                    self.main_set.set_pair(rp, value);
+                }
             },
+            AddressingMode::Absolute(addr) => {
+                self.memory.borrow_mut().write_word(addr, value);
+            },
+            AddressingMode::Special(SpecialRegisters::IX) => self.IX = value,
+            AddressingMode::Special(SpecialRegisters::IY) => self.IY = value,
+            AddressingMode::Special(SpecialRegisters::SP) => self.SP = value,
             _ => panic!("Unsupported destination addressing mode for LD 16"),
         }
     }
