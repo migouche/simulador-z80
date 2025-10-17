@@ -4,6 +4,7 @@ use std::usize;
 
 use crate::traits::{MemoryMapper, SyncronousComponent};
 
+#[derive(PartialEq, Clone, Copy)]
 enum GPR {
     A,
     F,
@@ -15,7 +16,7 @@ enum GPR {
     L,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 enum RegisterPair {
     BC,
     DE,
@@ -25,16 +26,19 @@ enum RegisterPair {
     
 }
 
+#[derive(PartialEq, Clone, Copy)]
 enum RegSet {
     Main,
     Alt,
 }
 
+#[derive(PartialEq, Clone, Copy)]
 enum IndexRegister {
     IX,
     IY,
 }
 
+#[derive(PartialEq, Clone, Copy)]
 enum SpecialRegisters {
     PC,
     SP,
@@ -49,6 +53,7 @@ enum SpecialRegisters {
     IYL,
 }
 
+#[derive(PartialEq, Clone, Copy)]
 enum AddressingMode {
     Immediate(u8),
     ImmediateExtended(u16),
@@ -64,6 +69,7 @@ enum AddressingMode {
     RegisterPair(RegisterPair),
 }
 
+#[derive(PartialEq, Clone, Copy)]
 enum Flag {
     C,
     N,
@@ -266,6 +272,14 @@ impl Z80A {
             RegSet::Main => self.main_set.set_pair(dest, origin_value),
             RegSet::Alt => self.alt_set.set_pair(dest, origin_value),
         }
+    }
+
+    fn set_register(&mut self, reg: GPR, value: u8) {
+        self.main_set.set_register(reg, value);
+    }
+
+    fn get_register(&self, reg: GPR) -> u8 {
+        self.main_set.get_register(reg)
     }
 
     fn set_register_pair(&mut self, pair: RegisterPair, value: u16) {
@@ -786,3 +800,6 @@ impl SyncronousComponent for Z80A {
         self.execute_instruction(opcode);
     }
 }
+
+#[cfg(test)]
+mod tests;
