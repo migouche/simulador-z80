@@ -38,7 +38,7 @@ enum IndexRegister {
 }
 
 #[derive(PartialEq, Clone, Copy)]
-enum SpecialRegisters {
+enum SpecialRegister {
     PC,
     SP,
     IX,
@@ -62,7 +62,7 @@ enum AddressingMode {
     Extended,
     Indexed(IndexRegister, i8),
     Register(GPR),
-    Special(SpecialRegisters),
+    Special(SpecialRegister),
     Implied,
     RegisterIndirect(RegisterPair),
     RegisterPair(RegisterPair),
@@ -294,6 +294,38 @@ impl Z80A {
         }
     }
 
+    fn set_special_register(&mut self, reg: SpecialRegister, value: u16) {
+        match reg {
+            SpecialRegister::PC => self.PC = value,
+            SpecialRegister::SP => self.SP = value,
+            SpecialRegister::IX => self.IX = value,
+            SpecialRegister::IY => self.IY = value,
+            SpecialRegister::A => self.main_set.A = value as u8,
+            SpecialRegister::I => self.I = value as u8,
+            SpecialRegister::R => self.R = value as u8,
+            SpecialRegister::IXH => self.IX = (self.IX & 0x00FF) | ((value as u16) << 8),
+            SpecialRegister::IXL => self.IX = (self.IX & 0xFF00) | (value as u16),
+            SpecialRegister::IYH => self.IY = (self.IY & 0x00FF) | ((value as u16) << 8),
+            SpecialRegister::IYL => self.IY = (self.IY & 0xFF00) | (value as u16),
+        }
+    }
+
+    fn get_special_register(&self, reg: SpecialRegister) -> u16 {
+        match reg {
+            SpecialRegister::PC => self.PC,
+            SpecialRegister::SP => self.SP,
+            SpecialRegister::IX => self.IX,
+            SpecialRegister::IY => self.IY,
+            SpecialRegister::A => self.main_set.A as u16,
+            SpecialRegister::I => self.I as u16,
+            SpecialRegister::R => self.R as u16,
+            SpecialRegister::IXH => (self.IX >> 8) as u16,
+            SpecialRegister::IXL => (self.IX & 0x00FF) as u16,
+            SpecialRegister::IYH => (self.IY >> 8) as u16,
+            SpecialRegister::IYL => (self.IY & 0x00FF) as u16,
+        }
+    }
+
     fn set_register_pair(&mut self, pair: RegisterPair, value: u16) {
         match pair {
             RegisterPair::SP => self.SP = value,
@@ -345,24 +377,24 @@ impl Z80A {
         match addressing {
             PrefixAddressing::HL => reg,
             PrefixAddressing::IX => match reg {
-                AddressingMode::Register(GPR::H) => AddressingMode::Special(SpecialRegisters::IXH),
-                AddressingMode::Register(GPR::L) => AddressingMode::Special(SpecialRegisters::IXL),
+                AddressingMode::Register(GPR::H) => AddressingMode::Special(SpecialRegister::IXH),
+                AddressingMode::Register(GPR::L) => AddressingMode::Special(SpecialRegister::IXL),
                 AddressingMode::RegisterIndirect(RegisterPair::HL) => {
                     AddressingMode::Indexed(IndexRegister::IX, self.fetch_displacement())
                 }
                 AddressingMode::RegisterPair(RegisterPair::HL) => {
-                    AddressingMode::Special(SpecialRegisters::IX)
+                    AddressingMode::Special(SpecialRegister::IX)
                 }
                 _ => reg,
             },
             PrefixAddressing::IY => match reg {
-                AddressingMode::Register(GPR::H) => AddressingMode::Special(SpecialRegisters::IYH),
-                AddressingMode::Register(GPR::L) => AddressingMode::Special(SpecialRegisters::IYL),
+                AddressingMode::Register(GPR::H) => AddressingMode::Special(SpecialRegister::IYH),
+                AddressingMode::Register(GPR::L) => AddressingMode::Special(SpecialRegister::IYL),
                 AddressingMode::RegisterIndirect(RegisterPair::HL) => {
                     AddressingMode::Indexed(IndexRegister::IY, self.fetch_displacement())
                 }
                 AddressingMode::RegisterPair(RegisterPair::HL) => {
-                    AddressingMode::Special(SpecialRegisters::IY)
+                    AddressingMode::Special(SpecialRegister::IY)
                 }
                 _ => reg,
             },
@@ -650,20 +682,20 @@ impl Z80A {
                 6 => (), // TODO: IM y
                 7 => match y {
                     0 => self.ld(
-                        AddressingMode::Special(SpecialRegisters::I),
+                        AddressingMode::Special(SpecialRegister::I),
                         AddressingMode::Register(GPR::A),
                     ), //  LD I, A
                     1 => self.ld(
-                        AddressingMode::Special(SpecialRegisters::R),
+                        AddressingMode::Special(SpecialRegister::R),
                         AddressingMode::Register(GPR::A),
                     ), //  LD R, A
                     2 => self.ld(
                         AddressingMode::Register(GPR::A),
-                        AddressingMode::Special(SpecialRegisters::I),
+                        AddressingMode::Special(SpecialRegister::I),
                     ), //  LD A, I
                     3 => self.ld(
                         AddressingMode::Register(GPR::A),
-                        AddressingMode::Special(SpecialRegisters::R),
+                        AddressingMode::Special(SpecialRegister::R),
                     ), //  LD A, R
                     4 => (),                        // TODO: RRD
                     5 => (),                        // TODO: RLD
@@ -801,9 +833,9 @@ impl Z80A {
                 self.memory.borrow().read(address)
             }
             AddressingMode::Special(reg) => match reg {
-                SpecialRegisters::A => self.main_set.A,
-                SpecialRegisters::I => self.I,
-                SpecialRegisters::R => self.R,
+                SpecialRegister::A => self.main_set.A,
+                SpecialRegister::I => self.I,
+                SpecialRegister::R => self.R,
                 _ => panic!("Unsupported special register for LD"),
             },
             _ => panic!("Unsupported source addressing mode for LD"),
@@ -825,13 +857,13 @@ impl Z80A {
                 self.memory.borrow_mut().write(address, value)
             }
             AddressingMode::Special(reg) => match reg {
-                SpecialRegisters::A => self.main_set.A = value,
-                SpecialRegisters::I => self.I = value,
-                SpecialRegisters::R => self.R = value,
-                SpecialRegisters::IXH => self.IX = (self.IX & 0x00FF) | ((value as u16) << 8),
-                SpecialRegisters::IXL => self.IX = (self.IX & 0xFF00) | (value as u16),
-                SpecialRegisters::IYH => self.IY = (self.IY & 0x00FF) | ((value as u16) << 8),
-                SpecialRegisters::IYL => self.IY = (self.IY & 0xFF00) | (value as u16),
+                SpecialRegister::A => self.main_set.A = value,
+                SpecialRegister::I => self.I = value,
+                SpecialRegister::R => self.R = value,
+                SpecialRegister::IXH => self.IX = (self.IX & 0x00FF) | ((value as u16) << 8),
+                SpecialRegister::IXL => self.IX = (self.IX & 0xFF00) | (value as u16),
+                SpecialRegister::IYH => self.IY = (self.IY & 0x00FF) | ((value as u16) << 8),
+                SpecialRegister::IYL => self.IY = (self.IY & 0xFF00) | (value as u16),
                 _ => panic!("Unsupported special register for LD"),
             },
             _ => panic!("Unsupported destination addressing mode for LD"),
@@ -843,8 +875,8 @@ impl Z80A {
             AddressingMode::ImmediateExtended(nn) => nn,
             AddressingMode::Absolute(nn) => self.memory.borrow().read_word(nn),
             AddressingMode::RegisterPair(rp) => self.get_register_pair(rp),
-            AddressingMode::Special(SpecialRegisters::IX) => self.IX,
-            AddressingMode::Special(SpecialRegisters::IY) => self.IY,
+            AddressingMode::Special(SpecialRegister::IX) => self.IX,
+            AddressingMode::Special(SpecialRegister::IY) => self.IY,
             _ => panic!("Unsupported source addressing mode for LD 16"),
         };
 
@@ -853,9 +885,9 @@ impl Z80A {
             AddressingMode::Absolute(addr) => {
                 self.memory.borrow_mut().write_word(addr, value);
             }
-            AddressingMode::Special(SpecialRegisters::IX) => self.IX = value,
-            AddressingMode::Special(SpecialRegisters::IY) => self.IY = value,
-            AddressingMode::Special(SpecialRegisters::SP) => self.SP = value,
+            AddressingMode::Special(SpecialRegister::IX) => self.IX = value,
+            AddressingMode::Special(SpecialRegister::IY) => self.IY = value,
+            AddressingMode::Special(SpecialRegister::SP) => self.SP = value,
             _ => panic!("Unsupported destination addressing mode for LD 16"),
         }
     }

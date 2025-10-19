@@ -3,6 +3,7 @@ use crate::cpu::*;
 use rstest::rstest;
 
 #[rstest]
+// MAIN TABLE
 #[case::ld_b_b(GPR::B, GPR::B, 0x42)] // ld B, B
 #[case::ld_b_c(GPR::B, GPR::C, 0x34)] // ld B, C
 #[case::ld_b_d(GPR::B, GPR::D, 0x56)] // ld B, D
@@ -63,6 +64,7 @@ fn test_register_register(#[case] src: GPR, #[case] dest: GPR, #[case] value: u8
 }
 
 #[rstest]
+// MAIN TABLE
 #[case::ld_b_n(GPR::B, 0x34)] // ld B, n
 #[case::ld_d_n(GPR::D, 0x7F)] // ld D, n
 #[case::ld_h_n(GPR::H, 0x56)] // ld H, n
@@ -80,6 +82,7 @@ fn test_register_immediate(#[case] dest: GPR, #[case] value: u8) {
 }
 
 #[rstest]
+// MAIN TABLE
 #[case::ld_bc_nn(RegisterPair::BC, 0x12, 0x34)] // ld BC, nn
 #[case::ld_de_nn(RegisterPair::DE, 0x56, 0x78)] // ld DE, nn
 #[case::ld_hl_nn(RegisterPair::HL, 0x9A, 0xBC)] // ld HL, nn
@@ -95,6 +98,7 @@ fn test_register_pair_immediate(#[case] pair: RegisterPair, #[case] low: u8, #[c
 }
 
 #[rstest]
+// MAIN TABLE
 #[case::ld_bc_nn(RegisterPair::BC, GPR::A, 0x5619, 0x42)] // ld (BC), A
 #[case::ld_de_nn(RegisterPair::DE, GPR::A, 0x1234, 0x7F)] // ld (DE), A
 #[case::ld_hl_a(RegisterPair::HL, GPR::A, 0x9ABC, 0x56)] // ld (HL), A
@@ -121,6 +125,7 @@ fn test_register_pair_indirect_register(
 }
 
 #[rstest]
+// MAIN TABLE
 #[case::ld_a_bc(GPR::A, RegisterPair::BC, 0x5619, 0x42)] // ld A, (BC)
 #[case::ld_a_de(GPR::A, RegisterPair::DE, 0x1234, 0x7F)] // ld A, (DE)
 #[case::ld_b_hl(GPR::B, RegisterPair::HL, 0x9ABC, 0x56)] // ld B, (HL)
@@ -147,7 +152,8 @@ fn test_register_register_pair_indirect(
 }
 
 #[rstest]
-#[case::ld_bc_nn(RegisterPair::BC, 0x5619, 0x42)] // ld (BC), n
+// MAIN TABLE
+#[case::ld_bc_n(RegisterPair::HL, 0x5619, 0x42)] // ld (HL), n
 fn test_register_pair_indirect_immediate(
     #[case] pair: RegisterPair,
     #[case] addr: u16,
@@ -163,6 +169,7 @@ fn test_register_pair_indirect_immediate(
 }
 
 #[rstest]
+// MAIN TABLE
 #[case::ld_a_nn(GPR::A, 0x1234, 0x7F)] // ld A, (nn)
 fn test_register_absolute(#[case] dest: GPR, #[case] addr: u16, #[case] value: u8) {
     let mut cpu = setup_cpu();
@@ -175,7 +182,13 @@ fn test_register_absolute(#[case] dest: GPR, #[case] addr: u16, #[case] value: u
 }
 
 #[rstest]
+// MAIN TABLE
 #[case::ld_hl_nn(RegisterPair::HL, 0x9ABC, 0x56)] // ld HL, (nn)
+
+// ED TABLE
+#[case::ld_bc_nn(RegisterPair::BC, 0x5619, 0x42)] // ld BC, (nn)
+#[case::ld_de_nn(RegisterPair::DE, 0x1234, 0x7F)] // ld DE, (nn)
+#[case::ld_sp_nn(RegisterPair::SP, 0xDEF0, 0x78)] // ld SP, (nn)
 fn test_register_pair_absolute(#[case] pair: RegisterPair, #[case] addr: u16, #[case] value: u8) {
     let mut cpu = setup_cpu();
     cpu.memory.borrow_mut().write(addr, value);
@@ -187,6 +200,7 @@ fn test_register_pair_absolute(#[case] pair: RegisterPair, #[case] addr: u16, #[
 }
 
 #[rstest]
+// MAIN TABLE
 #[case::ld_nn_a(0x1234, 0x7F)] // ld (nn), A
 fn test_absolute_register(#[case] addr: u16, #[case] value: u8) {
     let mut cpu = setup_cpu();
@@ -196,4 +210,39 @@ fn test_absolute_register(#[case] addr: u16, #[case] value: u8) {
         AddressingMode::Register(GPR::A),
     );
     assert_eq!(cpu.memory.borrow().read(addr), value);
+}
+
+#[rstest]
+// ED TABLE
+#[case::ld_nn_bc(0x5619, 0x42)] // ld (nn), BC
+#[case::ld_nn_de(0x1234, 0x7F)] // ld (nn), DE
+#[case::ld_nn_hl(0x9ABC, 0x56)] // ld (nn), HL
+#[case::ld_nn_sp(0xDEF0, 0x78)] // ld (nn), SP
+fn test_absolute_register_pair(#[case] addr: u16, #[case] value: u16) {
+    let mut cpu = setup_cpu();
+    cpu.set_register_pair(RegisterPair::BC, value);
+    cpu.ld_16(
+        AddressingMode::Absolute(addr),
+        AddressingMode::RegisterPair(RegisterPair::BC),
+    );
+    assert_eq!(cpu.memory.borrow().read_word(addr), value);
+}
+
+#[rstest]
+// ED TABLE
+#[case::ld_i_a(SpecialRegister::I, SpecialRegister::A)] // ld I, A
+#[case::ld_a_i(SpecialRegister::A, SpecialRegister::I)] // ld A, I
+#[case::ld_r_a(SpecialRegister::R, SpecialRegister::A)] // ld R, A
+#[case::ld_a_r(SpecialRegister::A, SpecialRegister::R)] // ld A, R
+fn test_special_register_special_register(
+    #[case] dest: SpecialRegister,
+    #[case] src: SpecialRegister,
+) {
+    let mut cpu = setup_cpu();
+    cpu.set_special_register(src, 0x42);
+    cpu.ld(
+        AddressingMode::Special(dest),
+        AddressingMode::Special(src),
+    );
+    assert_eq!(cpu.get_special_register(dest), 0x42);
 }
