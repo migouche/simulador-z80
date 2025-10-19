@@ -287,6 +287,13 @@ impl Z80A {
         self.main_set.get_register(reg)
     }
 
+    fn get_register_pair(&self, pair: RegisterPair) -> u16 {
+        match pair {
+            RegisterPair::SP => self.SP,
+            _ => self.main_set.get_pair(pair),
+        }
+    }
+
     fn set_register_pair(&mut self, pair: RegisterPair, value: u16) {
         match pair {
             RegisterPair::SP => self.SP = value,
@@ -781,7 +788,7 @@ impl Z80A {
             AddressingMode::Register(r) => self.main_set.get_register(r),
             AddressingMode::Immediate(n) => n,
             AddressingMode::RegisterIndirect(rp) => {
-                let address = self.main_set.get_pair(rp);
+                let address = self.get_register_pair(rp);
                 self.memory.borrow().read(address)
             }
             AddressingMode::Absolute(address) => self.memory.borrow().read(address),
@@ -805,7 +812,7 @@ impl Z80A {
         match dest {
             AddressingMode::Register(r) => self.main_set.set_register(r, value),
             AddressingMode::RegisterIndirect(rp) => {
-                let address = self.main_set.get_pair(rp);
+                let address = self.get_register_pair(rp);
                 self.memory.borrow_mut().write(address, value)
             }
             AddressingMode::Absolute(address) => self.memory.borrow_mut().write(address, value),
@@ -835,26 +842,14 @@ impl Z80A {
         let value = match src {
             AddressingMode::ImmediateExtended(nn) => nn,
             AddressingMode::Absolute(nn) => self.memory.borrow().read_word(nn),
-            AddressingMode::RegisterPair(rp) => {
-                if rp == RegisterPair::SP {
-                    self.SP
-                } else {
-                    self.main_set.get_pair(rp)
-                }
-            }
+            AddressingMode::RegisterPair(rp) => self.get_register_pair(rp),
             AddressingMode::Special(SpecialRegisters::IX) => self.IX,
             AddressingMode::Special(SpecialRegisters::IY) => self.IY,
             _ => panic!("Unsupported source addressing mode for LD 16"),
         };
 
         match dest {
-            AddressingMode::RegisterPair(rp) => {
-                if rp == RegisterPair::SP {
-                    self.SP = value;
-                } else {
-                    self.main_set.set_pair(rp, value);
-                }
-            }
+            AddressingMode::RegisterPair(rp) => self.set_register_pair(rp, value),
             AddressingMode::Absolute(addr) => {
                 self.memory.borrow_mut().write_word(addr, value);
             }
