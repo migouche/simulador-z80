@@ -49,7 +49,16 @@ jobs:
 
           # Upload to Gist
           curl -X PATCH \
+          curl -X PATCH \
             -H "Authorization: token $GIST_TOKEN" \
             -H "Content-Type: application/json" \
-            -d "{\"files\": {\"coverage.json\": {\"content\": \"$(jq -c . coverage.json)\"}}}" \
-            https://api.github.com/gists/49a8384882f617ed2ce5fb36bb2fa343
+            -d @- \
+            https://api.github.com/gists/49a8384882f617ed2ce5fb36bb2fa343 <<EOF
+            {
+            "files": {
+                "coverage.json": {
+                "content": $CONTENT
+                }
+            }
+            }
+            EOF
