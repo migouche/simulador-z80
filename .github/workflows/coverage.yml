@@ -1,0 +1,55 @@
+name: Update Coverage Badge
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install Tarpaulin
+        run: cargo install cargo-tarpaulin
+
+      - name: Run Tarpaulin
+        run: cargo tarpaulin --out Json
+
+      - name: Parse coverage and update gist
+        env:
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+        run: |
+          set -e
+          # Extract numeric coverage (integer or float)
+          COVERAGE=$(jq '.coverage' tarpaulin-report.json)
+          echo "Coverage: $COVERAGE"
+
+          # Pick color based on coverage %
+          COLOR="red"
+          if (( $(echo "$COVERAGE > 80" | bc -l) )); then COLOR="green"
+          elif (( $(echo "$COVERAGE > 50" | bc -l) )); then COLOR="yellow"
+          fi
+
+          # Create JSON for badge
+          cat <<EOF > coverage.json
+          {
+            "schemaVersion": 1,
+            "label": "coverage",
+            "message": "${COVERAGE}%",
+            "color": "$COLOR"
+          }
+          EOF
+
+          # Upload to Gist
+          curl -X PATCH \
+            -H "Authorization: token $GIST_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"files\": {\"coverage.json\": {\"content\": \"$(jq -c . coverage.json)\"}}}" \
+            https://api.github.com/gists/49a8384882f617ed2ce5fb36bb2fa343
