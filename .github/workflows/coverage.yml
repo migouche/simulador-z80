@@ -38,27 +38,28 @@ jobs:
           fi
 
           # Create JSON for badge
-          cat <<EOF > coverage.json
+          cat <<EOJ > coverage.json
           {
             "schemaVersion": 1,
             "label": "coverage",
             "message": "${COVERAGE}%",
             "color": "$COLOR"
           }
-          EOF
+          EOJ
+
+          CONTENT=$(jq -Rs . coverage.json)
 
           # Upload to Gist
-          curl -X PATCH \
           curl -X PATCH \
             -H "Authorization: token $GIST_TOKEN" \
             -H "Content-Type: application/json" \
             -d @- \
             https://api.github.com/gists/49a8384882f617ed2ce5fb36bb2fa343 <<EOF
-            {
+          {
             "files": {
-                "coverage.json": {
+              "coverage.json": {
                 "content": $CONTENT
-                }
+              }
             }
-            }
-            EOF
+          }
+          EOF
