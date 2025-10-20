@@ -29,6 +29,8 @@ jobs:
           set -e
           # Extract numeric coverage (integer or float)
           COVERAGE=$(jq '.coverage' tarpaulin-report.json)
+          # cap to 2 decimal places
+          COVERAGE=$(printf "%.2f" "$COVERAGE")
           echo "Coverage: $COVERAGE"
 
           # Pick color based on coverage %
