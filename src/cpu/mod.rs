@@ -333,6 +333,20 @@ impl Z80A {
         }
     }
 
+    fn get_index_register(&self, index: IndexRegister) -> u16 {
+        match index {
+            IndexRegister::IX => self.IX,
+            IndexRegister::IY => self.IY,
+        }
+    }
+
+    fn set_index_register(&mut self, index: IndexRegister, value: u16) {
+        match index {
+            IndexRegister::IX => self.IX = value,
+            IndexRegister::IY => self.IY = value,
+        }
+    }
+
     // TABLES FROM http://www.z80.info/decoding.htm
 
     fn table_r(p: u8) -> AddressingMode {

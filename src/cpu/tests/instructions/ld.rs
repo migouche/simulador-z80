@@ -218,6 +218,8 @@ fn test_absolute_register(#[case] addr: u16, #[case] value: u8) {
 #[case::ld_nn_de(0x1234, 0x7F)] // ld (nn), DE
 #[case::ld_nn_hl(0x9ABC, 0x56)] // ld (nn), HL
 #[case::ld_nn_sp(0xDEF0, 0x78)] // ld (nn), SP
+// DD TABLE
+#[case::ld_nn_ix(0x3456, 0x9A)] // ld (nn), IX
 fn test_absolute_register_pair(#[case] addr: u16, #[case] value: u16) {
     let mut cpu = setup_cpu();
     cpu.set_register_pair(RegisterPair::BC, value);
@@ -245,4 +247,51 @@ fn test_special_register_special_register(
         AddressingMode::Special(src),
     );
     assert_eq!(cpu.get_special_register(dest), 0x42);
+}
+#[rstest]
+// DD TABLE
+#[case::ld_ixh_n(SpecialRegister::IXH, 0x34)] // ld IXH, n
+#[case::ld_ixl_n(SpecialRegister::IXL, 0x12)] // ld IXL, n
+fn test_special_register_immediate(
+    #[case] dest: SpecialRegister,
+    #[case] value: u8,
+) {
+    let mut cpu = setup_cpu();
+    cpu.ld(
+        AddressingMode::Special(dest),
+        AddressingMode::Immediate(value),
+    );
+    assert_eq!(cpu.get_special_register(dest) as u8 , value);
+}
+
+#[rstest]
+// DD TABLE
+#[case::ld_ix_nn(SpecialRegister::IX, 0x3412)] // ld IX, (nn)
+fn test_special_register_immediate_extended(
+    #[case] dest: SpecialRegister,
+    #[case] value: u16,
+) {
+    let mut cpu = setup_cpu();
+    cpu.ld_16(
+        AddressingMode::Special(dest),
+        AddressingMode::ImmediateExtended(value),
+    );
+    assert_eq!(cpu.get_special_register(dest), value);
+}
+
+#[rstest]
+// DD TABLE
+#[case::ld_ixd_n(IndexRegister::IX, 0x1234, 0x42)] // ld (IX+d), n
+fn test_indexed_immediate(
+    #[case] base: IndexRegister,
+    #[case] addr: u16,
+    #[case] value: u8,
+) {
+    let mut cpu = setup_cpu();
+    cpu.set_index_register(base, addr);
+    cpu.ld(
+        AddressingMode::Indexed(base, 0),
+        AddressingMode::Immediate(value),
+    );
+    assert_eq!(cpu.memory.borrow().read(addr), value);
 }
