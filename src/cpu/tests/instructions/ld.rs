@@ -295,3 +295,67 @@ fn test_indexed_immediate(
     );
     assert_eq!(cpu.memory.borrow().read(addr), value);
 }
+
+#[rstest]
+// DD TABLE
+#[case::ld_b_ixh(GPR::B, SpecialRegister::IXH, 0x12)] // ld B, IXH
+#[case::ld_b_ixl(GPR::B, SpecialRegister::IXL, 0x34)] // ld B, IXL
+#[case::ld_c_ixh(GPR::C, SpecialRegister::IXH, 0x12)] // ld C, IXH
+#[case::ld_c_ixl(GPR::C, SpecialRegister::IXL, 0x34)] // ld C, IXL
+
+fn test_register_special_register(
+    #[case] dest: GPR,
+    #[case] src: SpecialRegister,
+    #[case] value: u8,
+) {
+    let mut cpu = setup_cpu();
+    cpu.set_special_register(src, value as u16);
+    cpu.ld(
+        AddressingMode::Register(dest),
+        AddressingMode::Special(src),
+    );
+    assert_eq!(cpu.get_register(dest) , value);
+}
+
+#[rstest]
+// DD TABLE
+#[case::ld_ixh_b(SpecialRegister::IXH, GPR::B, 0x34)] // ld IXH, B
+fn test_special_register_register(
+    #[case] dest: SpecialRegister,
+    #[case] src: GPR,
+    #[case] value: u8,
+) {
+    let mut cpu = setup_cpu();
+    cpu.set_register(src, value);
+    cpu.ld(
+        AddressingMode::Special(dest),
+        AddressingMode::Register(src),
+    );
+    assert_eq!(cpu.get_special_register(dest) as u8 , value);
+}
+
+#[rstest]
+// DD TABLE
+#[case::ld_b_ixd(GPR::B, IndexRegister::IX, 0x1234, 0x42, 0x01)] // ld B, (IX+d)
+#[case::ld_c_ixd(GPR::C, IndexRegister::IX, 0x1234, 0x56, 0xFE)] // ld C, (IX+d)
+#[case::ld_d_ixd(GPR::D, IndexRegister::IX, 0x1234, 0x78, 0x10)] // ld D, (IX+d)
+#[case::ld_e_ixd(GPR::E, IndexRegister::IX, 0x1234, 0x4A, 0xF0)] // ld E, (IX+d)
+#[case::ld_h_ixd(GPR::H, IndexRegister::IX, 0x1234, 0x4C, 0x7F)] // ld H, (IX+d)
+#[case::ld_l_ixd(GPR::L, IndexRegister::IX, 0x1234, 0x3E, 0x80)] // ld L, (IX+d)
+#[case::ld_a_ixd(GPR::A, IndexRegister::IX, 0x1234, 0x4F, 0x00)] // ld A, (IX+d)
+fn test_register_indexed(
+    #[case] dest: GPR,
+    #[case] base: IndexRegister,
+    #[case] addr: u16,
+    #[case] displacement: i8,
+    #[case] value: u8,
+) {
+    let mut cpu = setup_cpu();
+    cpu.memory.borrow_mut().write(addr.wrapping_add_signed(displacement as i16), value);
+    cpu.set_index_register(base, addr);
+    cpu.ld(
+        AddressingMode::Register(dest),
+        AddressingMode::Indexed(base, displacement),
+    );
+    assert_eq!(cpu.get_register(dest), value);
+}

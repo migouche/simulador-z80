@@ -845,13 +845,8 @@ impl Z80A {
                 };
                 let address = base.wrapping_add_signed(displacement as i16);
                 self.memory.borrow().read(address)
-            }
-            AddressingMode::Special(reg) => match reg {
-                SpecialRegister::A => self.main_set.A,
-                SpecialRegister::I => self.I,
-                SpecialRegister::R => self.R,
-                _ => panic!("Unsupported special register for LD"),
             },
+            AddressingMode::Special(reg) => self.get_special_register(reg) as u8,
             _ => panic!("Unsupported source addressing mode for LD"),
         };
 
@@ -870,16 +865,7 @@ impl Z80A {
                 let address = base.wrapping_add_signed(displacement as i16);
                 self.memory.borrow_mut().write(address, value)
             }
-            AddressingMode::Special(reg) => match reg {
-                SpecialRegister::A => self.main_set.A = value,
-                SpecialRegister::I => self.I = value,
-                SpecialRegister::R => self.R = value,
-                SpecialRegister::IXH => self.IX = (self.IX & 0x00FF) | ((value as u16) << 8),
-                SpecialRegister::IXL => self.IX = (self.IX & 0xFF00) | (value as u16),
-                SpecialRegister::IYH => self.IY = (self.IY & 0x00FF) | ((value as u16) << 8),
-                SpecialRegister::IYL => self.IY = (self.IY & 0xFF00) | (value as u16),
-                _ => panic!("Unsupported special register for LD"),
-            },
+            AddressingMode::Special(reg) => self.set_special_register(reg, value as u16),
             _ => panic!("Unsupported destination addressing mode for LD"),
         }
     }
