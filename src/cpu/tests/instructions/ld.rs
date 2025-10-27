@@ -242,35 +242,26 @@ fn test_special_register_special_register(
 ) {
     let mut cpu = setup_cpu();
     cpu.set_special_register(src, 0x42);
-    cpu.ld(
-        AddressingMode::Special(dest),
-        AddressingMode::Special(src),
-    );
+    cpu.ld(AddressingMode::Special(dest), AddressingMode::Special(src));
     assert_eq!(cpu.get_special_register(dest), 0x42);
 }
 #[rstest]
 // DD TABLE
 #[case::ld_ixh_n(SpecialRegister::IXH, 0x34)] // ld IXH, n
 #[case::ld_ixl_n(SpecialRegister::IXL, 0x12)] // ld IXL, n
-fn test_special_register_immediate(
-    #[case] dest: SpecialRegister,
-    #[case] value: u8,
-) {
+fn test_special_register_immediate(#[case] dest: SpecialRegister, #[case] value: u8) {
     let mut cpu = setup_cpu();
     cpu.ld(
         AddressingMode::Special(dest),
         AddressingMode::Immediate(value),
     );
-    assert_eq!(cpu.get_special_register(dest) as u8 , value);
+    assert_eq!(cpu.get_special_register(dest) as u8, value);
 }
 
 #[rstest]
 // DD TABLE
 #[case::ld_ix_nn(SpecialRegister::IX, 0x3412)] // ld IX, (nn)
-fn test_special_register_immediate_extended(
-    #[case] dest: SpecialRegister,
-    #[case] value: u16,
-) {
+fn test_special_register_immediate_extended(#[case] dest: SpecialRegister, #[case] value: u16) {
     let mut cpu = setup_cpu();
     cpu.ld_16(
         AddressingMode::Special(dest),
@@ -282,11 +273,7 @@ fn test_special_register_immediate_extended(
 #[rstest]
 // DD TABLE
 #[case::ld_ixd_n(IndexRegister::IX, 0x1234, 0x42)] // ld (IX+d), n
-fn test_indexed_immediate(
-    #[case] base: IndexRegister,
-    #[case] addr: u16,
-    #[case] value: u8,
-) {
+fn test_indexed_immediate(#[case] base: IndexRegister, #[case] addr: u16, #[case] value: u8) {
     let mut cpu = setup_cpu();
     cpu.set_index_register(base, addr);
     cpu.ld(
@@ -310,11 +297,8 @@ fn test_register_special_register(
 ) {
     let mut cpu = setup_cpu();
     cpu.set_special_register(src, value as u16);
-    cpu.ld(
-        AddressingMode::Register(dest),
-        AddressingMode::Special(src),
-    );
-    assert_eq!(cpu.get_register(dest) , value);
+    cpu.ld(AddressingMode::Register(dest), AddressingMode::Special(src));
+    assert_eq!(cpu.get_register(dest), value);
 }
 
 #[rstest]
@@ -327,11 +311,8 @@ fn test_special_register_register(
 ) {
     let mut cpu = setup_cpu();
     cpu.set_register(src, value);
-    cpu.ld(
-        AddressingMode::Special(dest),
-        AddressingMode::Register(src),
-    );
-    assert_eq!(cpu.get_special_register(dest) as u8 , value);
+    cpu.ld(AddressingMode::Special(dest), AddressingMode::Register(src));
+    assert_eq!(cpu.get_special_register(dest) as u8, value);
 }
 
 #[rstest]
@@ -351,7 +332,9 @@ fn test_register_indexed(
     #[case] value: u8,
 ) {
     let mut cpu = setup_cpu();
-    cpu.memory.borrow_mut().write(addr.wrapping_add_signed(displacement as i16), value);
+    cpu.memory
+        .borrow_mut()
+        .write(addr.wrapping_add_signed(displacement as i16), value);
     cpu.set_index_register(base, addr);
     cpu.ld(
         AddressingMode::Register(dest),

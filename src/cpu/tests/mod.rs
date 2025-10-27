@@ -2,10 +2,17 @@ use std::{cell::RefCell, rc::Rc};
 
 use crate::{cpu::Z80A, traits::MemoryMapper};
 
+pub mod decoding;
 pub mod instructions;
 
 struct MockMemory {
     data: [u8; 0xFFFF],
+}
+
+impl MockMemory {
+    fn new() -> Self {
+        Self { data: [0; 0xFFFF] }
+    }
 }
 
 impl MemoryMapper for MockMemory {

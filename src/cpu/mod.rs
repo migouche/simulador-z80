@@ -1,8 +1,24 @@
+use std::cell::RefCell;
+#[cfg(test)]
+use std::collections::VecDeque;
 use std::rc::Rc;
 use std::usize;
-use std::{cell::RefCell, ops::Add};
 
 use crate::traits::{MemoryMapper, SyncronousComponent};
+
+#[cfg(test)]
+macro_rules! test_log {
+    ($self:expr, $msg:expr) => {
+        $self.test_callback.1($msg, &mut $self.test_callback.0)
+    };
+}
+
+#[cfg(not(test))]
+macro_rules! test_log {
+    ($self:expr, $msg:expr) => {
+        ()
+    };
+}
 
 #[derive(PartialEq, Clone, Copy)]
 enum GPR {
@@ -209,6 +225,12 @@ pub struct Z80A {
     memory: Rc<RefCell<dyn MemoryMapper>>,
 
     cycles: u64,
+
+    #[cfg(test)]
+    test_callback: (
+        VecDeque<String>,
+        Box<dyn FnMut(&str, &mut VecDeque<String>)>,
+    ),
 }
 
 impl Z80A {
@@ -242,6 +264,12 @@ impl Z80A {
             R: 0,
             memory,
             cycles: 0,
+
+            #[cfg(test)]
+            test_callback: (
+                VecDeque::new(),
+                Box::new(|s, q| q.push_front(s.to_string())),
+            ),
         }
     }
 
@@ -416,45 +444,66 @@ impl Z80A {
     }
 
     fn decode_unprefixed(&mut self, opcode: u8, addressing: PrefixAddressing) -> () {
+        test_log!(self, "decode_unprefixed");
+
         let (x, y, z, p, q) = decode_opcode(opcode);
         match x {
             0 => match z {
                 0 => match y {
                     // Relative jumps and assorted ops
-                    0 => (), // NOP
-                    1 => self.swap_registers(
-                        RegisterPair::AF,
-                        RegSet::Main,
-                        RegisterPair::AF,
-                        RegSet::Alt,
-                    ), // EX AF, AF'
-                    2 => (), // TODO: DJNZ d
-                    3..=7 => (), // TODO: JR cc[y-4], d
+                    0 => test_log!(self, "NOP"), // NOP
+
+                    1 => {
+                        test_log!(self, "EX AF, AF'");
+                        self.swap_registers(
+                            RegisterPair::AF,
+                            RegSet::Main,
+                            RegisterPair::AF,
+                            RegSet::Alt,
+                        ); // EX AF, AF'
+                    }
+                    2 => {
+                        // TODO: DJNZ d
+                        test_log!(self, "DJNZ d");
+                    }
+                    3 => { // TODO: JR d
+                        test_log!(self, "JR d");
+
+                    }
+                    4..=7 => test_log!(self, "JR cc[y-4], d"),                    // TODO: JR cc[y-4], d
                     _ => panic!("Invalid y value"), // should never happen
                 },
 
                 1 => {
                     if q {
+                        test_log!(self, "ADD HL, rp[p]"); // TODO: ADD HL, rp[p]
+                    } else {
                         // 16-bit load immediate/add
                         // LD rp[p], nn
+                        test_log!(self, "LD rp[p], nn");
                         let nn = self.fetch_word();
                         self.ld_16(Self::table_rp(p), AddressingMode::ImmediateExtended(nn));
-                    } else {
-                        () // TODO: ADD HL, rp[p]
                     }
                 }
 
                 2 => match (q, p) {
                     // Indirect loading
-                    (false, 0) => self.ld(
-                        AddressingMode::RegisterIndirect(RegisterPair::BC),
-                        AddressingMode::Register(GPR::A),
-                    ), // LD (BC), A
-                    (false, 1) => self.ld(
-                        AddressingMode::RegisterIndirect(RegisterPair::DE),
-                        AddressingMode::Register(GPR::A),
-                    ), // LD (DE), A
+                    (false, 0) => {
+                        test_log!(self, "LD (BC), A");
+                        self.ld(
+                            AddressingMode::RegisterIndirect(RegisterPair::BC),
+                            AddressingMode::Register(GPR::A),
+                        )
+                    } // LD (BC), A
+                    (false, 1) => {
+                        test_log!(self, "LD (DE), A");
+                        self.ld(
+                            AddressingMode::RegisterIndirect(RegisterPair::DE),
+                            AddressingMode::Register(GPR::A),
+                        )
+                    } // LD (DE), A
                     (false, 2) => {
+                        test_log!(self, "LD (nn), HL/IX/IY");
                         let addr = self.fetch_word();
                         let transformed = self.transform_register(
                             AddressingMode::RegisterPair(RegisterPair::HL),
@@ -463,21 +512,29 @@ impl Z80A {
                         self.ld_16(AddressingMode::Absolute(addr), transformed)
                     } // LD (nn), HL or LD (nn), IX/IY
                     (false, 3) => {
+                        test_log!(self, "LD (nn), A");
                         let addr = self.fetch_word();
                         self.ld(
                             AddressingMode::Absolute(addr),
                             AddressingMode::Register(GPR::A),
                         )
                     } // LD (nn), A
-                    (true, 0) => self.ld(
-                        AddressingMode::Register(GPR::A),
-                        AddressingMode::RegisterIndirect(RegisterPair::BC),
-                    ), // LD A, (BC)
-                    (true, 1) => self.ld(
-                        AddressingMode::Register(GPR::A),
-                        AddressingMode::RegisterIndirect(RegisterPair::DE),
-                    ), // LD A, (DE)
+                    (true, 0) => {
+                        test_log!(self, "LD A, (BC)");
+                        self.ld(
+                            AddressingMode::Register(GPR::A),
+                            AddressingMode::RegisterIndirect(RegisterPair::BC),
+                        )
+                    } // LD A, (BC)
+                    (true, 1) => {
+                        test_log!(self, "LD A, (DE)");
+                        self.ld(
+                            AddressingMode::Register(GPR::A),
+                            AddressingMode::RegisterIndirect(RegisterPair::DE),
+                        )
+                    } // LD A, (DE)
                     (true, 2) => {
+                        test_log!(self, "LD HL/IX/IY, (nn)");
                         let addr = self.fetch_word();
                         let transformed = self.transform_register(
                             AddressingMode::RegisterPair(RegisterPair::HL),
@@ -486,6 +543,7 @@ impl Z80A {
                         self.ld_16(transformed, AddressingMode::Absolute(addr))
                     } // LD HL, (nn) or LD IX/IY, (nn)
                     (true, 3) => {
+                        test_log!(self, "LD A, (nn)");
                         let addr = self.fetch_word();
                         self.ld(
                             AddressingMode::Register(GPR::A),
@@ -496,17 +554,20 @@ impl Z80A {
                 },
 
                 3 => {
-                    if q {
+                    if !q {
                         // 16-bit INC/DEC
+                        test_log!(self, "INC rp[p]");
                         () // TODO: INC rp[p]
                     } else {
+                        test_log!(self, "DEC rp[p]");
                         () // TODO: DEC rp[p]
                     }
                 }
 
-                4 => (), // TODO: INC r[y]
-                5 => (), // TODO: DEC r[y]
+                4 => test_log!(self, "INC r[y]"), // TODO: INC r[y]
+                5 => test_log!(self, "DEC r[y]"), // TODO: DEC r[y]
                 6 => {
+                    test_log!(self, "LD r[y], n");
                     let n = self.fetch();
                     let dest = self.transform_register(Self::table_r(y), addressing);
                     self.ld(dest, AddressingMode::Immediate(n))
@@ -514,26 +575,27 @@ impl Z80A {
                 7 => {
                     // Assorted operations on accumulator/flags
                     match y {
-                        0 => (),                        // TODO: RLCA
-                        1 => (),                        // TODO: RRCA
-                        2 => (),                        // TODO: RLA
-                        3 => (),                        // TODO: RRA
-                        4 => (),                        // TODO: DAA
-                        5 => (),                        // TODO: CPL
-                        6 => (),                        // TODO: SCF
-                        7 => (),                        // TODO: CCF
+                        0 => test_log!(self, "RLCA"),   // TODO: RLCA
+                        1 => test_log!(self, "RRCA"),   // TODO: RRCA
+                        2 => test_log!(self, "RLA"),    // TODO: RLA
+                        3 => test_log!(self, "RRA"),    // TODO: RRA
+                        4 => test_log!(self, "DAA"),    // TODO: DAA
+                        5 => test_log!(self, "CPL"),    // TODO: CPL
+                        6 => test_log!(self, "SCF"),    // TODO: SCF
+                        7 => test_log!(self, "CCF"),    // TODO: CCF
                         _ => panic!("Invalid y value"), // should never happen
                     }
                 }
                 _ => panic!("Invalid z value"), // should never happen
             },
             1 => match y {
-                6 => (), // TODO: HALT
+                6 => test_log!(self, "HALT"), // TODO: HALT
                 _ => {
                     if y > 7 {
                         // 8-bit loading
                         panic!("Invalid y value") // should never happen
                     } else {
+                        test_log!(self, "LD r[y], r[z]");
                         let dest = self.transform_register(Self::table_r(y), addressing);
                         let src = self.transform_register(Self::table_r(z), addressing);
                         self.ld(dest, src); // LD r[y], r[z] (still have to transform r[y] and r[z] if IX/IY prefixed)
@@ -542,14 +604,15 @@ impl Z80A {
                 }
             },
 
-            2 => (), // TODO: ALU[y] r[z]
+            2 => test_log!(self, "ALU[y] r[z]"), // TODO: ALU[y] r[z]
             3 => match z {
-                0 => (), // TODO: RET cc[y]
+                0 => test_log!(self, "RET cc[y]"), // TODO: RET cc[y]
                 1 => match (q, p) {
                     // POP & various ops
-                    (false, _) => (), // TODO: POP rp2[p]
-                    (true, 0) => (),  // TODO: RET
+                    (false, _) => test_log!(self, "POP rp2[p]"), // TODO: POP rp2[p]
+                    (true, 0) => test_log!(self, "RET"),         // TODO: RET
                     (true, 1) => {
+                        test_log!(self, "EXX");
                         // EXX
                         self.swap_registers(
                             RegisterPair::BC,
@@ -570,19 +633,20 @@ impl Z80A {
                             RegSet::Alt,
                         );
                     }
-                    (true, 2) => (),                    // TODO: JP HL
-                    (true, 3) => (),                    // TODO: LD SP, HL
-                    _ => panic!("Invalid q, p values"), // should never happen
+                    (true, 2) => test_log!(self, "JP HL"), // TODO: JP HL
+                    (true, 3) => test_log!(self, "LD SP, HL"), // TODO: LD SP, HL
+                    _ => panic!("Invalid q, p values"),    // should never happen
                 },
-                2 => (), // TODO: JP cc[y], nn
+                2 => test_log!(self, "JP cc[y], nn"), // TODO: JP cc[y], nn
                 3 => match y {
                     // Assorted operations
-                    0 => (), // TODO: JP nn
-                    1 => (), // TODO: CB prefix
-                    2 => (), // TODO: OUT (n), A
-                    3 => (), // TODO: IN A, (n)
+                    0 => test_log!(self, "JP nn"),      // TODO: JP nn
+                    1 => test_log!(self, "CB prefix"),  // TODO: CB prefix
+                    2 => test_log!(self, "OUT (n), A"), // TODO: OUT (n), A
+                    3 => test_log!(self, "IN A, (n)"),  // TODO: IN A, (n)
                     4 => {
                         // EX (SP), HL (or EX (SP), IX/IY if prefixed)
+                        test_log!(self, "EX (SP), HL/IX/IY");
                         let temp_l = self.memory.borrow().read(self.SP);
                         let temp_h = self.memory.borrow().read(self.SP.wrapping_add(1));
                         let register_pair = self.transform_register(
@@ -605,125 +669,144 @@ impl Z80A {
                             panic!("Invalid addressing mode for EX (SP), HL/IX/IY"); // should never happen
                         }
                     }
-                    5 => self.swap_registers(
-                        RegisterPair::DE,
-                        RegSet::Main,
-                        RegisterPair::HL,
-                        RegSet::Main,
-                    ), // EX DE, HL (NOTE: REMAINS UNCHANGED)
-                    6 => (),                        // TODO: DI
-                    7 => (),                        // TODO: EI
+                    5 => {
+                        test_log!(self, "EX DE, HL");
+                        self.swap_registers(
+                            RegisterPair::DE,
+                            RegSet::Main,
+                            RegisterPair::HL,
+                            RegSet::Main,
+                        )
+                    } // EX DE, HL (NOTE: REMAINS UNCHANGED)
+                    6 => test_log!(self, "DI"),     // TODO: DI
+                    7 => test_log!(self, "EI"),     // TODO: EI
                     _ => panic!("Invalid y value"), // should never happen
                 },
-                4 => (), // TODO: CALL cc[y], nn
+                4 => test_log!(self, "CALL cc[y], nn"), // TODO: CALL cc[y], nn
                 5 => match (q, p) {
                     // PUSH & various ops
-                    (false, _) => (),                   // TODO: PUSH rp2[p]
-                    (true, 0) => (),                    // TODO: CALL nn
-                    (true, 1) => (),                    // TODO: DD prefix
-                    (true, 2) => (),                    // TODO: ED prefix
-                    (true, 3) => (),                    // TODO: FD prefix
-                    _ => panic!("Invalid q, p values"), // should never happen
+                    (false, _) => test_log!(self, "PUSH rp2[p]"), // TODO: PUSH rp2[p]
+                    (true, 0) => test_log!(self, "CALL nn"),      // TODO: CALL nn
+                    (true, 1) => test_log!(self, "DD prefix"),    // TODO: DD prefix
+                    (true, 2) => test_log!(self, "ED prefix"),    // TODO: ED prefix
+                    (true, 3) => test_log!(self, "FD prefix"),    // TODO: FD prefix
+                    _ => panic!("Invalid q, p values"),           // should never happen
                 },
-                6 => (),                        // TODO: ALU[y] n
-                7 => (),                        // TODO: RST y*8
-                _ => panic!("Invalid z value"), // should never happen
+                6 => test_log!(self, "ALU[y] n"), // TODO: ALU[y] n
+                7 => test_log!(self, "RST y*8"),  // TODO: RST y*8
+                _ => panic!("Invalid z value"),   // should never happen
             },
             _ => panic!("Invalid x value"), // should never happen
         }
     }
 
     fn decode_cb(&mut self, opcode: u8) -> () {
+        test_log!(self, "decode_cb");
         let (x, y, z, p, q) = decode_opcode(opcode);
         match x {
-            0 => (),                        // TODO: rot[y] r[z]
-            1 => (),                        // TODO: BIT y, r[z]
-            2 => (),                        // TODO: RES y, r[z]
-            3 => (),                        // TODO: SET y, r[z]
-            _ => panic!("Invalid x value"), // should never happen
+            0 => test_log!(self, "rot[y] r[z]"), // TODO: rot[y] r[z]
+            1 => test_log!(self, "BIT y, r[z]"), // TODO: BIT y, r[z]
+            2 => test_log!(self, "RES y, r[z]"), // TODO: RES y, r[z]
+            3 => test_log!(self, "SET y, r[z]"), // TODO: SET y, r[z]
+            _ => panic!("Invalid x value"),      // should never happen
         }
     }
 
     fn decode_ed(&mut self, opcode: u8) -> () {
+        test_log!(self, "decode_ed");
         let (x, y, z, p, q) = decode_opcode(opcode);
         match x {
-            0 | 3 => (), // NOTE: NONI
+            0 | 3 => test_log!(self, "NONI"), // NOTE: NONI
             1 => match z {
                 0 => {
                     if y == 6 {
-                        () // TODO: IN(C)
+                        test_log!(self, "IN(C)"); // TODO: IN (C)
                     } else if y < 8 {
-                        () // TODO: IN r[y], (C)
+                        test_log!(self, "IN r[y], (C)"); // TODO: IN r[y], (C)
                     } else {
                         panic!("Invalid y value") // should never happen
                     }
                 }
                 1 => {
                     if y == 6 {
-                        () // TODO: OUT(C), 0
+                        test_log!(self, "OUT(C), 0"); // TODO: OUT(C), 0
                     } else if y < 8 {
-                        () // TODO: OUT (C), r[y]
+                        test_log!(self, "OUT (C), r[y]"); // TODO: OUT (C), r[y]
                     } else {
                         panic!("Invalid y value") // should never happen
                     }
                 }
                 2 => {
                     if q {
-                        () // TODO: SBC HL, rp[p]
+                        test_log!(self, "SBC HL, rp[p]"); // TODO: SBC HL, rp[p]
                     } else {
-                        () // TODO: ADC HL, rp[p]
+                        test_log!(self, "ADC HL, rp[p]"); // TODO: ADC HL, rp[p]
                     }
                 }
                 3 => {
                     if q {
+                        test_log!(self, "LD (nn), rp[p]");
                         let addr = self.fetch_word();
                         self.ld_16(AddressingMode::Absolute(addr), Self::table_rp(p)) // LD (nn), rp[p]
                     } else {
+                        test_log!(self, "LD rp[p], (nn)");
                         let addr = self.fetch_word();
                         self.ld_16(Self::table_rp(p), AddressingMode::Absolute(addr)) // LD rp[p], (nn)
                     }
                 }
-                4 => (), // TODO: NEG
+                4 => test_log!(self, "NEG"), // TODO: NEG
                 5 => {
                     if y == 1 {
-                        () // TODO: RETI
+                        test_log!(self, "RETI"); // TODO: RETI
                     } else if y < 8 {
-                        () // TODO: RETN
+                        test_log!(self, "RETN"); // TODO: RETN
                     } else {
                         panic!("Invalid y value") // should never happen
                     }
                 }
-                6 => (), // TODO: IM y
+                6 => test_log!(self, "IM y"), // TODO: IM y
                 7 => match y {
-                    0 => self.ld(
-                        AddressingMode::Special(SpecialRegister::I),
-                        AddressingMode::Register(GPR::A),
-                    ), //  LD I, A
-                    1 => self.ld(
-                        AddressingMode::Special(SpecialRegister::R),
-                        AddressingMode::Register(GPR::A),
-                    ), //  LD R, A
-                    2 => self.ld(
-                        AddressingMode::Register(GPR::A),
-                        AddressingMode::Special(SpecialRegister::I),
-                    ), //  LD A, I
-                    3 => self.ld(
-                        AddressingMode::Register(GPR::A),
-                        AddressingMode::Special(SpecialRegister::R),
-                    ), //  LD A, R
-                    4 => (),                        // TODO: RRD
-                    5 => (),                        // TODO: RLD
-                    6 => (),                        // TODO: NOP
-                    7 => (),                        // TODO: NOP
+                    0 => {
+                        test_log!(self, "LD I, A");
+                        self.ld(
+                            AddressingMode::Special(SpecialRegister::I),
+                            AddressingMode::Register(GPR::A),
+                        )
+                    } //  LD I, A
+                    1 => {
+                        test_log!(self, "LD R, A");
+                        self.ld(
+                            AddressingMode::Special(SpecialRegister::R),
+                            AddressingMode::Register(GPR::A),
+                        )
+                    } //  LD R, A
+                    2 => {
+                        test_log!(self, "LD A, I");
+                        self.ld(
+                            AddressingMode::Register(GPR::A),
+                            AddressingMode::Special(SpecialRegister::I),
+                        )
+                    } //  LD A, I
+                    3 => {
+                        test_log!(self, "LD A, R");
+                        self.ld(
+                            AddressingMode::Register(GPR::A),
+                            AddressingMode::Special(SpecialRegister::R),
+                        )
+                    } //  LD A, R
+                    4 => test_log!(self, "RRD"),    // TODO: RRD
+                    5 => test_log!(self, "RLD"),    // TODO: RLD
+                    6 => test_log!(self, "NOP"),    // TODO: NOP
+                    7 => test_log!(self, "NOP"),    // TODO: NOP
                     _ => panic!("Invalid y value"), // should never happen
                 },
                 _ => panic!("Invalid z value"), // should never happen
             },
             2 => {
                 if y < 4 {
-                    () // TODO: NONI
+                    test_log!(self, "NONI"); // NOTE: NONI
                 } else if y < 8 {
-                    () // TODO: bli[y,z]
+                    test_log!(self, "bli[y, z]") // TODO: bli[y,z]
                 } else {
                     panic!("Invalid y value") // should never happen
                 }
@@ -733,13 +816,16 @@ impl Z80A {
     }
 
     fn decode_dd(&mut self, opcode: u8) {
+        test_log!(self, "decode_dd");
         match opcode {
             0xDD | 0xED | 0xFD => {
                 // Current DD is ignored (NONI), fetch next byte and process it
+                test_log!(self, "DD NONI");
                 let next_opcode = self.fetch();
                 self.decode(next_opcode)
             }
             0xCB => {
+                test_log!(self, "CB prefix");
                 let displacement = self.fetch();
                 let op = self.fetch();
                 self.decode_ddcb_fdcb(op, IndexRegister::IX, displacement)
@@ -749,13 +835,16 @@ impl Z80A {
     }
 
     fn decode_fd(&mut self, opcode: u8) {
+        test_log!(self, "decode_fd");
         match opcode {
             0xDD | 0xED | 0xFD => {
                 // Current FD is ignored (NONI), fetch next byte and process it
+                test_log!(self, "FD NONI");
                 let next_opcode = self.fetch();
                 self.decode(next_opcode)
             }
             0xCB => {
+                test_log!(self, "CB prefix");
                 let displacement = self.fetch();
                 let op = self.fetch();
                 self.decode_ddcb_fdcb(op, IndexRegister::IY, displacement)
@@ -765,32 +854,36 @@ impl Z80A {
     }
 
     fn decode_ddcb_fdcb(&mut self, opcode: u8, indexing: IndexRegister, displacement: u8) {
+        match indexing {
+            IndexRegister::IX => test_log!(self, "decode_ddcb"),
+            IndexRegister::IY => test_log!(self, "decode_fdcb"),
+        }
         let (x, y, z, p, q) = decode_opcode(opcode);
         match x {
             0 => {
                 if z == 6 {
-                    () // TODO: rot[y] (IX+d)
+                    test_log!(self, "rot[y] (IX+d)"); // TODO: rot[y] (IX+d)
                 } else if z < 8 {
-                    () // TODO: LD r[z], rot[y] (IX+d)
+                    test_log!(self, "LD r[z], rot[y] (IX+d)"); // TODO: LD r[z], rot[y] (IX+d)
                 } else {
                     panic!("Invalid z value") // should never happen
                 }
             }
-            1 => (), // TODO: BIT y, (IX+d)
+            1 => test_log!(self, "BIT y, (IX+d)"), // TODO: BIT y, (IX+d)
             2 => {
                 if z == 6 {
-                    () // TODO: RES y, (IX+d)
+                    test_log!(self, "RES y, (IX+d)"); // TODO: RES y, (IX+d)
                 } else if z < 8 {
-                    () // TODO: LD r[z], RES y, (IX+d)
+                    test_log!(self, "LD r[z], RES y, (IX+d)"); // TODO: LD r[z], RES y, (IX+d)
                 } else {
                     panic!("Invalid z value") // should never happen
                 }
             }
             3 => {
                 if z == 6 {
-                    () // TODO: SET y, (IX+d)
+                    test_log!(self, "SET y, (IX+d)"); // TODO: SET y, (IX+d)
                 } else if z < 8 {
-                    () // TODO: LD r[z], SET y, (IX+d)
+                    test_log!(self, "LD r[z], SET y, (IX+d)"); // TODO: LD r[z], SET y, (IX+d)
                 } else {
                     panic!("Invalid z value") // should never happen
                 }
@@ -845,7 +938,7 @@ impl Z80A {
                 };
                 let address = base.wrapping_add_signed(displacement as i16);
                 self.memory.borrow().read(address)
-            },
+            }
             AddressingMode::Special(reg) => self.get_special_register(reg) as u8,
             _ => panic!("Unsupported source addressing mode for LD"),
         };
