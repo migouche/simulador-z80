@@ -377,36 +377,84 @@ impl Z80A {
 
     // TABLES FROM http://www.z80.info/decoding.htm
 
-    fn table_r(p: u8) -> AddressingMode {
+    fn table_r(&mut self, p: u8) -> AddressingMode {
         match p {
-            0 => AddressingMode::Register(GPR::B),
-            1 => AddressingMode::Register(GPR::C),
-            2 => AddressingMode::Register(GPR::D),
-            3 => AddressingMode::Register(GPR::E),
-            4 => AddressingMode::Register(GPR::H),
-            5 => AddressingMode::Register(GPR::L),
-            6 => AddressingMode::RegisterIndirect(RegisterPair::HL),
-            7 => AddressingMode::Register(GPR::A),
+            0 => {
+                test_log!(self, "B");
+                AddressingMode::Register(GPR::B)
+            },
+            1 => {
+                test_log!(self, "C");
+                AddressingMode::Register(GPR::C)
+            },
+            2 => {
+                test_log!(self, "D");
+                AddressingMode::Register(GPR::D)
+            },
+            3 => {
+                test_log!(self, "E");
+                AddressingMode::Register(GPR::E)
+            },
+            4 => {
+                test_log!(self, "H");
+                AddressingMode::Register(GPR::H)
+            },
+            5 => {
+                test_log!(self, "L");
+                AddressingMode::Register(GPR::L)
+            },
+            6 => {
+                test_log!(self, "(HL)");
+                AddressingMode::RegisterIndirect(RegisterPair::HL)
+            },
+            7 => {
+                test_log!(self, "A");
+                AddressingMode::Register(GPR::A)
+            },
             _ => panic!("Invalid p value"), // should never happen
         }
     }
 
-    fn table_rp(p: u8) -> AddressingMode {
+    fn table_rp(&mut self, p: u8) -> AddressingMode {
         match p {
-            0 => AddressingMode::RegisterPair(RegisterPair::BC),
-            1 => AddressingMode::RegisterPair(RegisterPair::DE),
-            2 => AddressingMode::RegisterPair(RegisterPair::HL),
-            3 => AddressingMode::RegisterPair(RegisterPair::SP),
+            0 => {
+                test_log!(self, "BC");
+                AddressingMode::RegisterPair(RegisterPair::BC)
+            },
+            1 => {
+                test_log!(self, "DE");
+                AddressingMode::RegisterPair(RegisterPair::DE)
+            },
+            2 => {
+                test_log!(self, "HL");
+                AddressingMode::RegisterPair(RegisterPair::HL)
+            },
+            3 => {
+                test_log!(self, "SP");
+                AddressingMode::RegisterPair(RegisterPair::SP)
+            },
             _ => panic!("Invalid p value"), // should never happen
         }
     }
 
-    fn table_rp2(p: u8) -> AddressingMode {
+    fn table_rp2(&mut self, p: u8) -> AddressingMode {
         match p {
-            0 => AddressingMode::RegisterPair(RegisterPair::BC),
-            1 => AddressingMode::RegisterPair(RegisterPair::DE),
-            2 => AddressingMode::RegisterPair(RegisterPair::HL),
-            3 => AddressingMode::RegisterPair(RegisterPair::AF),
+            0 => {
+                test_log!(self, "BC");
+                AddressingMode::RegisterPair(RegisterPair::BC)
+            },
+            1 => {
+                test_log!(self, "DE");
+                AddressingMode::RegisterPair(RegisterPair::DE)
+            },
+            2 => {
+                test_log!(self, "HL");
+                AddressingMode::RegisterPair(RegisterPair::HL)
+            },
+            3 => {
+                test_log!(self, "AF");
+                AddressingMode::RegisterPair(RegisterPair::AF)
+            },
             _ => panic!("Invalid p value"), // should never happen
         }
     }
@@ -482,7 +530,8 @@ impl Z80A {
                         // LD rp[p], nn
                         test_log!(self, "LD rp[p], nn");
                         let nn = self.fetch_word();
-                        self.ld_16(Self::table_rp(p), AddressingMode::ImmediateExtended(nn));
+                        let src = self.table_rp(p);
+                        self.ld_16(src, AddressingMode::ImmediateExtended(nn));
                     }
                 }
 
@@ -569,7 +618,8 @@ impl Z80A {
                 6 => {
                     test_log!(self, "LD r[y], n");
                     let n = self.fetch();
-                    let dest = self.transform_register(Self::table_r(y), addressing);
+                    let reg = self.table_r(y);
+                    let dest = self.transform_register(reg, addressing);
                     self.ld(dest, AddressingMode::Immediate(n))
                 } //  LD r[y], n (still have to transform r[y] if IX/IY prefixed)
                 7 => {
@@ -588,7 +638,16 @@ impl Z80A {
                 }
                 _ => panic!("Invalid z value"), // should never happen
             },
-            1 => match y {
+            1 => if (z == 6) && (y == 6) {
+                test_log!(self, "HALT"); // TODO: HALT
+            } else {
+                test_log!(self, "LD r[y], r[z]");
+                let reg = self.table_r(y);
+                let dest = self.transform_register(reg, addressing);
+                let reg = self.table_r(z);
+                let src = self.transform_register(reg, addressing);
+                self.ld(dest, src); // LD r[y], r[z] (still have to transform r[y] and r[z] if IX/IY prefixed)
+                /*
                 6 => test_log!(self, "HALT"), // TODO: HALT
                 _ => {
                     if y > 7 {
@@ -601,7 +660,7 @@ impl Z80A {
                         self.ld(dest, src); // LD r[y], r[z] (still have to transform r[y] and r[z] if IX/IY prefixed)
                         // TODO: if there is a (HL), there should be no more changes
                     }
-                }
+                }*/
             },
 
             2 => test_log!(self, "ALU[y] r[z]"), // TODO: ALU[y] r[z]
@@ -747,11 +806,13 @@ impl Z80A {
                     if q {
                         test_log!(self, "LD (nn), rp[p]");
                         let addr = self.fetch_word();
-                        self.ld_16(AddressingMode::Absolute(addr), Self::table_rp(p)) // LD (nn), rp[p]
+                        let src = self.table_rp(p);
+                        self.ld_16(AddressingMode::Absolute(addr), src) // LD (nn), rp[p]
                     } else {
                         test_log!(self, "LD rp[p], (nn)");
                         let addr = self.fetch_word();
-                        self.ld_16(Self::table_rp(p), AddressingMode::Absolute(addr)) // LD rp[p], (nn)
+                        let dest = self.table_rp(p);
+                        self.ld_16(dest, AddressingMode::Absolute(addr)) // LD rp[p], (nn)
                     }
                 }
                 4 => test_log!(self, "NEG"), // TODO: NEG
