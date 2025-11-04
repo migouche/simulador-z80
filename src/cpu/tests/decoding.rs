@@ -280,6 +280,25 @@ use crate::cpu::tests::setup_cpu;
 #[case::fd_prefix(0x29f9, &[0xfd, 0x00], &["decode_fd", "decode_unprefixed", "NOP"])] // DD Prefix (NOP)
 #[case::cp_a_n(0x29f9, &[0xfe, 0x56], &["decode_unprefixed", "ALU[y] n"])] // CP A, n
 #[case::rst_38h(0x29f9, &[0xff], &["decode_unprefixed", "RST y*8"])] // RST 38h
+
+// ED TABLE (MISC INSTRUCTIONS)
+
+#[case::in_b_c(0x29f9, &[0xed, 0x40], &["decode_ed", "IN r[y], (C)"])] // IN B, (C)
+#[case::out_c_b(0x29f9, &[0xed, 0x41], &["decode_ed", "OUT (C), r[y]"])] // OUT (C), B
+#[case::sbc_hl_bc(0x29f9, &[0xed, 0x42], &["decode_ed", "SBC HL, rp[p]"])] // SBC HL, BC
+#[case::ld_nni_bc_a(0x29f9, &[0xed, 0x43], &["decode_ed", "LD (nn), rp[p]", "BC"])] // LD (nn), BC
+#[case::neg(0x29f9, &[0xed, 0x44], &["decode_ed", "NEG"])] // NEG
+#[case::retn(0x29f9, &[0xed, 0x45], &["decode_ed", "RETN"])] // RETN
+#[case::im_0(0x29f9, &[0xed, 0x46], &["decode_ed", "IM im[y]"])] // IM 0
+#[case::ld_i_a(0x29f9, &[0xed, 0x47], &["decode_ed", "LD I, A"])] // LD I, A
+#[case::in_c_c(0x29f9, &[0xed, 0x48], &["decode_ed", "IN r[y], (C)"])] // IN C, (C)
+#[case::out_c_c(0x29f9, &[0xed, 0x49], &["decode_ed", "OUT (C), r[y]"])] // OUT (C), C
+#[case::adc_hl_bc(0x29f9, &[0xed, 0x4a], &["decode_ed", "ADC HL, rp[p]"])] // ADC HL, BC
+#[case::ld_bc_nni(0x29f9, &[0xed, 0x4b], &["decode_ed", "LD rp[p], (nn)", "BC"])] // LD BC, (nn)
+//#[case::ed_4c(0x29f9, &[0xed, 0x4c], &["decode_ed", "NONI"])] // NONI // TODO FIX THIS
+#[case::reti(0x29f9, &[0xed, 0x4d], &["decode_ed", "RETI"])] // RETI
+//#[case::ed_4e(0x29f9, &[0xed, 0x4e], &["decode_ed", "NONI"])] // NONI // TODO FIX THIS
+#[case::ld_r_a(0x29f9, &[0xed, 0x4f], &["decode_ed", "LD R, A"])] // LD R, A
 fn test_opcode(
     #[case] starting_pc: u16,
     #[case] memory_contents: &[u8],
@@ -306,5 +325,25 @@ fn test_opcode(
         .collect();
     for (expected, actual) in expected_logs.iter().zip(logs.iter()) {
         assert_eq!(expected, actual);
+    }
+}
+
+#[rstest]
+#[case::ed_noni_x0(0x29f9, &[0xed], 0x00..=0x3f, &[], &["decode_ed", "NONI"])] // ED NONI where X == 0
+#[case::ed_noni_x3(0x29f9, &[0xed], 0xc0..=0xff, &[], &["decode_ed", "NONI"])] // ED NONI where X == 3
+
+fn test_opcode_range(
+    #[case] starting_pc: u16,
+    #[case] prefixes: &[u8],
+    #[case] opcode_range: std::ops::RangeInclusive<u8>,
+    #[case] suffixes: &[u8],
+    #[case] expected_logs: &[&str],
+) {
+    for opcode in opcode_range {
+        test_opcode(
+            starting_pc,
+            &[prefixes, &[opcode], suffixes].concat().as_slice(),
+            expected_logs,
+        );
     }
 }

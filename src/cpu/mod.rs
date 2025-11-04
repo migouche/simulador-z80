@@ -774,6 +774,12 @@ impl Z80A {
     fn decode_ed(&mut self, opcode: u8) -> () {
         test_log!(self, "decode_ed");
         let (x, y, z, p, q) = decode_opcode(opcode);
+
+        /*
+        Lots of NONI's here. Some of these are instructions for the Z180, will not be implemented.
+        (at least for now)
+         */
+
         match x {
             0 | 3 => test_log!(self, "NONI"), // NOTE: NONI
             1 => match z {
@@ -796,14 +802,14 @@ impl Z80A {
                     }
                 }
                 2 => {
-                    if q {
+                    if !q {
                         test_log!(self, "SBC HL, rp[p]"); // TODO: SBC HL, rp[p]
                     } else {
                         test_log!(self, "ADC HL, rp[p]"); // TODO: ADC HL, rp[p]
                     }
                 }
                 3 => {
-                    if q {
+                    if !q {
                         test_log!(self, "LD (nn), rp[p]");
                         let addr = self.fetch_word();
                         let src = self.table_rp(p);
@@ -825,7 +831,7 @@ impl Z80A {
                         panic!("Invalid y value") // should never happen
                     }
                 }
-                6 => test_log!(self, "IM y"), // TODO: IM y
+                6 => test_log!(self, "IM im[y]"), // TODO: IM im[y]
                 7 => match y {
                     0 => {
                         test_log!(self, "LD I, A");
