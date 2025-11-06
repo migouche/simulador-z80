@@ -4,6 +4,7 @@ use crate::{cpu::Z80A, traits::MemoryMapper};
 
 pub mod decoding;
 pub mod instructions;
+pub mod alu_tests;
 
 struct MockMemory {
     data: [u8; 0xFFFF],

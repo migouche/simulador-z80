@@ -1,3 +1,5 @@
+mod alu;
+
 use std::cell::RefCell;
 #[cfg(test)]
 use std::collections::VecDeque;
@@ -101,6 +103,18 @@ enum PrefixAddressing {
     HL, // HL, H, L
     IX, // IX, IXH, IXL
     IY, // IY, IYH, IYL
+}
+
+
+enum RotOperation {
+    RLC,
+    RRC,
+    RL,
+    RR,
+    SLA,
+    SRA,
+    SLL,
+    SRL,
 }
 
 struct RegisterSet {
@@ -785,7 +799,7 @@ impl Z80A {
             1 => match z {
                 0 => {
                     if y == 6 {
-                        test_log!(self, "IN(C)"); // TODO: IN (C)
+                        test_log!(self, "IN (C)"); // TODO: IN (C)
                     } else if y < 8 {
                         test_log!(self, "IN r[y], (C)"); // TODO: IN r[y], (C)
                     } else {
@@ -794,7 +808,7 @@ impl Z80A {
                 }
                 1 => {
                     if y == 6 {
-                        test_log!(self, "OUT(C), 0"); // TODO: OUT(C), 0
+                        test_log!(self, "OUT (C), 0"); // TODO: OUT(C), 0
                     } else if y < 8 {
                         test_log!(self, "OUT (C), r[y]"); // TODO: OUT (C), r[y]
                     } else {
@@ -821,17 +835,50 @@ impl Z80A {
                         self.ld_16(dest, AddressingMode::Absolute(addr)) // LD rp[p], (nn)
                     }
                 }
-                4 => test_log!(self, "NEG"), // TODO: NEG
+                /*
+                NOTE: in the original table it says that z = 4 => NEG, but its only true for 0x44
+                (y = 0), otherwise its NONI
+                 */
+                4 => {
+                    if y == 0 {
+                        test_log!(self, "NEG"); // TODO: NEG
+                     }
+                     else {
+                        test_log!(self, "NONI"); // NOTE: NONI
+                     }
+                }
                 5 => {
-                    if y == 1 {
+                    if y == 0 { // theres supposed to be just retn, but manual says noni
+                        test_log!(self, "RETN"); // TODO: RETN
+                    } else if y == 1 {
                         test_log!(self, "RETI"); // TODO: RETI
                     } else if y < 8 {
-                        test_log!(self, "RETN"); // TODO: RETN
+                        test_log!(self, "NONI"); // NOTE: NONI
                     } else {
                         panic!("Invalid y value") // should never happen
                     }
                 }
-                6 => test_log!(self, "IM im[y]"), // TODO: IM im[y]
+                /*
+                NOTE: in the manual there is only im 0, im 1 and im 2, the rest are NONI's,
+                but the og page says otherwise, i'll go against the og page for now
+                 */
+                6 => {
+                    match y {
+                        0 => {
+                            test_log!(self, "IM 0"); // TODO: IM 0
+                        }
+                        2 => {
+                            test_log!(self, "IM 1"); // TODO: IM 1
+                        }
+                        3 => {
+                            test_log!(self, "IM 2"); // TODO: IM 2
+                        }
+                        _ => {
+                            test_log!(self, "NONI"); // NOTE: NONI
+                        }
+                    }
+
+                }
                 7 => match y {
                     0 => {
                         test_log!(self, "LD I, A");
@@ -863,19 +910,19 @@ impl Z80A {
                     } //  LD A, R
                     4 => test_log!(self, "RRD"),    // TODO: RRD
                     5 => test_log!(self, "RLD"),    // TODO: RLD
-                    6 => test_log!(self, "NOP"),    // TODO: NOP
-                    7 => test_log!(self, "NOP"),    // TODO: NOP
+                    6 => test_log!(self, "NONI"),    // NOTE: NONI
+                    7 => test_log!(self, "NONI"),    // NOTE: NONI
                     _ => panic!("Invalid y value"), // should never happen
                 },
                 _ => panic!("Invalid z value"), // should never happen
             },
             2 => {
-                if y < 4 {
-                    test_log!(self, "NONI"); // NOTE: NONI
-                } else if y < 8 {
+
+                if z <= 3 && y >= 4 {
                     test_log!(self, "bli[y, z]") // TODO: bli[y,z]
-                } else {
-                    panic!("Invalid y value") // should never happen
+                }
+                else {
+                    test_log!(self, "NONI"); // NOTE: NONI
                 }
             }
             _ => panic!("Invalid x value"), // should never happen
@@ -1050,6 +1097,57 @@ impl Z80A {
             AddressingMode::Special(SpecialRegister::SP) => self.SP = value,
             _ => panic!("Unsupported destination addressing mode for LD 16"),
         }
+    }
+
+    fn table_rot(&mut self, y: u8) -> RotOperation{
+        match y {
+            0 => {
+                test_log!(self, "RLC");
+                RotOperation::RLC
+            },
+            1 => {
+                test_log!(self, "RRC");
+                RotOperation::RRC
+            },
+            2 => {
+                test_log!(self, "RL");
+                RotOperation::RL
+            },
+            3 => {
+                test_log!(self, "RR");
+                RotOperation::RR
+            },
+            4 => {
+                test_log!(self, "SLA");
+                RotOperation::SLA
+            },
+            5 => {
+                test_log!(self, "SRA");
+                RotOperation::SRA
+            },
+            6 => {
+                test_log!(self, "SLL");
+                RotOperation::SLL
+            },
+            7 => {
+                test_log!(self, "SRL");
+                RotOperation::SRL
+            },
+            _ => panic!("Invalid y value"), // should never happen
+        }
+    }
+
+    fn rot(&mut self, y: u8, z: u8) {
+        let operation = self.table_rot(y);
+        let reg = self.table_r(z);
+        let value = match reg {
+            AddressingMode::Register(r) => self.main_set.get_register(r),
+            AddressingMode::RegisterIndirect(RegisterPair::HL) => {
+                let address = self.get_register_pair(RegisterPair::HL);
+                self.memory.borrow().read(address)
+            }
+            _ => panic!("Unsupported addressing mode for ROT"),
+        };
     }
 }
 
