@@ -6,7 +6,7 @@ use std::collections::VecDeque;
 use std::rc::Rc;
 use std::usize;
 
-use crate::traits::{MemoryMapper, SyncronousComponent};
+use crate::{cpu::alu::rot::{self, RotOperation}, traits::{MemoryMapper, SyncronousComponent}};
 
 #[cfg(test)]
 macro_rules! test_log {
@@ -105,18 +105,6 @@ enum PrefixAddressing {
     IY, // IY, IYH, IYL
 }
 
-
-enum RotOperation {
-    RLC,
-    RRC,
-    RL,
-    RR,
-    SLA,
-    SRA,
-    SLL,
-    SRL,
-}
-
 struct RegisterSet {
     // z80 has two register sets, so doing this for easier access
     pub A: u8,
@@ -189,16 +177,43 @@ impl RegisterSet {
     }
 
     pub fn get_flag(&self, flag: Flag) -> bool {
-        let flag_byte = self.F;
+        let flags = self.F;
         match flag {
-            Flag::C => flag_byte & 0b00000001 != 0,
-            Flag::N => flag_byte & 0b00000010 != 0,
-            Flag::PV => flag_byte & 0b00000100 != 0,
-            Flag::Y => flag_byte & 0b00001000 != 0,
-            Flag::H => flag_byte & 0b00010000 != 0,
-            Flag::X => flag_byte & 0b00100000 != 0,
-            Flag::Z => flag_byte & 0b01000000 != 0,
-            Flag::S => flag_byte & 0b10000000 != 0,
+            Flag::C => flags & 0b00000001 != 0,
+            Flag::N => flags & 0b00000010 != 0,
+            Flag::PV => flags & 0b00000100 != 0,
+            Flag::Y => flags & 0b00001000 != 0,
+            Flag::H => flags & 0b00010000 != 0,
+            Flag::X => flags & 0b00100000 != 0,
+            Flag::Z => flags & 0b01000000 != 0,
+            Flag::S => flags & 0b10000000 != 0,
+        }
+    }
+
+    pub fn set_flag(&mut self, value: bool, flag: Flag) {
+        let flags = &mut self.F;
+        if value {
+            match flag {
+                Flag::C => *flags |= 0b00000001,
+                Flag::N => *flags |= 0b00000010,
+                Flag::PV => *flags |= 0b00000100,
+                Flag::Y => *flags |= 0b00001000,
+                Flag::H => *flags |= 0b00010000,
+                Flag::X => *flags |= 0b00100000,
+                Flag::Z => *flags |= 0b01000000,
+                Flag::S => *flags |= 0b10000000,
+            }
+        } else {
+            match flag {
+                Flag::C => *flags &= !0b00000001,
+                Flag::N => *flags &= !0b00000010,
+                Flag::PV => *flags &= !0b00000100,
+                Flag::Y => *flags &= !0b00001000,
+                Flag::H => *flags &= !0b00010000,
+                Flag::X => *flags &= !0b00100000,
+                Flag::Z => *flags &= !0b01000000,
+                Flag::S => *flags &= !0b10000000,
+            }
         }
     }
 
@@ -777,7 +792,10 @@ impl Z80A {
         test_log!(self, "decode_cb");
         let (x, y, z, p, q) = decode_opcode(opcode);
         match x {
-            0 => test_log!(self, "rot[y] r[z]"), // TODO: rot[y] r[z]
+            0 => {
+                test_log!(self, "rot[y] r[z]");
+                self.rot(y, z) // NOTE: rot[y] r[z]
+            }, 
             1 => test_log!(self, "BIT y, r[z]"), // TODO: BIT y, r[z]
             2 => test_log!(self, "RES y, r[z]"), // TODO: RES y, r[z]
             3 => test_log!(self, "SET y, r[z]"), // TODO: SET y, r[z]
@@ -1148,6 +1166,26 @@ impl Z80A {
             }
             _ => panic!("Unsupported addressing mode for ROT"),
         };
+
+        let (result, carry) = match operation {
+            RotOperation::RLC => rot::rlc(value),
+            RotOperation::RRC => rot::rrc(value),
+            RotOperation::RL => rot::rl(value, self.main_set.get_flag(Flag::C)),
+            RotOperation::RR => rot::rr(value, self.main_set.get_flag(Flag::C)),
+            RotOperation::SLA => rot::sla(value),
+            RotOperation::SRA => rot::sra(value),
+            RotOperation::SLL => rot::sll(value),
+            RotOperation::SRL => rot::srl(value),
+        };
+        self.main_set.set_flag(carry, Flag::C);
+        match reg {
+            AddressingMode::Register(r) => self.main_set.set_register(r, result),
+            AddressingMode::RegisterIndirect(RegisterPair::HL) => {
+                let address = self.get_register_pair(RegisterPair::HL);
+                self.memory.borrow_mut().write(address, result)
+            }
+            _ => panic!("Unsupported addressing mode for ROT"),
+        }
     }
 }
 

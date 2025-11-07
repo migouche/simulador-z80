@@ -224,7 +224,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::ret_z(0x29f9, &[0xc8], &["decode_unprefixed", "RET cc[y]"])] // RET Z
 #[case::ret(0x29f9, &[0xc9], &["decode_unprefixed", "RET"])] // RET
 #[case::jp_z_nn(0x29f9, &[0xca, 0x34, 0x12], &["decode_unprefixed", "JP cc[y], nn"])] // JP Z, nn
-#[case::cb_prefix(0x29f9, &[0xcb, 0x00], &["decode_cb", "rot[y] r[z]"])] // CB Prefix (RLC B)
+#[case::cb_prefix(0x29f9, &[0xcb, 0x00], &["decode_cb", "rot[y] r[z]", "RLC", "B"])] // CB Prefix (RLC B)
 #[case::call_z_nn(0x29f9, &[0xcc, 0x34, 0x12], &["decode_unprefixed", "CALL cc[y], nn"])] // CALL Z, nn
 #[case::call_nn(0x29f9, &[0xcd, 0x34, 0x12], &["decode_unprefixed", "CALL nn"])] // CALL nn
 #[case::adc_a_n(0x29f9, &[0xce, 0x56], &["decode_unprefixed", "ALU[y] n"])] // ADC A, n
@@ -362,7 +362,73 @@ use crate::cpu::tests::setup_cpu;
 #[case::inir(0x29f9, &[0xed, 0xb2], &["decode_ed", "bli[y, z]"])] // INIR
 #[case::outir(0x29f9, &[0xed, 0xb3], &["decode_ed", "bli[y, z]"])] // OUTIR
 // CB TABLE
-#[case::rlc_b(0x29f9, &[0xcb, 0x00], &["decode_cb", "rot[y] r[z]"])] // RLC B
+#[case::rlc_b(0x29f9, &[0xcb, 0x00], &["decode_cb", "rot[y] r[z]", "RLC", "B"])] // RLC B
+#[case::rlc_c(0x29f9, &[0xcb, 0x01], &["decode_cb", "rot[y] r[z]", "RLC", "C"])] // RLC C
+#[case::rlc_d(0x29f9, &[0xcb, 0x02], &["decode_cb", "rot[y] r[z]", "RLC", "D"])] // RLC D
+#[case::rlc_e(0x29f9, &[0xcb, 0x03], &["decode_cb", "rot[y] r[z]", "RLC", "E"])] // RLC E
+#[case::rlc_h(0x29f9, &[0xcb, 0x04], &["decode_cb", "rot[y] r[z]", "RLC", "H"])] // RLC H
+#[case::rlc_l(0x29f9, &[0xcb, 0x05], &["decode_cb", "rot[y] r[z]", "RLC", "L"])] // RLC L
+#[case::rlc_hli(0x29f9, &[0xcb, 0x06], &["decode_cb", "rot[y] r[z]", "RLC", "(HL)"])] // RLC (HL)
+#[case::rlc_a(0x29f9, &[0xcb, 0x07], &["decode_cb", "rot[y] r[z]", "RLC", "A"])] // RLC A
+#[case::rrc_b(0x29f9, &[0xcb, 0x08], &["decode_cb", "rot[y] r[z]", "RRC", "B"])] // RRC B
+#[case::rrc_c(0x29f9, &[0xcb, 0x09], &["decode_cb", "rot[y] r[z]", "RRC", "C"])] // RRC C
+#[case::rrc_d(0x29f9, &[0xcb, 0x0A], &["decode_cb", "rot[y] r[z]", "RRC", "D"])] // RRC D
+#[case::rrc_e(0x29f9, &[0xcb, 0x0B], &["decode_cb", "rot[y] r[z]", "RRC", "E"])] // RRC E
+#[case::rrc_h(0x29f9, &[0xcb, 0x0C], &["decode_cb", "rot[y] r[z]", "RRC", "H"])] // RRC H
+#[case::rrc_l(0x29f9, &[0xcb, 0x0D], &["decode_cb", "rot[y] r[z]", "RRC", "L"])] // RRC L
+#[case::rrc_hli(0x29f9, &[0xcb, 0x0E], &["decode_cb", "rot[y] r[z]", "RRC", "(HL)"])] // RRC (HL)
+#[case::rrc_a(0x29f9, &[0xcb, 0x0F], &["decode_cb", "rot[y] r[z]", "RRC", "A"])] // RRC A
+
+#[case::rl_b(0x29f9, &[0xcb, 0x10], &["decode_cb", "rot[y] r[z]", "RL", "B"])] // RL B
+#[case::rl_c(0x29f9, &[0xcb, 0x11], &["decode_cb", "rot[y] r[z]", "RL", "C"])] // RL C
+#[case::rl_d(0x29f9, &[0xcb, 0x12], &["decode_cb", "rot[y] r[z]", "RL", "D"])] // RL D
+#[case::rl_e(0x29f9, &[0xcb, 0x13], &["decode_cb", "rot[y] r[z]", "RL", "E"])] // RL E
+#[case::rl_h(0x29f9, &[0xcb, 0x14], &["decode_cb", "rot[y] r[z]", "RL", "H"])] // RL H
+#[case::rl_l(0x29f9, &[0xcb, 0x15], &["decode_cb", "rot[y] r[z]", "RL", "L"])] // RL L
+#[case::rl_hli(0x29f9, &[0xcb, 0x16], &["decode_cb", "rot[y] r[z]", "RL", "(HL)"])] // RL (HL)
+#[case::rl_a(0x29f9, &[0xcb, 0x17], &["decode_cb", "rot[y] r[z]", "RL", "A"])] // RL A
+#[case::rr_b(0x29f9, &[0xcb, 0x18], &["decode_cb", "rot[y] r[z]", "RR", "B"])] // RR B
+#[case::rr_c(0x29f9, &[0xcb, 0x19], &["decode_cb", "rot[y] r[z]", "RR", "C"])] // RR C
+#[case::rr_d(0x29f9, &[0xcb, 0x1A], &["decode_cb", "rot[y] r[z]", "RR", "D"])] // RR D
+#[case::rr_e(0x29f9, &[0xcb, 0x1B], &["decode_cb", "rot[y] r[z]", "RR", "E"])] // RR E
+#[case::rr_h(0x29f9, &[0xcb, 0x1C], &["decode_cb", "rot[y] r[z]", "RR", "H"])] // RR H
+#[case::rr_l(0x29f9, &[0xcb, 0x1D], &["decode_cb", "rot[y] r[z]", "RR", "L"])] // RR L
+#[case::rr_hli(0x29f9, &[0xcb, 0x1E], &["decode_cb", "rot[y] r[z]", "RR", "(HL)"])] // RR (HL)
+#[case::rr_a(0x29f9, &[0xcb, 0x1F], &["decode_cb", "rot[y] r[z]", "RR", "A"])] // RR A
+
+#[case::sla_b(0x29f9, &[0xcb, 0x20], &["decode_cb", "rot[y] r[z]", "SLA", "B"])] // SLA B
+#[case::sla_c(0x29f9, &[0xcb, 0x21], &["decode_cb", "rot[y] r[z]", "SLA", "C"])] // SLA C
+#[case::sla_d(0x29f9, &[0xcb, 0x22], &["decode_cb", "rot[y] r[z]", "SLA", "D"])] // SLA D
+#[case::sla_e(0x29f9, &[0xcb, 0x23], &["decode_cb", "rot[y] r[z]", "SLA", "E"])] // SLA E
+#[case::sla_h(0x29f9, &[0xcb, 0x24], &["decode_cb", "rot[y] r[z]", "SLA", "H"])] // SLA H
+#[case::sla_l(0x29f9, &[0xcb, 0x25], &["decode_cb", "rot[y] r[z]", "SLA", "L"])] // SLA L
+#[case::sla_hli(0x29f9, &[0xcb, 0x26], &["decode_cb", "rot[y] r[z]", "SLA", "(HL)"])] // SLA (HL)
+#[case::sla_a(0x29f9, &[0xcb, 0x27], &["decode_cb", "rot[y] r[z]", "SLA", "A"])] // SLA A
+#[case::sra_b(0x29f9, &[0xcb, 0x28], &["decode_cb", "rot[y] r[z]", "SRA", "B"])] // SRA B
+#[case::sra_c(0x29f9, &[0xcb, 0x29], &["decode_cb", "rot[y] r[z]", "SRA", "C"])] // SRA C
+#[case::sra_d(0x29f9, &[0xcb, 0x2A], &["decode_cb", "rot[y] r[z]", "SRA", "D"])] // SRA D
+#[case::sra_e(0x29f9, &[0xcb, 0x2B], &["decode_cb", "rot[y] r[z]", "SRA", "E"])] // SRA E
+#[case::sra_h(0x29f9, &[0xcb, 0x2C], &["decode_cb", "rot[y] r[z]", "SRA", "H"])] // SRA H
+#[case::sra_l(0x29f9, &[0xcb, 0x2D], &["decode_cb", "rot[y] r[z]", "SRA", "L"])] // SRA L
+#[case::sra_hli(0x29f9, &[0xcb, 0x2E], &["decode_cb", "rot[y] r[z]", "SRA", "(HL)"])] // SRA (HL)
+#[case::sra_a(0x29f9, &[0xcb, 0x2F], &["decode_cb", "rot[y] r[z]", "SRA", "A"])] // SRA A
+
+#[case::sll_b(0x29f9, &[0xcb, 0x30], &["decode_cb", "rot[y] r[z]", "SLL", "B"])] // SLL B
+#[case::sll_c(0x29f9, &[0xcb, 0x31], &["decode_cb", "rot[y] r[z]", "SLL", "C"])] // SLL C
+#[case::sll_d(0x29f9, &[0xcb, 0x32], &["decode_cb", "rot[y] r[z]", "SLL", "D"])] // SLL D
+#[case::sll_e(0x29f9, &[0xcb, 0x33], &["decode_cb", "rot[y] r[z]", "SLL", "E"])] // SLL E
+#[case::sll_h(0x29f9, &[0xcb, 0x34], &["decode_cb", "rot[y] r[z]", "SLL", "H"])] // SLL H
+#[case::sll_l(0x29f9, &[0xcb, 0x35], &["decode_cb", "rot[y] r[z]", "SLL", "L"])] // SLL L
+#[case::sll_hli(0x29f9, &[0xcb, 0x36], &["decode_cb", "rot[y] r[z]", "SLL", "(HL)"])] // SLL (HL)
+#[case::sll_a(0x29f9, &[0xcb, 0x37], &["decode_cb", "rot[y] r[z]", "SLL", "A"])] // SLL A
+#[case::srl_b(0x29f9, &[0xcb, 0x38], &["decode_cb", "rot[y] r[z]", "SRL", "B"])] // SRL B
+#[case::srl_c(0x29f9, &[0xcb, 0x39], &["decode_cb", "rot[y] r[z]", "SRL", "C"])] // SRL C
+#[case::srl_d(0x29f9, &[0xcb, 0x3A], &["decode_cb", "rot[y] r[z]", "SRL", "D"])] // SRL D
+#[case::srl_e(0x29f9, &[0xcb, 0x3B], &["decode_cb", "rot[y] r[z]", "SRL", "E"])] // SRL E
+#[case::srl_h(0x29f9, &[0xcb, 0x3C], &["decode_cb", "rot[y] r[z]", "SRL", "H"])] // SRL H
+#[case::srl_l(0x29f9, &[0xcb, 0x3D], &["decode_cb", "rot[y] r[z]", "SRL", "L"])] // SRL L
+#[case::srl_hli(0x29f9, &[0xcb, 0x3E], &["decode_cb", "rot[y] r[z]", "SRL", "(HL)"])] // SRL (HL)
+#[case::srl_a(0x29f9, &[0xcb, 0x3F], &["decode_cb", "rot[y] r[z]", "SRL", "A"])] // SRL A
 fn test_opcode(
     #[case] starting_pc: u16,
     #[case] memory_contents: &[u8],
