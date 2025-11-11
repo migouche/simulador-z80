@@ -58,6 +58,7 @@ fn test_sla(#[case] value: u8, #[case] expected: (u8, bool)) {
 #[case(0b0000_0001, (0b0000_0000, true))]
 #[case(0b1111_1111, (0b1111_1111, true))]
 #[case(0b0111_1110, (0b0011_1111, false))]
+#[case(0b0101_0101, (0b0010_1010, true))]
 fn test_sra(#[case] value: u8, #[case] expected: (u8, bool)) {
     let result = sra(value);
     assert_eq!(result, expected);
