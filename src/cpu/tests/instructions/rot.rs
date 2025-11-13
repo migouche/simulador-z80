@@ -51,7 +51,23 @@ use crate::traits::SyncronousComponent;
 #[case::sra_e(GPR::E, 0x2B, (0b0101_0101, false), (0b0010_1010, true), 0x1000)]
 #[case::sra_h(GPR::H, 0x2C, (0b0000_0000, false), (0b0000_0000, false), 0x1000)]
 #[case::sra_l(GPR::L, 0x2D, (0b1111_0000, true), (0b1111_1000, false), 0x1000)]
-//#[case::sra_a(GPR::A, 0x2F, (0b1001_1110, true), (0b1100_1111, true), 0x1000)] // TODO: Fix this test case
+#[case::sra_a(GPR::A, 0x2F, (0b1001_1110, true), (0b1100_1111, false), 0x1000)] 
+
+#[case::sll_b(GPR::B, 0x30, (0b1000_0001, true), (0b0000_0011, true), 0x1000)]
+#[case::sll_c(GPR::C, 0x31, (0b0000_0001, false), (0b0000_0011, false), 0x1000)]
+#[case::sll_d(GPR::D, 0x32, (0b1111_1111, true), (0b1111_1111, true), 0x1000)]
+#[case::sll_e(GPR::E, 0x33, (0b0101_0101, false), (0b1010_1011, false), 0x1000)]
+#[case::sll_h(GPR::H, 0x34, (0b0000_0000, false), (0b0000_0001, false), 0x1000)]
+#[case::sll_l(GPR::L, 0x35, (0b1111_0000, true), (0b1110_0001, true), 0x1000)]
+#[case::sll_a(GPR::A, 0x37, (0b1001_1110, true), (0b0011_1101, true), 0x1000)]
+
+#[case::srl_b(GPR::B, 0x38, (0b1000_0001, true), (0b0100_0000, true), 0x1000)]
+#[case::srl_c(GPR::C, 0x39, (0b0000_0001, false), (0b0000_0000, true), 0x1000)]
+#[case::srl_d(GPR::D, 0x3A, (0b1111_1111, true), (0b0111_1111, true), 0x1000)]
+#[case::srl_e(GPR::E, 0x3B, (0b0101_0101, false), (0b0010_1010, true), 0x1000)]
+#[case::srl_h(GPR::H, 0x3C, (0b0000_0000, false), (0b0000_0000, false), 0x1000)]
+#[case::srl_l(GPR::L, 0x3D, (0b1111_0000, true), (0b0111_1000, false), 0x1000)]
+#[case::srl_a(GPR::A, 0x3F, (0b1001_1110, true), (0b0100_1111, false), 0x1000)]
 fn test_rot_register(#[case] reg: GPR, #[case] opcode: u8, #[case] src: (u8, bool), #[case] expected: (u8, bool), #[case] pc: u16) {
     let mut cpu = setup_cpu();
     cpu.PC = pc;
@@ -72,6 +88,10 @@ fn test_rot_register(#[case] reg: GPR, #[case] opcode: u8, #[case] src: (u8, boo
 #[case::rrc_hl_indirect(0x0E, (0b0000_0010, false), (0b0000_0001, false), 0x2000, 0x1000)]
 #[case::rl_hl_indirect(0x16, (0b1000_0001, false), (0b0000_0010, true), 0x2000, 0x1000)]
 #[case::rr_hl_indirect(0x1E, (0b0000_0011, false), (0b0000_0001, true), 0x2000, 0x1000)]
+#[case::sla_hl_indirect(0x26, (0b1000_0001, true), (0b0000_0010, true), 0x2000, 0x1000)]
+#[case::sra_hl_indirect(0x2E, (0b1000_0001, true), (0b1100_0000, true), 0x2000, 0x1000)]
+#[case::sll_hl_indirect(0x36, (0b1000_0001, true), (0b0000_0011, true), 0x2000, 0x1000)]
+#[case::srl_hl_indirect(0x3E, (0b1000_0001, true), (0b0100_0000, true), 0x2000, 0x1000)]
 fn test_rot_hl_indirect(#[case] opcode: u8, #[case] src: (u8, bool), #[case] expected: (u8, bool), #[case] hl: u16, #[case] pc: u16) {
     let mut cpu = setup_cpu();
     cpu.PC = pc;
