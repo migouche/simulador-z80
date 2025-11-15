@@ -429,6 +429,222 @@ use crate::cpu::tests::setup_cpu;
 #[case::srl_l(0x29f9, &[0xcb, 0x3D], &["decode_cb", "rot[y] r[z]", "SRL", "L"])] // SRL L
 #[case::srl_hli(0x29f9, &[0xcb, 0x3E], &["decode_cb", "rot[y] r[z]", "SRL", "(HL)"])] // SRL (HL)
 #[case::srl_a(0x29f9, &[0xcb, 0x3F], &["decode_cb", "rot[y] r[z]", "SRL", "A"])] // SRL A
+
+#[case::bit_0_b(0x29f9, &[0xcb, 0x40], &["decode_cb", "BIT y, r[z]", "0", "B"])] // BIT 0, B
+#[case::bit_0_c(0x29f9, &[0xcb, 0x41], &["decode_cb", "BIT y, r[z]", "0", "C"])] // BIT 0, C
+#[case::bit_0_d(0x29f9, &[0xcb, 0x42], &["decode_cb", "BIT y, r[z]", "0", "D"])] // BIT 0, D
+#[case::bit_0_e(0x29f9, &[0xcb, 0x43], &["decode_cb", "BIT y, r[z]", "0", "E"])] // BIT 0, E
+#[case::bit_0_h(0x29f9, &[0xcb, 0x44], &["decode_cb", "BIT y, r[z]", "0", "H"])] // BIT 0, H
+#[case::bit_0_l(0x29f9, &[0xcb, 0x45], &["decode_cb", "BIT y, r[z]", "0", "L"])] // BIT 0, L 
+#[case::bit_0_hli(0x29f9, &[0xcb, 0x46], &["decode_cb", "BIT y, r[z]", "0", "(HL)"])] // BIT 0, (HL)
+#[case::bit_0_a(0x29f9, &[0xcb, 0x47], &["decode_cb", "BIT y, r[z]", "0", "A"])] // BIT 0, A
+
+#[case::bit_1_b(0x29f9, &[0xcb, 0x48], &["decode_cb", "BIT y, r[z]", "1", "B"])] // BIT 1, B
+#[case::bit_1_c(0x29f9, &[0xcb, 0x49], &["decode_cb", "BIT y, r[z]", "1", "C"])] // BIT 1, C
+#[case::bit_1_d(0x29f9, &[0xcb, 0x4A], &["decode_cb", "BIT y, r[z]", "1", "D"])] // BIT 1, D
+#[case::bit_1_e(0x29f9, &[0xcb, 0x4B], &["decode_cb", "BIT y, r[z]", "1", "E"])] // BIT 1, E
+#[case::bit_1_h(0x29f9, &[0xcb, 0x4C], &["decode_cb", "BIT y, r[z]", "1", "H"])] // BIT 1, H
+#[case::bit_1_l(0x29f9, &[0xcb, 0x4D], &["decode_cb", "BIT y, r[z]", "1", "L"])] // BIT 1, L 
+#[case::bit_1_hli(0x29f9, &[0xcb, 0x4E], &["decode_cb", "BIT y, r[z]", "1", "(HL)"])] // BIT 1, (HL)
+#[case::bit_1_a(0x29f9, &[0xcb, 0x4F], &["decode_cb", "BIT y, r[z]", "1", "A"])] // BIT 1, A
+
+#[case::bit_2_b(0x29f9, &[0xcb, 0x50], &["decode_cb", "BIT y, r[z]", "2", "B"])] // BIT 2, B
+#[case::bit_2_c(0x29f9, &[0xcb, 0x51], &["decode_cb", "BIT y, r[z]", "2", "C"])] // BIT 2, C
+#[case::bit_2_d(0x29f9, &[0xcb, 0x52], &["decode_cb", "BIT y, r[z]", "2", "D"])] // BIT 2, D 
+#[case::bit_2_e(0x29f9, &[0xcb, 0x53], &["decode_cb", "BIT y, r[z]", "2", "E"])] // BIT 2, E
+#[case::bit_2_h(0x29f9, &[0xcb, 0x54], &["decode_cb", "BIT y, r[z]", "2", "H"])] // BIT 2, H
+#[case::bit_2_l(0x29f9, &[0xcb, 0x55], &["decode_cb", "BIT y, r[z]", "2", "L"])] // BIT 2, L
+#[case::bit_2_hli(0x29f9, &[0xcb, 0x56], &["decode_cb", "BIT y, r[z]", "2", "(HL)"])] // BIT 2, (HL)
+#[case::bit_2_a(0x29f9, &[0xcb, 0x57], &["decode_cb", "BIT y, r[z]", "2", "A"])] // BIT 2, A
+
+#[case::bit_3_b(0x29f9, &[0xcb, 0x58], &["decode_cb", "BIT y, r[z]", "3", "B"])] // BIT 3, B
+#[case::bit_3_c(0x29f9, &[0xcb, 0x59], &["decode_cb", "BIT y, r[z]", "3", "C"])] // BIT 3, C
+#[case::bit_3_d(0x29f9, &[0xcb, 0x5A], &["decode_cb", "BIT y, r[z]", "3", "D"])] // BIT 3, D
+#[case::bit_3_e(0x29f9, &[0xcb, 0x5B], &["decode_cb", "BIT y, r[z]", "3", "E"])] // BIT 3, E
+#[case::bit_3_h(0x29f9, &[0xcb, 0x5C], &["decode_cb", "BIT y, r[z]", "3", "H"])] // BIT 3, H
+#[case::bit_3_l(0x29f9, &[0xcb, 0x5D], &["decode_cb", "BIT y, r[z]", "3", "L"])] // BIT 3, L
+#[case::bit_3_hli(0x29f9, &[0xcb, 0x5E], &["decode_cb", "BIT y, r[z]", "3", "(HL)"])] // BIT 3, (HL)
+#[case::bit_3_a(0x29f9, &[0xcb, 0x5F], &["decode_cb", "BIT y, r[z]", "3", "A"])] // BIT 3, A
+
+#[case::bit_4_b(0x29f9, &[0xcb, 0x60], &["decode_cb", "BIT y, r[z]", "4", "B"])] // BIT 4, B
+#[case::bit_4_c(0x29f9, &[0xcb, 0x61], &["decode_cb", "BIT y, r[z]", "4", "C"])] // BIT 4, C
+#[case::bit_4_d(0x29f9, &[0xcb, 0x62], &["decode_cb", "BIT y, r[z]", "4", "D"])] // BIT 4, D
+#[case::bit_4_e(0x29f9, &[0xcb, 0x63], &["decode_cb", "BIT y, r[z]", "4", "E"])] // BIT 4, E
+#[case::bit_4_h(0x29f9, &[0xcb, 0x64], &["decode_cb", "BIT y, r[z]", "4", "H"])] // BIT 4, H
+#[case::bit_4_l(0x29f9, &[0xcb, 0x65], &["decode_cb", "BIT y, r[z]", "4", "L"])] // BIT 4, L
+#[case::bit_4_hli(0x29f9, &[0xcb, 0x66], &["decode_cb", "BIT y, r[z]", "4", "(HL)"])] // BIT 4, (HL)
+#[case::bit_4_a(0x29f9, &[0xcb, 0x67], &["decode_cb", "BIT y, r[z]", "4", "A"])] // BIT 4, A
+
+#[case::bit_5_b(0x29f9, &[0xcb, 0x68], &["decode_cb", "BIT y, r[z]", "5", "B"])] // BIT 5, B
+#[case::bit_5_c(0x29f9, &[0xcb, 0x69], &["decode_cb", "BIT y, r[z]", "5", "C"])] // BIT 5, C
+#[case::bit_5_d(0x29f9, &[0xcb, 0x6A], &["decode_cb", "BIT y, r[z]", "5", "D"])] // BIT 5, D
+#[case::bit_5_e(0x29f9, &[0xcb, 0x6B], &["decode_cb", "BIT y, r[z]", "5", "E"])] // BIT 5, E
+#[case::bit_5_h(0x29f9, &[0xcb, 0x6C], &["decode_cb", "BIT y, r[z]", "5", "H"])] // BIT 5, H
+#[case::bit_5_l(0x29f9, &[0xcb, 0x6D], &["decode_cb", "BIT y, r[z]", "5", "L"])] // BIT 5, L
+#[case::bit_5_hli(0x29f9, &[0xcb, 0x6E], &["decode_cb", "BIT y, r[z]", "5", "(HL)"])] // BIT 5, (HL)
+#[case::bit_5_a(0x29f9, &[0xcb, 0x6F], &["decode_cb", "BIT y, r[z]", "5", "A"])] // BIT 5, A
+
+#[case::bit_6_b(0x29f9, &[0xcb, 0x70], &["decode_cb", "BIT y, r[z]", "6", "B"])] // BIT 6, B
+#[case::bit_6_c(0x29f9, &[0xcb, 0x71], &["decode_cb", "BIT y, r[z]", "6", "C"])] // BIT 6, C
+#[case::bit_6_d(0x29f9, &[0xcb, 0x72], &["decode_cb", "BIT y, r[z]", "6", "D"])] // BIT 6, D
+#[case::bit_6_e(0x29f9, &[0xcb, 0x73], &["decode_cb", "BIT y, r[z]", "6", "E"])] // BIT 6, E
+#[case::bit_6_h(0x29f9, &[0xcb, 0x74], &["decode_cb", "BIT y, r[z]", "6", "H"])] // BIT 6, H
+#[case::bit_6_l(0x29f9, &[0xcb, 0x75], &["decode_cb", "BIT y, r[z]", "6", "L"])] // BIT 6, L
+#[case::bit_6_hli(0x29f9, &[0xcb, 0x76], &["decode_cb", "BIT y, r[z]", "6", "(HL)"])] // BIT 6, (HL)
+#[case::bit_6_a(0x29f9, &[0xcb, 0x77], &["decode_cb", "BIT y, r[z]", "6", "A"])] // BIT 6, A
+
+#[case::bit_7_b(0x29f9, &[0xcb, 0x78], &["decode_cb", "BIT y, r[z]", "7", "B"])] // BIT 7, B
+#[case::bit_7_c(0x29f9, &[0xcb, 0x79], &["decode_cb", "BIT y, r[z]", "7", "C"])] // BIT 7, C
+#[case::bit_7_d(0x29f9, &[0xcb, 0x7A], &["decode_cb", "BIT y, r[z]", "7", "D"])] // BIT 7, D
+#[case::bit_7_e(0x29f9, &[0xcb, 0x7B], &["decode_cb", "BIT y, r[z]", "7", "E"])] // BIT 7, E
+#[case::bit_7_h(0x29f9, &[0xcb, 0x7C], &["decode_cb", "BIT y, r[z]", "7", "H"])] // BIT 7, H
+#[case::bit_7_l(0x29f9, &[0xcb, 0x7D], &["decode_cb", "BIT y, r[z]", "7", "L"])] // BIT 7, L
+#[case::bit_7_hli(0x29f9, &[0xcb, 0x7E], &["decode_cb", "BIT y, r[z]", "7", "(HL)"])] // BIT 7, (HL)
+#[case::bit_7_a(0x29f9, &[0xcb, 0x7F], &["decode_cb", "BIT y, r[z]", "7", "A"])] // BIT 7, A
+
+#[case::res_0_b(0x29f9, &[0xcb, 0x80], &["decode_cb", "RES y, r[z]", "0", "B"])] // RES 0, B
+#[case::res_0_c(0x29f9, &[0xcb, 0x81], &["decode_cb", "RES y, r[z]", "0", "C"])] // RES 0, C
+#[case::res_0_d(0x29f9, &[0xcb, 0x82], &["decode_cb", "RES y, r[z]", "0", "D"])] // RES 0, D
+#[case::res_0_e(0x29f9, &[0xcb, 0x83], &["decode_cb", "RES y, r[z]", "0", "E"])] // RES 0, E
+#[case::res_0_h(0x29f9, &[0xcb, 0x84], &["decode_cb", "RES y, r[z]", "0", "H"])] // RES 0, H
+#[case::res_0_l(0x29f9, &[0xcb, 0x85], &["decode_cb", "RES y, r[z]", "0", "L"])] // RES 0, L
+#[case::res_0_hli(0x29f9, &[0xcb, 0x86], &["decode_cb", "RES y, r[z]", "0", "(HL)"])] // RES 0, (HL)
+#[case::res_0_a(0x29f9, &[0xcb, 0x87], &["decode_cb", "RES y, r[z]", "0", "A"])] // RES 0, A
+
+#[case::res_1_b(0x29f9, &[0xcb, 0x88], &["decode_cb", "RES y, r[z]", "1", "B"])] // RES 1, B
+#[case::res_1_c(0x29f9, &[0xcb, 0x89], &["decode_cb", "RES y, r[z]", "1", "C"])] // RES 1, C
+#[case::res_1_d(0x29f9, &[0xcb, 0x8A], &["decode_cb", "RES y, r[z]", "1", "D"])] // RES 1, D
+#[case::res_1_e(0x29f9, &[0xcb, 0x8B], &["decode_cb", "RES y, r[z]", "1", "E"])] // RES 1, E
+#[case::res_1_h(0x29f9, &[0xcb, 0x8C], &["decode_cb", "RES y, r[z]", "1", "H"])] // RES 1, H
+#[case::res_1_l(0x29f9, &[0xcb, 0x8D], &["decode_cb", "RES y, r[z]", "1", "L"])] // RES 1, L
+#[case::res_1_hli(0x29f9, &[0xcb, 0x8E], &["decode_cb", "RES y, r[z]", "1", "(HL)"])] // RES 1, (HL)
+#[case::res_1_a(0x29f9, &[0xcb, 0x8F], &["decode_cb", "RES y, r[z]", "1", "A"])] // RES 1, A
+
+#[case::res_2_b(0x29f9, &[0xcb, 0x90], &["decode_cb", "RES y, r[z]", "2", "B"])] // RES 2, B
+#[case::res_2_c(0x29f9, &[0xcb, 0x91], &["decode_cb", "RES y, r[z]", "2", "C"])] // RES 2, C
+#[case::res_2_d(0x29f9, &[0xcb, 0x92], &["decode_cb", "RES y, r[z]", "2", "D"])] // RES 2, D
+#[case::res_2_e(0x29f9, &[0xcb, 0x93], &["decode_cb", "RES y, r[z]", "2", "E"])] // RES 2, E
+#[case::res_2_h(0x29f9, &[0xcb, 0x94], &["decode_cb", "RES y, r[z]", "2", "H"])] // RES 2, H
+#[case::res_2_l(0x29f9, &[0xcb, 0x95], &["decode_cb", "RES y, r[z]", "2", "L"])] // RES 2, L
+#[case::res_2_hli(0x29f9, &[0xcb, 0x96], &["decode_cb", "RES y, r[z]", "2", "(HL)"])] // RES 2, (HL)
+#[case::res_2_a(0x29f9, &[0xcb, 0x97], &["decode_cb", "RES y, r[z]", "2", "A"])] // RES 2, A
+
+#[case::res_3_b(0x29f9, &[0xcb, 0x98], &["decode_cb", "RES y, r[z]", "3", "B"])] // RES 3, B
+#[case::res_3_c(0x29f9, &[0xcb, 0x99], &["decode_cb", "RES y, r[z]", "3", "C"])] // RES 3, C
+#[case::res_3_d(0x29f9, &[0xcb, 0x9A], &["decode_cb", "RES y, r[z]", "3", "D"])] // RES 3, D
+#[case::res_3_e(0x29f9, &[0xcb, 0x9B], &["decode_cb", "RES y, r[z]", "3", "E"])] // RES 3, E
+#[case::res_3_h(0x29f9, &[0xcb, 0x9C], &["decode_cb", "RES y, r[z]", "3", "H"])] // RES 3, H
+#[case::res_3_l(0x29f9, &[0xcb, 0x9D], &["decode_cb", "RES y, r[z]", "3", "L"])] // RES 3, L
+#[case::res_3_hli(0x29f9, &[0xcb, 0x9E], &["decode_cb", "RES y, r[z]", "3", "(HL)"])] // RES 3, (HL)
+#[case::res_3_a(0x29f9, &[0xcb, 0x9F], &["decode_cb", "RES y, r[z]", "3", "A"])] // RES 3, A
+
+#[case::res_4_b(0x29f9, &[0xcb, 0xA0], &["decode_cb", "RES y, r[z]", "4", "B"])] // RES 4, B
+#[case::res_4_c(0x29f9, &[0xcb, 0xA1], &["decode_cb", "RES y, r[z]", "4", "C"])] // RES 4, C
+#[case::res_4_d(0x29f9, &[0xcb, 0xA2], &["decode_cb", "RES y, r[z]", "4", "D"])] // RES 4, D
+#[case::res_4_e(0x29f9, &[0xcb, 0xA3], &["decode_cb", "RES y, r[z]", "4", "E"])] // RES 4, E
+#[case::res_4_h(0x29f9, &[0xcb, 0xA4], &["decode_cb", "RES y, r[z]", "4", "H"])] // RES 4, H
+#[case::res_4_l(0x29f9, &[0xcb, 0xA5], &["decode_cb", "RES y, r[z]", "4", "L"])] // RES 4, L
+#[case::res_4_hli(0x29f9, &[0xcb, 0xA6], &["decode_cb", "RES y, r[z]", "4", "(HL)"])] // RES 4, (HL)
+#[case::res_4_a(0x29f9, &[0xcb, 0xA7], &["decode_cb", "RES y, r[z]", "4", "A"])] // RES 4, A
+
+#[case::res_5_b(0x29f9, &[0xcb, 0xA8], &["decode_cb", "RES y, r[z]", "5", "B"])] // RES 5, B
+#[case::res_5_c(0x29f9, &[0xcb, 0xA9], &["decode_cb", "RES y, r[z]", "5", "C"])] // RES 5, C
+#[case::res_5_d(0x29f9, &[0xcb, 0xAA], &["decode_cb", "RES y, r[z]", "5", "D"])] // RES 5, D
+#[case::res_5_e(0x29f9, &[0xcb, 0xAB], &["decode_cb", "RES y, r[z]", "5", "E"])] // RES 5, E
+#[case::res_5_h(0x29f9, &[0xcb, 0xAC], &["decode_cb", "RES y, r[z]", "5", "H"])] // RES 5, H
+#[case::res_5_l(0x29f9, &[0xcb, 0xAD], &["decode_cb", "RES y, r[z]", "5", "L"])] // RES 5, L
+#[case::res_5_hli(0x29f9, &[0xcb, 0xAE], &["decode_cb", "RES y, r[z]", "5", "(HL)"])] // RES 5, (HL)
+#[case::res_5_a(0x29f9, &[0xcb, 0xAF], &["decode_cb", "RES y, r[z]", "5", "A"])] // RES 5, A
+
+#[case::res_6_b(0x29f9, &[0xcb, 0xB0], &["decode_cb", "RES y, r[z]", "6", "B"])] // RES 6, B
+#[case::res_6_c(0x29f9, &[0xcb, 0xB1], &["decode_cb", "RES y, r[z]", "6", "C"])] // RES 6, C
+#[case::res_6_d(0x29f9, &[0xcb, 0xB2], &["decode_cb", "RES y, r[z]", "6", "D"])] // RES 6, D
+#[case::res_6_e(0x29f9, &[0xcb, 0xB3], &["decode_cb", "RES y, r[z]", "6", "E"])] // RES 6, E
+#[case::res_6_h(0x29f9, &[0xcb, 0xB4], &["decode_cb", "RES y, r[z]", "6", "H"])] // RES 6, H
+#[case::res_6_l(0x29f9, &[0xcb, 0xB5], &["decode_cb", "RES y, r[z]", "6", "L"])] // RES 6, L
+#[case::res_6_hli(0x29f9, &[0xcb, 0xB6], &["decode_cb", "RES y, r[z]", "6", "(HL)"])] // RES 6, (HL)
+#[case::res_6_a(0x29f9, &[0xcb, 0xB7], &["decode_cb", "RES y, r[z]", "6", "A"])] // RES 6, A
+
+#[case::res_7_b(0x29f9, &[0xcb, 0xB8], &["decode_cb", "RES y, r[z]", "7", "B"])] // RES 7, B
+#[case::res_7_c(0x29f9, &[0xcb, 0xB9], &["decode_cb", "RES y, r[z]", "7", "C"])] // RES 7, C
+#[case::res_7_d(0x29f9, &[0xcb, 0xBA], &["decode_cb", "RES y, r[z]", "7", "D"])] // RES 7, D
+#[case::res_7_e(0x29f9, &[0xcb, 0xBB], &["decode_cb", "RES y, r[z]", "7", "E"])] // RES 7, E
+#[case::res_7_h(0x29f9, &[0xcb, 0xBC], &["decode_cb", "RES y, r[z]", "7", "H"])] // RES 7, H
+#[case::res_7_l(0x29f9, &[0xcb, 0xBD], &["decode_cb", "RES y, r[z]", "7", "L"])] // RES 7, L
+#[case::res_7_hli(0x29f9, &[0xcb, 0xBE], &["decode_cb", "RES y, r[z]", "7", "(HL)"])] // RES 7, (HL)
+#[case::res_7_a(0x29f9, &[0xcb, 0xBF], &["decode_cb", "RES y, r[z]", "7", "A"])] // RES 7, A
+
+#[case::set_0_b(0x29f9, &[0xcb, 0xC0], &["decode_cb", "SET y, r[z]", "0", "B"])] // SET 0, B
+#[case::set_0_c(0x29f9, &[0xcb, 0xC1], &["decode_cb", "SET y, r[z]", "0", "C"])] // SET 0, C
+#[case::set_0_d(0x29f9, &[0xcb, 0xC2], &["decode_cb", "SET y, r[z]", "0", "D"])] // SET 0, D
+#[case::set_0_e(0x29f9, &[0xcb, 0xC3], &["decode_cb", "SET y, r[z]", "0", "E"])] // SET 0, E
+#[case::set_0_h(0x29f9, &[0xcb, 0xC4], &["decode_cb", "SET y, r[z]", "0", "H"])] // SET 0, H
+#[case::set_0_l(0x29f9, &[0xcb, 0xC5], &["decode_cb", "SET y, r[z]", "0", "L"])] // SET 0, L
+#[case::set_0_hli(0x29f9, &[0xcb, 0xC6], &["decode_cb", "SET y, r[z]", "0", "(HL)"])] // SET 0, (HL)
+#[case::set_0_a(0x29f9, &[0xcb, 0xC7], &["decode_cb", "SET y, r[z]", "0", "A"])] // SET 0, A
+
+#[case::set_1_b(0x29f9, &[0xcb, 0xC8], &["decode_cb", "SET y, r[z]", "1", "B"])] // SET 1, B
+#[case::set_1_c(0x29f9, &[0xcb, 0xC9], &["decode_cb", "SET y, r[z]", "1", "C"])] // SET 1, C
+#[case::set_1_d(0x29f9, &[0xcb, 0xCA], &["decode_cb", "SET y, r[z]", "1", "D"])] // SET 1, D
+#[case::set_1_e(0x29f9, &[0xcb, 0xCB], &["decode_cb", "SET y, r[z]", "1", "E"])] // SET 1, E
+#[case::set_1_h(0x29f9, &[0xcb, 0xCC], &["decode_cb", "SET y, r[z]", "1", "H"])] // SET 1, H
+#[case::set_1_l(0x29f9, &[0xcb, 0xCD], &["decode_cb", "SET y, r[z]", "1", "L"])] // SET 1, L
+#[case::set_1_hli(0x29f9, &[0xcb, 0xCE], &["decode_cb", "SET y, r[z]", "1", "(HL)"])] // SET 1, (HL)
+#[case::set_1_a(0x29f9, &[0xcb, 0xCF], &["decode_cb", "SET y, r[z]", "1", "A"])] // SET 1, A
+
+#[case::set_2_b(0x29f9, &[0xcb, 0xD0], &["decode_cb", "SET y, r[z]", "2", "B"])] // SET 2, B
+#[case::set_2_c(0x29f9, &[0xcb, 0xD1], &["decode_cb", "SET y, r[z]", "2", "C"])] // SET 2, C
+#[case::set_2_d(0x29f9, &[0xcb, 0xD2], &["decode_cb", "SET y, r[z]", "2", "D"])] // SET 2, D
+#[case::set_2_e(0x29f9, &[0xcb, 0xD3], &["decode_cb", "SET y, r[z]", "2", "E"])] // SET 2, E
+#[case::set_2_h(0x29f9, &[0xcb, 0xD4], &["decode_cb", "SET y, r[z]", "2", "H"])] // SET 2, H
+#[case::set_2_l(0x29f9, &[0xcb, 0xD5], &["decode_cb", "SET y, r[z]", "2", "L"])] // SET 2, L
+#[case::set_2_hli(0x29f9, &[0xcb, 0xD6], &["decode_cb", "SET y, r[z]", "2", "(HL)"])] // SET 2, (HL)
+#[case::set_2_a(0x29f9, &[0xcb, 0xD7], &["decode_cb", "SET y, r[z]", "2", "A"])] // SET 2, A
+
+#[case::set_3_b(0x29f9, &[0xcb, 0xD8], &["decode_cb", "SET y, r[z]", "3", "B"])] // SET 3, B
+#[case::set_3_c(0x29f9, &[0xcb, 0xD9], &["decode_cb", "SET y, r[z]", "3", "C"])] // SET 3, C
+#[case::set_3_d(0x29f9, &[0xcb, 0xDA], &["decode_cb", "SET y, r[z]", "3", "D"])] // SET 3, D
+#[case::set_3_e(0x29f9, &[0xcb, 0xDB], &["decode_cb", "SET y, r[z]", "3", "E"])] // SET 3, E
+#[case::set_3_h(0x29f9, &[0xcb, 0xDC], &["decode_cb", "SET y, r[z]", "3", "H"])] // SET 3, H
+#[case::set_3_l(0x29f9, &[0xcb, 0xDD], &["decode_cb", "SET y, r[z]", "3", "L"])] // SET 3, L
+#[case::set_3_hli(0x29f9, &[0xcb, 0xDE], &["decode_cb", "SET y, r[z]", "3", "(HL)"])] // SET 3, (HL)
+#[case::set_3_a(0x29f9, &[0xcb, 0xDF], &["decode_cb", "SET y, r[z]", "3", "A"])] // SET 3, A
+
+#[case::set_4_b(0x29f9, &[0xcb, 0xE0], &["decode_cb", "SET y, r[z]", "4", "B"])] // SET 4, B
+#[case::set_4_c(0x29f9, &[0xcb, 0xE1], &["decode_cb", "SET y, r[z]", "4", "C"])] // SET 4, C
+#[case::set_4_d(0x29f9, &[0xcb, 0xE2], &["decode_cb", "SET y, r[z]", "4", "D"])] // SET 4, D
+#[case::set_4_e(0x29f9, &[0xcb, 0xE3], &["decode_cb", "SET y, r[z]", "4", "E"])] // SET 4, E
+#[case::set_4_h(0x29f9, &[0xcb, 0xE4], &["decode_cb", "SET y, r[z]", "4", "H"])] // SET 4, H
+#[case::set_4_l(0x29f9, &[0xcb, 0xE5], &["decode_cb", "SET y, r[z]", "4", "L"])] // SET 4, L
+#[case::set_4_hli(0x29f9, &[0xcb, 0xE6], &["decode_cb", "SET y, r[z]", "4", "(HL)"])] // SET 4, (HL)
+#[case::set_4_a(0x29f9, &[0xcb, 0xE7], &["decode_cb", "SET y, r[z]", "4", "A"])] // SET 4, A
+
+#[case::set_5_b(0x29f9, &[0xcb, 0xE8], &["decode_cb", "SET y, r[z]", "5", "B"])] // SET 5, B
+#[case::set_5_c(0x29f9, &[0xcb, 0xE9], &["decode_cb", "SET y, r[z]", "5", "C"])] // SET 5, C
+#[case::set_5_d(0x29f9, &[0xcb, 0xEA], &["decode_cb", "SET y, r[z]", "5", "D"])] // SET 5, D
+#[case::set_5_e(0x29f9, &[0xcb, 0xEB], &["decode_cb", "SET y, r[z]", "5", "E"])] // SET 5, E
+#[case::set_5_h(0x29f9, &[0xcb, 0xEC], &["decode_cb", "SET y, r[z]", "5", "H"])] // SET 5, H
+#[case::set_5_l(0x29f9, &[0xcb, 0xED], &["decode_cb", "SET y, r[z]", "5", "L"])] // SET 5, L
+#[case::set_5_hli(0x29f9, &[0xcb, 0xEE], &["decode_cb", "SET y, r[z]", "5", "(HL)"])] // SET 5, (HL)
+#[case::set_5_a(0x29f9, &[0xcb, 0xEF], &["decode_cb", "SET y, r[z]", "5", "A"])] // SET 5, A
+
+#[case::set_6_b(0x29f9, &[0xcb, 0xF0], &["decode_cb", "SET y, r[z]", "6", "B"])] // SET 6, B
+#[case::set_6_c(0x29f9, &[0xcb, 0xF1], &["decode_cb", "SET y, r[z]", "6", "C"])] // SET 6, C
+#[case::set_6_d(0x29f9, &[0xcb, 0xF2], &["decode_cb", "SET y, r[z]", "6", "D"])] // SET 6, D
+#[case::set_6_e(0x29f9, &[0xcb, 0xF3], &["decode_cb", "SET y, r[z]", "6", "E"])] // SET 6, E
+#[case::set_6_h(0x29f9, &[0xcb, 0xF4], &["decode_cb", "SET y, r[z]", "6", "H"])] // SET 6, H
+#[case::set_6_l(0x29f9, &[0xcb, 0xF5], &["decode_cb", "SET y, r[z]", "6", "L"])] // SET 6, L
+#[case::set_6_hli(0x29f9, &[0xcb, 0xF6], &["decode_cb", "SET y, r[z]", "6", "(HL)"])] // SET 6, (HL)
+#[case::set_6_a(0x29f9, &[0xcb, 0xF7], &["decode_cb", "SET y, r[z]", "6", "A"])] // SET 6, A
+
+#[case::set_7_b(0x29f9, &[0xcb, 0xF8], &["decode_cb", "SET y, r[z]", "7", "B"])] // SET 7, B
+#[case::set_7_c(0x29f9, &[0xcb, 0xF9], &["decode_cb", "SET y, r[z]", "7", "C"])] // SET 7, C
+#[case::set_7_d(0x29f9, &[0xcb, 0xFA], &["decode_cb", "SET y, r[z]", "7", "D"])] // SET 7, D
+#[case::set_7_e(0x29f9, &[0xcb, 0xFB], &["decode_cb", "SET y, r[z]", "7", "E"])] // SET 7, E
+#[case::set_7_h(0x29f9, &[0xcb, 0xFC], &["decode_cb", "SET y, r[z]", "7", "H"])] // SET 7, H
+#[case::set_7_l(0x29f9, &[0xcb, 0xFD], &["decode_cb", "SET y, r[z]", "7", "L"])] // SET 7, L
+#[case::set_7_hli(0x29f9, &[0xcb, 0xFE], &["decode_cb", "SET y, r[z]", "7", "(HL)"])] // SET 7, (HL)
+#[case::set_7_a(0x29f9, &[0xcb, 0xFF], &["decode_cb", "SET y, r[z]", "7", "A"])] // SET 7, A
 fn test_opcode(
     #[case] starting_pc: u16,
     #[case] memory_contents: &[u8],

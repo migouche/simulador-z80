@@ -1,3 +1,5 @@
+use std::mem::transmute;
+
 pub mod rot {
 
     pub enum RotOperation {
@@ -60,4 +62,34 @@ pub mod rot {
         let result = value >> 1;
         (result, carry)
     }
+}
+
+pub fn bit(value: u8, bit_position: u8) -> u8 {
+    let bit: bool = (value & (1 << bit_position)) != 0;
+
+    let z = !bit;
+    let s = bit_position == 7 && bit;
+    let pv = z;
+    let h = true;
+    let n = false;
+    let c = false; // unaffected, will use mask later to ignore
+    let f3 = bit_position == 3 && bit;
+    let f5 = bit_position == 5 && bit;
+
+    (if c { 0x01 } else { 0x00 })
+        | (if n { 0x02 } else { 0x00 })
+        | (if pv { 0x04 } else { 0x00 })
+        | (if f3 { 0x08 } else { 0x00 })
+        | (if h { 0x10 } else { 0x00 })
+        | (if f5 { 0x20 } else { 0x00 })
+        | (if z { 0x40 } else { 0x00 })
+        | (if s { 0x80 } else { 0x00 })
+}
+
+pub fn res(value: u8, bit_position: u8) -> u8 {
+    value & !(1 << bit_position)
+}
+
+pub fn set(value: u8, bit_position: u8) -> u8 {
+    value | (1 << bit_position)
 }

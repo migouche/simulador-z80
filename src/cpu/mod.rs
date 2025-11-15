@@ -6,7 +6,7 @@ use std::collections::VecDeque;
 use std::rc::Rc;
 use std::usize;
 
-use crate::{cpu::alu::rot::{self, RotOperation}, traits::{MemoryMapper, SyncronousComponent}};
+use crate::{cpu::alu::{rot::{self, RotOperation}, bit, res, set}, traits::{MemoryMapper, SyncronousComponent}};
 
 #[cfg(test)]
 macro_rules! test_log {
@@ -796,9 +796,25 @@ impl Z80A {
                 test_log!(self, "rot[y] r[z]");
                 self.rot(y, z) // NOTE: rot[y] r[z]
             }, 
-            1 => test_log!(self, "BIT y, r[z]"), // TODO: BIT y, r[z]
-            2 => test_log!(self, "RES y, r[z]"), // TODO: RES y, r[z]
-            3 => test_log!(self, "SET y, r[z]"), // TODO: SET y, r[z]
+            1 => {
+                test_log!(self, "BIT y, r[z]");
+                test_log!(self, &format!("{}", y));
+                let reg = self.table_r(z);
+                self.bit(y, reg)
+        }, // NOTE: BIT y, r[z]
+            2 => {
+                test_log!(self, "RES y, r[z]");
+                test_log!(self, &format!("{}", y));
+                let reg = self.table_r(z);
+                self.res(y, reg)
+
+            }, // NOTE: RES y, r[z]
+            3 => {
+                test_log!(self, "SET y, r[z]");
+                test_log!(self, &format!("{}", y));
+                let reg = self.table_r(z);
+                self.set(y, reg)
+            }, // NOTE: SET y, r[z]
             _ => panic!("Invalid x value"),      // should never happen
         }
     }
@@ -1185,6 +1201,68 @@ impl Z80A {
                 self.memory.borrow_mut().write(address, result)
             }
             _ => panic!("Unsupported addressing mode for ROT"),
+        }
+    }
+
+    fn bit(&mut self, y: u8, reg: AddressingMode) {
+        let value = match reg {
+            AddressingMode::Register(r) => self.main_set.get_register(r),
+            AddressingMode::RegisterIndirect(RegisterPair::HL) => {
+                let address = self.get_register_pair(RegisterPair::HL);
+                self.memory.borrow().read(address)
+            }
+            _ => panic!("Unsupported addressing mode for BIT"),
+        };
+
+        let prev_c = self.main_set.get_flag(Flag::C);
+        self.set_register(GPR::F, 
+            bit(value, y)
+        );
+
+        self.main_set.set_flag(prev_c, Flag::C); // C flag is not affected
+    }
+
+    fn res(&mut self, y: u8, reg: AddressingMode) {
+        let value = match reg {
+            AddressingMode::Register(r) => self.main_set.get_register(r),
+            AddressingMode::RegisterIndirect(RegisterPair::HL) => {
+                let address = self.get_register_pair(RegisterPair::HL);
+                self.memory.borrow().read(address)
+            }
+            _ => panic!("Unsupported addressing mode for RES"),
+        };
+
+        let result = res(value, y);
+
+        match reg {
+            AddressingMode::Register(r) => self.main_set.set_register(r, result),
+            AddressingMode::RegisterIndirect(RegisterPair::HL) => {
+                let address = self.get_register_pair(RegisterPair::HL);
+                self.memory.borrow_mut().write(address, result)
+            }
+            _ => panic!("Unsupported addressing mode for RES"),
+        }
+    }
+
+    fn set(&mut self, y: u8, reg: AddressingMode) {
+        let value = match reg {
+            AddressingMode::Register(r) => self.main_set.get_register(r),
+            AddressingMode::RegisterIndirect(RegisterPair::HL) => {
+                let address = self.get_register_pair(RegisterPair::HL);
+                self.memory.borrow().read(address)
+            }
+            _ => panic!("Unsupported addressing mode for SET"),
+        };
+
+        let result = set(value, y);
+
+        match reg {
+            AddressingMode::Register(r) => self.main_set.set_register(r, result),
+            AddressingMode::RegisterIndirect(RegisterPair::HL) => {
+                let address = self.get_register_pair(RegisterPair::HL);
+                self.memory.borrow_mut().write(address, result)
+            }
+            _ => panic!("Unsupported addressing mode for SET"),
         }
     }
 }
