@@ -13,54 +13,78 @@ pub mod rot {
         SRL,
     } 
 
+    fn calculate_flags(result: u8, carry: bool) -> u8{
+        let z = result == 0;
+        let s = (result & 0x80) != 0;
+        let pv = result.count_ones() % 2 == 0;
+        let x = (result & 0x08) != 0;
+        let y = (result & 0x20) != 0;
+        // Carry is passed as parameter
 
-    pub fn rlc (value: u8) -> (u8, bool) {
+        (if carry { 0x01 } else { 0x00 })
+            | (if pv { 0x04 } else { 0x00 })
+            | (if x { 0x08 } else { 0x00 })
+            | (if y { 0x20 } else { 0x00 })
+            | (if z { 0x40 } else { 0x00 })
+            | (if s { 0x80 } else { 0x00 })
+    }
+
+
+    pub fn rlc (value: u8) -> (u8, u8) {
         let carry = (value & 0x80) != 0;
         let result = (value << 1) | if carry { 1 } else { 0 };
-        (result, carry)
+        let flags = calculate_flags(result, carry);
+        (result, flags)
     }
 
-    pub fn rrc (value: u8) -> (u8, bool) {
+    pub fn rrc (value: u8) -> (u8, u8) {
         let carry = (value & 0x01) != 0;
         let result = (value >> 1) | if carry { 0x80 } else { 0 };
-        (result, carry)
+        let flags = calculate_flags(result, carry);
+        (result, flags)
     }
 
-    pub fn rl (value: u8, carry_in: bool) -> (u8, bool) {
+    pub fn rl (value: u8, carry_in: bool) -> (u8, u8) {
         let carry = (value & 0x80) != 0;
         let result = (value << 1) | if carry_in { 1 } else { 0 };
-        (result, carry)
+        let flags = calculate_flags(result, carry);
+        (result, flags)
     }
 
-    pub fn rr (value: u8, carry_in: bool) -> (u8, bool) {
+    pub fn rr (value: u8, carry_in: bool) -> (u8, u8) {
         let carry = (value & 0x01) != 0;
         let result = (value >> 1) | if carry_in { 0x80 } else { 0 };
-        (result, carry)
+        let flags = calculate_flags(result, carry);
+        (result, flags)
     }
 
-    pub fn sla (value: u8) -> (u8, bool) {
+    pub fn sla (value: u8) -> (u8, u8) {
         let carry = (value & 0x80) != 0;
         let result = value << 1;
-        (result, carry)
+        let flags = calculate_flags(result, carry);
+        (result, flags)
     }
 
-    pub fn sra (value: u8) -> (u8, bool) {
+    pub fn sra (value: u8) -> (u8, u8) {
         let carry = (value & 0x01) != 0;
         let msb = value & 0x80;
         let result = (value >> 1) | msb;
-        (result, carry)
+        let flags = calculate_flags(result, carry);
+        (result, flags)
     }
 
-    pub fn sll (value: u8) -> (u8, bool) {
+    pub fn sll (value: u8) -> (u8, u8) {
         let carry = (value & 0x80) != 0;
         let result = (value << 1) | 0x01;
-        (result, carry)
+        let flags = calculate_flags(result, carry);
+        (result, flags)
     }
 
-    pub fn srl (value: u8) -> (u8, bool) {
+    pub fn srl (value: u8) -> (u8, u8) {
         let carry = (value & 0x01) != 0;
         let result = value >> 1;
-        (result, carry)
+        let flags = calculate_flags(result, carry);
+        (result, flags)
     }
 }
 

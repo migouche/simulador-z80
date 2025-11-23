@@ -1183,7 +1183,7 @@ impl Z80A {
             _ => panic!("Unsupported addressing mode for ROT"),
         };
 
-        let (result, carry) = match operation {
+        let (result, flags) = match operation {
             RotOperation::RLC => rot::rlc(value),
             RotOperation::RRC => rot::rrc(value),
             RotOperation::RL => rot::rl(value, self.main_set.get_flag(Flag::C)),
@@ -1193,7 +1193,7 @@ impl Z80A {
             RotOperation::SLL => rot::sll(value),
             RotOperation::SRL => rot::srl(value),
         };
-        self.main_set.set_flag(carry, Flag::C);
+        self.main_set.set_register(GPR::F, flags);
         match reg {
             AddressingMode::Register(r) => self.main_set.set_register(r, result),
             AddressingMode::RegisterIndirect(RegisterPair::HL) => {
