@@ -4,6 +4,9 @@ use crate::cpu::tests::setup_cpu;
 use crate::cpu::{GPR, RegisterPair, Flag};
 use crate::traits::SyncronousComponent;
 
+// this only tests carry flag because its old :C
+// there are more extensive tests for the rotation functions in alu_tests.rs
+
 #[rstest]
 #[case::rlc_b(GPR::B, 0x00, (0b1000_0001, true), (0b0000_0011, true), 0x1000)]
 #[case::rlc_c(GPR::C, 0x01, (0b0000_0001, false), (0b0000_0010, false), 0x1000)]

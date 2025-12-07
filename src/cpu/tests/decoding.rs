@@ -9,6 +9,8 @@ use crate::cpu::tests::setup_cpu;
 */
 
 #[rstest]
+// UNPREFIXED TABLE (MAIN INSTRUCTIONS)
+
 #[case::nop(0x29f9, &[0x00], &["decode_unprefixed", "NOP"])] // NOP
 #[case::ld_bc_nn(0x29f9, &[0x01, 0x34, 0x12], &["decode_unprefixed", "LD rp[p], nn", "BC"])] // LD BC, nn
 #[case::ld_bci_a(0x29f9, &[0x02], &["decode_unprefixed", "LD (BC), A"])] // LD (BC), A
@@ -18,7 +20,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::ld_b_n(0x29f9, &[0x06, 0x56], &["decode_unprefixed", "LD r[y], n", "B"])] // LD B, n
 #[case::rlca(0x29f9, &[0x07], &["decode_unprefixed", "RLCA"])] // RLCA
 #[case::ex_af_afp(0x29f9, &[0x08], &["decode_unprefixed", "EX AF, AF'"])] // EX AF, AF'
-#[case::add_hl_bc(0x29f9, &[0x09], &["decode_unprefixed", "ADD HL, rp[p]"])] // ADD HL, BC
+#[case::add_hl_bc(0x29f9, &[0x09], &["decode_unprefixed", "ADD HL/IX/IY, rp[p]"])] // ADD HL, BC
 #[case::ld_a_bci(0x29f9, &[0x0a], &["decode_unprefixed", "LD A, (BC)"])] // LD A, (BC)
 #[case::dec_bc(0x29f9, &[0x0b], &["decode_unprefixed", "DEC rp[p]"])] // DEC BC
 #[case::inc_c(0x29f9, &[0x0c], &["decode_unprefixed", "INC r[y]"])] // INC C
@@ -35,7 +37,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::ld_d_n(0x29f9, &[0x16, 0x9a], &["decode_unprefixed", "LD r[y], n", "D"])] // LD D, n
 #[case::rla(0x29f9, &[0x17], &["decode_unprefixed", "RLA"])] // RLA
 #[case::jr_d(0x29f9, &[0x18, 0xfe], &["decode_unprefixed", "JR d"])] // JR d
-#[case::add_hl_de(0x29f9, &[0x19], &["decode_unprefixed", "ADD HL, rp[p]"])] // ADD HL, DE
+#[case::add_hl_de(0x29f9, &[0x19], &["decode_unprefixed", "ADD HL/IX/IY, rp[p]"])] // ADD HL, DE
 #[case::ld_a_dei(0x29f9, &[0x1a], &["decode_unprefixed", "LD A, (DE)"])] // LD A, (DE)
 #[case::dec_de(0x29f9, &[0x1b], &["decode_unprefixed", "DEC rp[p]"])] // DEC DE
 #[case::inc_e(0x29f9, &[0x1c], &["decode_unprefixed", "INC r[y]"])] // INC E
@@ -52,7 +54,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::ld_h_n(0x29f9, &[0x26, 0x56], &["decode_unprefixed", "LD r[y], n", "H"])] // LD H, n
 #[case::daa(0x29f9, &[0x27], &["decode_unprefixed", "DAA"])] // DAA
 #[case::jr_z_d(0x29f9, &[0x28, 0xfe], &["decode_unprefixed", "JR cc[y-4], d"])] // JR Z, d
-#[case::add_hl_hl(0x29f9, &[0x29], &["decode_unprefixed", "ADD HL, rp[p]"])] // ADD HL, HL
+#[case::add_hl_hl(0x29f9, &[0x29], &["decode_unprefixed", "ADD HL/IX/IY, rp[p]"])] // ADD HL, HL
 #[case::ld_hl_nni(0x29f9, &[0x2a, 0x00, 0x80], &["decode_unprefixed", "LD HL/IX/IY, (nn)"])] // LD HL, (nn)
 #[case::dec_hl(0x29f9, &[0x2b], &["decode_unprefixed", "DEC rp[p]"])] // DEC HL
 #[case::inc_l(0x29f9, &[0x2c], &["decode_unprefixed", "INC r[y]"])] // INC L
@@ -69,7 +71,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::ld_hli_n(0x29f9, &[0x36, 0x56], &["decode_unprefixed", "LD r[y], n", "(HL)"])] // LD (HL), n
 #[case::scf(0x29f9, &[0x37], &["decode_unprefixed", "SCF"])] // SCF
 #[case::jr_c_d(0x29f9, &[0x38, 0xfe], &["decode_unprefixed", "JR cc[y-4], d"])] // JR C, d
-#[case::add_hl_sp(0x29f9, &[0x39], &["decode_unprefixed", "ADD HL, rp[p]"])] // ADD HL, SP
+#[case::add_hl_sp(0x29f9, &[0x39], &["decode_unprefixed", "ADD HL/IX/IY, rp[p]"])] // ADD HL, SP
 #[case::ld_a_nni(0x29f9, &[0x3a, 0x00, 0x80], &["decode_unprefixed", "LD A, (nn)"])] // LD A, (nn)
 #[case::dec_sp(0x29f9, &[0x3b], &["decode_unprefixed", "DEC rp[p]"])] // DEC SP
 #[case::inc_lli(0x29f9, &[0x3c], &["decode_unprefixed", "INC r[y]"])] // INC A
@@ -145,73 +147,73 @@ use crate::cpu::tests::setup_cpu;
 #[case::ld_a_hli(0x29f9, &[0x7e], &["decode_unprefixed", "LD r[y], r[z]", "A", "(HL)"])] // LD A, (HL)
 #[case::ld_a_a(0x29f9, &[0x7f], &["decode_unprefixed", "LD r[y], r[z]", "A", "A"])] // LD A, A
 
-#[case::add_a_b(0x29f9, &[0x80], &["decode_unprefixed", "ALU[y] r[z]"])] // ADD A, B
-#[case::add_a_c(0x29f9, &[0x81], &["decode_unprefixed", "ALU[y] r[z]"])] // ADD A, C
-#[case::add_a_d(0x29f9, &[0x82], &["decode_unprefixed", "ALU[y] r[z]"])] // ADD A, D
-#[case::add_a_e(0x29f9, &[0x83], &["decode_unprefixed", "ALU[y] r[z]"])] // ADD A, E
-#[case::add_a_h(0x29f9, &[0x84], &["decode_unprefixed", "ALU[y] r[z]"])] // ADD A, H
-#[case::add_a_l(0x29f9, &[0x85], &["decode_unprefixed", "ALU[y] r[z]"])] // ADD A, L
-#[case::add_a_hli(0x29f9, &[0x86], &["decode_unprefixed", "ALU[y] r[z]"])] // ADD A, (HL)
-#[case::add_a_a(0x29f9, &[0x87], &["decode_unprefixed", "ALU[y] r[z]"])] // ADD A, A
-#[case::adc_a_b(0x29f9, &[0x88], &["decode_unprefixed", "ALU[y] r[z]"])] // ADC A, B
-#[case::adc_a_c(0x29f9, &[0x89], &["decode_unprefixed", "ALU[y] r[z]"])] // ADC A, C
-#[case::adc_a_d(0x29f9, &[0x8a], &["decode_unprefixed", "ALU[y] r[z]"])] // ADC A, D
-#[case::adc_a_e(0x29f9, &[0x8b], &["decode_unprefixed", "ALU[y] r[z]"])] // ADC A, E
-#[case::adc_a_h(0x29f9, &[0x8c], &["decode_unprefixed", "ALU[y] r[z]"])] // ADC A, H
-#[case::adc_a_l(0x29f9, &[0x8d], &["decode_unprefixed", "ALU[y] r[z]"])] // ADC A, L
-#[case::adc_a_hli(0x29f9, &[0x8e], &["decode_unprefixed", "ALU[y] r[z]"])] // ADC A, (HL)
-#[case::adc_a_a(0x29f9, &[0x8f], &["decode_unprefixed", "ALU[y] r[z]"])] // ADC A, A
+#[case::add_a_b(0x29f9, &[0x80], &["decode_unprefixed", "ALU[y] r[z]", "ADD A", "B"])] // ADD A, B
+#[case::add_a_c(0x29f9, &[0x81], &["decode_unprefixed", "ALU[y] r[z]", "ADD A", "C"])] // ADD A, C
+#[case::add_a_d(0x29f9, &[0x82], &["decode_unprefixed", "ALU[y] r[z]", "ADD A", "D"])] // ADD A, D
+#[case::add_a_e(0x29f9, &[0x83], &["decode_unprefixed", "ALU[y] r[z]", "ADD A", "E"])] // ADD A, E
+#[case::add_a_h(0x29f9, &[0x84], &["decode_unprefixed", "ALU[y] r[z]", "ADD A", "H"])] // ADD A, H
+#[case::add_a_l(0x29f9, &[0x85], &["decode_unprefixed", "ALU[y] r[z]", "ADD A", "L"])] // ADD A, L
+#[case::add_a_hli(0x29f9, &[0x86], &["decode_unprefixed", "ALU[y] r[z]", "ADD A", "(HL)"])] // ADD A, (HL)
+#[case::add_a_a(0x29f9, &[0x87], &["decode_unprefixed", "ALU[y] r[z]", "ADD A", "A"])] // ADD A, A
+#[case::adc_a_b(0x29f9, &[0x88], &["decode_unprefixed", "ALU[y] r[z]", "ADC A", "B"])] // ADC A, B
+#[case::adc_a_c(0x29f9, &[0x89], &["decode_unprefixed", "ALU[y] r[z]", "ADC A", "C"])] // ADC A, C
+#[case::adc_a_d(0x29f9, &[0x8a], &["decode_unprefixed", "ALU[y] r[z]", "ADC A", "D"])] // ADC A, D
+#[case::adc_a_e(0x29f9, &[0x8b], &["decode_unprefixed", "ALU[y] r[z]", "ADC A", "E"])] // ADC A, E
+#[case::adc_a_h(0x29f9, &[0x8c], &["decode_unprefixed", "ALU[y] r[z]", "ADC A", "H"])] // ADC A, H
+#[case::adc_a_l(0x29f9, &[0x8d], &["decode_unprefixed", "ALU[y] r[z]", "ADC A", "L"])] // ADC A, L
+#[case::adc_a_hli(0x29f9, &[0x8e], &["decode_unprefixed", "ALU[y] r[z]", "ADC A", "(HL)"])] // ADC A, (HL)
+#[case::adc_a_a(0x29f9, &[0x8f], &["decode_unprefixed", "ALU[y] r[z]", "ADC A", "A"])] // ADC A, A
 
-#[case::sub_a_b(0x29f9, &[0x90], &["decode_unprefixed", "ALU[y] r[z]"])] // SUB A, B
-#[case::sub_a_c(0x29f9, &[0x91], &["decode_unprefixed", "ALU[y] r[z]"])] // SUB A, C
-#[case::sub_a_d(0x29f9, &[0x92], &["decode_unprefixed", "ALU[y] r[z]"])] // SUB A, D
-#[case::sub_a_e(0x29f9, &[0x93], &["decode_unprefixed", "ALU[y] r[z]"])] // SUB A, E
-#[case::sub_a_h(0x29f9, &[0x94], &["decode_unprefixed", "ALU[y] r[z]"])] // SUB A, H
-#[case::sub_a_l(0x29f9, &[0x95], &["decode_unprefixed", "ALU[y] r[z]"])] // SUB A, L
-#[case::sub_a_hli(0x29f9, &[0x96], &["decode_unprefixed", "ALU[y] r[z]"])] // SUB A, (HL)
-#[case::sub_a_a(0x29f9, &[0x97], &["decode_unprefixed", "ALU[y] r[z]"])] // SUB A, A
-#[case::sbc_a_b(0x29f9, &[0x98], &["decode_unprefixed", "ALU[y] r[z]"])] // SBC A, B
-#[case::sbc_a_c(0x29f9, &[0x99], &["decode_unprefixed", "ALU[y] r[z]"])] // SBC A, C
-#[case::sbc_a_d(0x29f9, &[0x9a], &["decode_unprefixed", "ALU[y] r[z]"])] // SBC A, D
-#[case::sbc_a_e(0x29f9, &[0x9b], &["decode_unprefixed", "ALU[y] r[z]"])] // SBC A, E
-#[case::sbc_a_h(0x29f9, &[0x9c], &["decode_unprefixed", "ALU[y] r[z]"])] // SBC A, H
-#[case::sbc_a_l(0x29f9, &[0x9d], &["decode_unprefixed", "ALU[y] r[z]"])] // SBC A, L
-#[case::sbc_a_hli(0x29f9, &[0x9e], &["decode_unprefixed", "ALU[y] r[z]"])] // SBC A, (HL)
-#[case::sbc_a_a(0x29f9, &[0x9f], &["decode_unprefixed", "ALU[y] r[z]"])] // SBC A, A
+#[case::sub_a_b(0x29f9, &[0x90], &["decode_unprefixed", "ALU[y] r[z]", "SUB A", "B"])] // SUB A, B
+#[case::sub_a_c(0x29f9, &[0x91], &["decode_unprefixed", "ALU[y] r[z]", "SUB A", "C"])] // SUB A, C
+#[case::sub_a_d(0x29f9, &[0x92], &["decode_unprefixed", "ALU[y] r[z]", "SUB A", "D"])] // SUB A, D
+#[case::sub_a_e(0x29f9, &[0x93], &["decode_unprefixed", "ALU[y] r[z]", "SUB A", "E"])] // SUB A, E
+#[case::sub_a_h(0x29f9, &[0x94], &["decode_unprefixed", "ALU[y] r[z]", "SUB A", "H"])] // SUB A, H
+#[case::sub_a_l(0x29f9, &[0x95], &["decode_unprefixed", "ALU[y] r[z]", "SUB A", "L"])] // SUB A, L
+#[case::sub_a_hli(0x29f9, &[0x96], &["decode_unprefixed", "ALU[y] r[z]", "SUB A", "(HL)"])] // SUB A, (HL)
+#[case::sub_a_a(0x29f9, &[0x97], &["decode_unprefixed", "ALU[y] r[z]", "SUB A", "A"])] // SUB A, A
+#[case::sbc_a_b(0x29f9, &[0x98], &["decode_unprefixed", "ALU[y] r[z]", "SBC A", "B"])] // SBC A, B
+#[case::sbc_a_c(0x29f9, &[0x99], &["decode_unprefixed", "ALU[y] r[z]", "SBC A", "C"])] // SBC A, C
+#[case::sbc_a_d(0x29f9, &[0x9a], &["decode_unprefixed", "ALU[y] r[z]", "SBC A", "D"])] // SBC A, D
+#[case::sbc_a_e(0x29f9, &[0x9b], &["decode_unprefixed", "ALU[y] r[z]", "SBC A", "E"])] // SBC A, E
+#[case::sbc_a_h(0x29f9, &[0x9c], &["decode_unprefixed", "ALU[y] r[z]", "SBC A", "H"])] // SBC A, H
+#[case::sbc_a_l(0x29f9, &[0x9d], &["decode_unprefixed", "ALU[y] r[z]", "SBC A", "L"])] // SBC A, L
+#[case::sbc_a_hli(0x29f9, &[0x9e], &["decode_unprefixed", "ALU[y] r[z]", "SBC A", "(HL)"])] // SBC A, (HL)
+#[case::sbc_a_a(0x29f9, &[0x9f], &["decode_unprefixed", "ALU[y] r[z]", "SBC A", "A"])] // SBC A, A
 
-#[case::and_a_b(0x29f9, &[0xa0], &["decode_unprefixed", "ALU[y] r[z]"])] // AND A, B
-#[case::and_a_c(0x29f9, &[0xa1], &["decode_unprefixed", "ALU[y] r[z]"])] // AND A, C
-#[case::and_a_d(0x29f9, &[0xa2], &["decode_unprefixed", "ALU[y] r[z]"])] // AND A, D
-#[case::and_a_e(0x29f9, &[0xa3], &["decode_unprefixed", "ALU[y] r[z]"])] // AND A, E
-#[case::and_a_h(0x29f9, &[0xa4], &["decode_unprefixed", "ALU[y] r[z]"])] // AND A, H
-#[case::and_a_l(0x29f9, &[0xa5], &["decode_unprefixed", "ALU[y] r[z]"])] // AND A, L
-#[case::and_a_hli(0x29f9, &[0xa6], &["decode_unprefixed", "ALU[y] r[z]"])] // AND A, (HL)
-#[case::and_a_a(0x29f9, &[0xa7], &["decode_unprefixed", "ALU[y] r[z]"])] // AND A, A
-#[case::xor_a_b(0x29f9, &[0xa8], &["decode_unprefixed", "ALU[y] r[z]"])] // XOR A, B
-#[case::xor_a_c(0x29f9, &[0xa9], &["decode_unprefixed", "ALU[y] r[z]"])] // XOR A, C
-#[case::xor_a_d(0x29f9, &[0xaa], &["decode_unprefixed", "ALU[y] r[z]"])] // XOR A, D
-#[case::xor_a_e(0x29f9, &[0xab], &["decode_unprefixed", "ALU[y] r[z]"])] // XOR A, E
-#[case::xor_a_h(0x29f9, &[0xac], &["decode_unprefixed", "ALU[y] r[z]"])] // XOR A, H
-#[case::xor_a_l(0x29f9, &[0xad], &["decode_unprefixed", "ALU[y] r[z]"])] // XOR A, L
-#[case::xor_a_hli(0x29f9, &[0xae], &["decode_unprefixed", "ALU[y] r[z]"])] // XOR A, (HL)
-#[case::xor_a_a(0x29f9, &[0xaf], &["decode_unprefixed", "ALU[y] r[z]"])] // XOR A, A
+#[case::and_a_b(0x29f9, &[0xa0], &["decode_unprefixed", "ALU[y] r[z]", "AND A", "B"])] // AND A, B
+#[case::and_a_c(0x29f9, &[0xa1], &["decode_unprefixed", "ALU[y] r[z]", "AND A", "C"])] // AND A, C
+#[case::and_a_d(0x29f9, &[0xa2], &["decode_unprefixed", "ALU[y] r[z]", "AND A", "D"])] // AND A, D
+#[case::and_a_e(0x29f9, &[0xa3], &["decode_unprefixed", "ALU[y] r[z]", "AND A", "E"])] // AND A, E
+#[case::and_a_h(0x29f9, &[0xa4], &["decode_unprefixed", "ALU[y] r[z]", "AND A", "H"])] // AND A, H
+#[case::and_a_l(0x29f9, &[0xa5], &["decode_unprefixed", "ALU[y] r[z]", "AND A", "L"])] // AND A, L
+#[case::and_a_hli(0x29f9, &[0xa6], &["decode_unprefixed", "ALU[y] r[z]", "AND A", "(HL)"])] // AND A, (HL)
+#[case::and_a_a(0x29f9, &[0xa7], &["decode_unprefixed", "ALU[y] r[z]", "AND A", "A"])] // AND A, A
+#[case::xor_a_b(0x29f9, &[0xa8], &["decode_unprefixed", "ALU[y] r[z]", "XOR A", "B"])] // XOR A, B
+#[case::xor_a_c(0x29f9, &[0xa9], &["decode_unprefixed", "ALU[y] r[z]", "XOR A", "C"])] // XOR A, C
+#[case::xor_a_d(0x29f9, &[0xaa], &["decode_unprefixed", "ALU[y] r[z]", "XOR A", "D"])] // XOR A, D
+#[case::xor_a_e(0x29f9, &[0xab], &["decode_unprefixed", "ALU[y] r[z]", "XOR A", "E"])] // XOR A, E
+#[case::xor_a_h(0x29f9, &[0xac], &["decode_unprefixed", "ALU[y] r[z]", "XOR A", "H"])] // XOR A, H
+#[case::xor_a_l(0x29f9, &[0xad], &["decode_unprefixed", "ALU[y] r[z]", "XOR A", "L"])] // XOR A, L
+#[case::xor_a_hli(0x29f9, &[0xae], &["decode_unprefixed", "ALU[y] r[z]", "XOR A", "(HL)"])] // XOR A, (HL)
+#[case::xor_a_a(0x29f9, &[0xaf], &["decode_unprefixed", "ALU[y] r[z]", "XOR A", "A"])] // XOR A, A
 
-#[case::or_a_b(0x29f9, &[0xb0], &["decode_unprefixed", "ALU[y] r[z]"])] // OR A, B
-#[case::or_a_c(0x29f9, &[0xb1], &["decode_unprefixed", "ALU[y] r[z]"])] // OR A, C
-#[case::or_a_d(0x29f9, &[0xb2], &["decode_unprefixed", "ALU[y] r[z]"])] // OR A, D
-#[case::or_a_e(0x29f9, &[0xb3], &["decode_unprefixed", "ALU[y] r[z]"])] // OR A, E
-#[case::or_a_h(0x29f9, &[0xb4], &["decode_unprefixed", "ALU[y] r[z]"])] // OR A, H
-#[case::or_a_l(0x29f9, &[0xb5], &["decode_unprefixed", "ALU[y] r[z]"])] // OR A, L
-#[case::or_a_hli(0x29f9, &[0xb6], &["decode_unprefixed", "ALU[y] r[z]"])] // OR A, (HL)
-#[case::or_a_a(0x29f9, &[0xb7], &["decode_unprefixed", "ALU[y] r[z]"])] // OR A, A
-#[case::cp_a_b(0x29f9, &[0xb8], &["decode_unprefixed", "ALU[y] r[z]"])] // CP A, B
-#[case::cp_a_c(0x29f9, &[0xb9], &["decode_unprefixed", "ALU[y] r[z]"])] // CP A, C
-#[case::cp_a_d(0x29f9, &[0xba], &["decode_unprefixed", "ALU[y] r[z]"])] // CP A, D
-#[case::cp_a_e(0x29f9, &[0xbb], &["decode_unprefixed", "ALU[y] r[z]"])] // CP A, E
-#[case::cp_a_h(0x29f9, &[0xbc], &["decode_unprefixed", "ALU[y] r[z]"])] // CP A, H
-#[case::cp_a_l(0x29f9, &[0xbd], &["decode_unprefixed", "ALU[y] r[z]"])] // CP A, L
-#[case::cp_a_hli(0x29f9, &[0xbe], &["decode_unprefixed", "ALU[y] r[z]"])] // CP A, (HL)
-#[case::cp_a_a(0x29f9, &[0xbf], &["decode_unprefixed", "ALU[y] r[z]"])] // CP A, A
+#[case::or_a_b(0x29f9, &[0xb0], &["decode_unprefixed", "ALU[y] r[z]", "OR A", "B"])] // OR A, B
+#[case::or_a_c(0x29f9, &[0xb1], &["decode_unprefixed", "ALU[y] r[z]", "OR A", "C"])] // OR A, C
+#[case::or_a_d(0x29f9, &[0xb2], &["decode_unprefixed", "ALU[y] r[z]", "OR A", "D"])] // OR A, D
+#[case::or_a_e(0x29f9, &[0xb3], &["decode_unprefixed", "ALU[y] r[z]", "OR A", "E"])] // OR A, E
+#[case::or_a_h(0x29f9, &[0xb4], &["decode_unprefixed", "ALU[y] r[z]", "OR A", "H"])] // OR A, H
+#[case::or_a_l(0x29f9, &[0xb5], &["decode_unprefixed", "ALU[y] r[z]", "OR A", "L"])] // OR A, L
+#[case::or_a_hli(0x29f9, &[0xb6], &["decode_unprefixed", "ALU[y] r[z]", "OR A", "(HL)"])] // OR A, (HL)
+#[case::or_a_a(0x29f9, &[0xb7], &["decode_unprefixed", "ALU[y] r[z]", "OR A", "A"])] // OR A, A
+#[case::cp_a_b(0x29f9, &[0xb8], &["decode_unprefixed", "ALU[y] r[z]", "CP A", "B"])] // CP A, B
+#[case::cp_a_c(0x29f9, &[0xb9], &["decode_unprefixed", "ALU[y] r[z]", "CP A", "C"])] // CP A, C
+#[case::cp_a_d(0x29f9, &[0xba], &["decode_unprefixed", "ALU[y] r[z]", "CP A", "D"])] // CP A, D
+#[case::cp_a_e(0x29f9, &[0xbb], &["decode_unprefixed", "ALU[y] r[z]", "CP A", "E"])] // CP A, E
+#[case::cp_a_h(0x29f9, &[0xbc], &["decode_unprefixed", "ALU[y] r[z]", "CP A", "H"])] // CP A, H
+#[case::cp_a_l(0x29f9, &[0xbd], &["decode_unprefixed", "ALU[y] r[z]", "CP A", "L"])] // CP A, L
+#[case::cp_a_hli(0x29f9, &[0xbe], &["decode_unprefixed", "ALU[y] r[z]", "CP A", "(HL)"])] // CP A, (HL)
+#[case::cp_a_a(0x29f9, &[0xbf], &["decode_unprefixed", "ALU[y] r[z]", "CP A", "A"])] // CP A, A
 
 #[case::ret_nz(0x29f9, &[0xc0], &["decode_unprefixed", "RET cc[y]"])] // RET NZ
 #[case::pop_bc(0x29f9, &[0xc1], &["decode_unprefixed", "POP rp2[p]"])] // POP BC
@@ -219,7 +221,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::jp_nn(0x29f9, &[0xc3, 0x34, 0x12], &["decode_unprefixed", "JP nn"])] // JP nn
 #[case::call_nz_nn(0x29f9, &[0xc4, 0x34, 0x12], &["decode_unprefixed", "CALL cc[y], nn"])] // CALL NZ, nn
 #[case::push_bc(0x29f9, &[0xc5], &["decode_unprefixed", "PUSH rp2[p]"])] // PUSH BC
-#[case::add_a_n(0x29f9, &[0xc6, 0x56], &["decode_unprefixed", "ALU[y] n"])] // ADD A, n
+#[case::add_a_n(0x29f9, &[0xc6, 0x56], &["decode_unprefixed", "ALU[y] n", "ADD A"])] // ADD A, n
 #[case::rst_00h(0x29f9, &[0xc7], &["decode_unprefixed", "RST y*8"])] // RST 00h
 #[case::ret_z(0x29f9, &[0xc8], &["decode_unprefixed", "RET cc[y]"])] // RET Z
 #[case::ret(0x29f9, &[0xc9], &["decode_unprefixed", "RET"])] // RET
@@ -227,7 +229,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::cb_prefix(0x29f9, &[0xcb, 0x00], &["decode_cb", "rot[y] r[z]", "RLC", "B"])] // CB Prefix (RLC B)
 #[case::call_z_nn(0x29f9, &[0xcc, 0x34, 0x12], &["decode_unprefixed", "CALL cc[y], nn"])] // CALL Z, nn
 #[case::call_nn(0x29f9, &[0xcd, 0x34, 0x12], &["decode_unprefixed", "CALL nn"])] // CALL nn
-#[case::adc_a_n(0x29f9, &[0xce, 0x56], &["decode_unprefixed", "ALU[y] n"])] // ADC A, n
+#[case::adc_a_n(0x29f9, &[0xce, 0x56], &["decode_unprefixed", "ALU[y] n", "ADC A"])] // ADC A, n
 #[case::rst_08h(0x29f9, &[0xcf], &["decode_unprefixed", "RST y*8"])] // RST 08h
 
 #[case::ret_nc(0x29f9, &[0xd0], &["decode_unprefixed", "RET cc[y]"])] // RET NC
@@ -236,15 +238,15 @@ use crate::cpu::tests::setup_cpu;
 #[case::out_n_a(0x29f9, &[0xd3, 0x56], &["decode_unprefixed", "OUT (n), A"])] // OUT (n), A
 #[case::call_nc_nn(0x29f9, &[0xd4, 0x34, 0x12], &["decode_unprefixed", "CALL cc[y], nn"])] // CALL NC, nn
 #[case::push_de(0x29f9, &[0xd5], &["decode_unprefixed", "PUSH rp2[p]"])] // PUSH DE
-#[case::sub_a_n(0x29f9, &[0xd6, 0x56], &["decode_unprefixed", "ALU[y] n"])] // SUB A, n
+#[case::sub_a_n(0x29f9, &[0xd6, 0x56], &["decode_unprefixed", "ALU[y] n", "SUB A"])] // SUB A, n
 #[case::rst_10h(0x29f9, &[0xd7], &["decode_unprefixed", "RST y*8"])] // RST 10h
 #[case::ret_c(0x29f9, &[0xd8], &["decode_unprefixed", "RET cc[y]"])] // RET C
 #[case::exx(0x29f9, &[0xd9], &["decode_unprefixed", "EXX"])] // EXX
 #[case::jp_c_nn(0x29f9, &[0xda, 0x34, 0x12], &["decode_unprefixed", "JP cc[y], nn"])] // JP C, nn
 #[case::in_a_n(0x29f9, &[0xdb, 0x56], &["decode_unprefixed", "IN A, (n)"])] // IN A, (n)
 #[case::call_c_nn(0x29f9, &[0xdc, 0x34, 0x12], &["decode_unprefixed", "CALL cc[y], nn"])] // CALL C, nn
-#[case::dd_prefix(0x29f9, &[0xdd, 0x00], &["decode_dd", "decode_unprefixed", "NOP"])] // DD Prefix (NOP)
-#[case::sbc_a_n(0x29f9, &[0xde, 0x56], &["decode_unprefixed", "ALU[y] n"])] // SBC A, n
+#[case::dd_prefix(0x29f9, &[0xdd, 0x00], &["decode_dd", "NOP"])] // DD Prefix (NOP)
+#[case::sbc_a_n(0x29f9, &[0xde, 0x56], &["decode_unprefixed", "ALU[y] n", "SBC A"])] // SBC A, n
 #[case::rst_18h(0x29f9, &[0xdf], &["decode_unprefixed", "RST y*8"])] // RST 18h
 
 #[case::ret_po(0x29f9, &[0xe0], &["decode_unprefixed", "RET cc[y]"])] // RET PO
@@ -253,7 +255,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::ex_sp_hl(0x29f9, &[0xe3], &["decode_unprefixed", "EX (SP), HL/IX/IY"])] // EX (SP), HL/IX/IY
 #[case::call_po_nn(0x29f9, &[0xe4, 0x34, 0x12], &["decode_unprefixed", "CALL cc[y], nn"])] // CALL PO, nn
 #[case::push_hl(0x29f9, &[0xe5], &["decode_unprefixed", "PUSH rp2[p]"])] // PUSH HL
-#[case::and_a_n(0x29f9, &[0xe6, 0x56], &["decode_unprefixed", "ALU[y] n"])] // AND A, n
+#[case::and_a_n(0x29f9, &[0xe6, 0x56], &["decode_unprefixed", "ALU[y] n", "AND A"])] // AND A, n
 #[case::rst_20h(0x29f9, &[0xe7], &["decode_unprefixed", "RST y*8"])] // RST 20h
 #[case::ret_pe(0x29f9, &[0xe8], &["decode_unprefixed", "RET cc[y]"])] // RET PE
 #[case::jp_hl(0x29f9, &[0xe9], &["decode_unprefixed", "JP HL"])] // JP HL
@@ -261,7 +263,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::ex_de_hl(0x29f9, &[0xeb], &["decode_unprefixed", "EX DE, HL"])] // EX DE, HL NOTE: this is the unaffected by prefixes
 #[case::call_pe_nn(0x29f9, &[0xec, 0x34, 0x12], &["decode_unprefixed", "CALL cc[y], nn"])] // CALL PE, nn
 #[case::ed_prefix(0x29f9, &[0xed, 0x00], &["decode_ed", "NONI"])] // ED Prefix (NONI)
-#[case::xor_a_n(0x29f9, &[0xee, 0x56], &["decode_unprefixed", "ALU[y] n"])] // XOR A, n
+#[case::xor_a_n(0x29f9, &[0xee, 0x56], &["decode_unprefixed", "ALU[y] n", "XOR A"])] // XOR A, n
 #[case::rst_28h(0x29f9, &[0xef], &["decode_unprefixed", "RST y*8"])] // RST 28h
 
 #[case::ret_p(0x29f9, &[0xf0], &["decode_unprefixed", "RET cc[y]"])] // RET P
@@ -270,18 +272,20 @@ use crate::cpu::tests::setup_cpu;
 #[case::di(0x29f9, &[0xf3], &["decode_unprefixed", "DI"])] // DI
 #[case::call_p_nn(0x29f9, &[0xf4, 0x34, 0x12], &["decode_unprefixed", "CALL cc[y], nn"])] // CALL P, nn
 #[case::push_af(0x29f9, &[0xf5], &["decode_unprefixed", "PUSH rp2[p]"])] // PUSH AF
-#[case::or_a_n(0x29f9, &[0xf6, 0x56], &["decode_unprefixed", "ALU[y] n"])] // OR A, n
+#[case::or_a_n(0x29f9, &[0xf6, 0x56], &["decode_unprefixed", "ALU[y] n", "OR A"])] // OR A, n
 #[case::rst_30h(0x29f9, &[0xf7], &["decode_unprefixed", "RST y*8"])] // RST 30h
 #[case::ret_m(0x29f9, &[0xf8], &["decode_unprefixed", "RET cc[y]"])] // RET M
 #[case::ld_sp_hl(0x29f9, &[0xf9], &["decode_unprefixed", "LD SP, HL"])] // LD SP, HL
 #[case::jp_m_nn(0x29f9, &[0xfa, 0x34, 0x12], &["decode_unprefixed", "JP cc[y], nn"])] // JP M, nn
 #[case::ei(0x29f9, &[0xfb], &["decode_unprefixed", "EI"])] // EI
 #[case::call_m_nn(0x29f9, &[0xfc, 0x34, 0x12], &["decode_unprefixed", "CALL cc[y], nn"])] // CALL M, nn
-#[case::fd_prefix(0x29f9, &[0xfd, 0x00], &["decode_fd", "decode_unprefixed", "NOP"])] // DD Prefix (NOP)
-#[case::cp_a_n(0x29f9, &[0xfe, 0x56], &["decode_unprefixed", "ALU[y] n"])] // CP A, n
+#[case::fd_prefix(0x29f9, &[0xfd, 0x00], &["decode_fd", "NOP"])] // DD Prefix (NOP)
+#[case::cp_a_n(0x29f9, &[0xfe, 0x56], &["decode_unprefixed", "ALU[y] n", "CP A"])] // CP A, n
 #[case::rst_38h(0x29f9, &[0xff], &["decode_unprefixed", "RST y*8"])] // RST 38h
 
+// ------------------------------------------------------------------------------
 // ED TABLE (MISC INSTRUCTIONS)
+// ------------------------------------------------------------------------------
 
 #[case::in_b_c(0x29f9, &[0xed, 0x40], &["decode_ed", "IN r[y], (C)"])] // IN B, (C)
 #[case::out_c_b(0x29f9, &[0xed, 0x41], &["decode_ed", "OUT (C), r[y]"])] // OUT (C), B
@@ -361,7 +365,11 @@ use crate::cpu::tests::setup_cpu;
 #[case::cpir(0x29f9, &[0xed, 0xb1], &["decode_ed", "bli[y, z]"])] // CPIR
 #[case::inir(0x29f9, &[0xed, 0xb2], &["decode_ed", "bli[y, z]"])] // INIR
 #[case::outir(0x29f9, &[0xed, 0xb3], &["decode_ed", "bli[y, z]"])] // OUTIR
-// CB TABLE
+
+// ------------------------------------------------------------------------
+// CB TABLE (BIT INSTRUCTIONS)
+// ------------------------------------------------------------------------
+
 #[case::rlc_b(0x29f9, &[0xcb, 0x00], &["decode_cb", "rot[y] r[z]", "RLC", "B"])] // RLC B
 #[case::rlc_c(0x29f9, &[0xcb, 0x01], &["decode_cb", "rot[y] r[z]", "RLC", "C"])] // RLC C
 #[case::rlc_d(0x29f9, &[0xcb, 0x02], &["decode_cb", "rot[y] r[z]", "RLC", "D"])] // RLC D
@@ -645,6 +653,121 @@ use crate::cpu::tests::setup_cpu;
 #[case::set_7_l(0x29f9, &[0xcb, 0xFD], &["decode_cb", "SET y, r[z]", "7", "L"])] // SET 7, L
 #[case::set_7_hli(0x29f9, &[0xcb, 0xFE], &["decode_cb", "SET y, r[z]", "7", "(HL)"])] // SET 7, (HL)
 #[case::set_7_a(0x29f9, &[0xcb, 0xFF], &["decode_cb", "SET y, r[z]", "7", "A"])] // SET 7, A
+
+// ----------------------------------------------------------------------------------------------------
+// DD TABLE (IX INSTRUCTIONS)
+// ----------------------------------------------------------------------------------------------------
+// TODO: there are some instructions (undocumented obviously) that are stated as NOP in some places and as the "original" in others
+// TODO: For now i wont test those cases.
+#[case::dd_inc_b(0x29f9, &[0xdd, 0x04], &["decode_dd", "INC r[y]"])] // INC B
+#[case::dd_dec_b(0x29f9, &[0xdd, 0x05], &["decode_dd", "DEC r[y]"])] // DEC B
+#[case::dd_ld_b_n(0x29f9, &[0xdd, 0x06, 0x42], &["decode_dd", "LD r[y], n", "B"])] // LD B, n
+#[case::dd_add_ix_bc(0x29f9, &[0xdd, 0x09], &["decode_dd", "ADD HL/IX/IY, rp[p]"])] // ADD IX, BC
+#[case::dd_inc_c(0x29f9, &[0xdd, 0x0C], &["decode_dd", "INC r[y]"])] // INC C
+#[case::dd_dec_c(0x29f9, &[0xdd, 0x0D], &["decode_dd", "DEC r[y]"])] // DEC C
+#[case::dd_ld_c_n(0x29f9, &[0xdd, 0x0E, 0x42], &["decode_dd", "LD r[y], n", "C"])] // LD C, n
+
+#[case::dd_inc_d(0x29f9, &[0xdd, 0x14], &["decode_dd", "INC r[y]"])] // INC D
+#[case::dd_dec_d(0x29f9, &[0xdd, 0x15], &["decode_dd", "DEC r[y]"])] // DEC D
+#[case::dd_ld_d_n(0x29f9, &[0xdd, 0x16, 0x42], &["decode_dd", "LD r[y], n", "D"])] // LD D, n
+#[case::dd_add_ix_de(0x29f9, &[0xdd, 0x19], &["decode_dd", "ADD HL/IX/IY, rp[p]",])] // ADD IX, DE
+#[case::dd_inc_e(0x29f9, &[0xdd, 0x1C], &["decode_dd", "INC r[y]"])] // INC E
+#[case::dd_dec_e(0x29f9, &[0xdd, 0x1D], &["decode_dd", "DEC r[y]"])] // DEC E
+#[case::dd_ld_e_n(0x29f9, &[0xdd, 0x1E, 0x42], &["decode_dd", "LD r[y], n", "E"])] // LD E, n
+
+#[case::dd_ld_ix_nn(0x29f9, &[0xdd, 0x21, 0x34, 0x12], &["decode_dd", "LD rp[p], nn", "HL"])] // LD IX, nn
+#[case::dd_ld_nni_ix(0x29f9, &[0xdd, 0x22, 0x34, 0x12], &["decode_dd", "LD (nn), HL/IX/IY", "IX"])] // LD (nn), IX
+#[case::dd_inc_ix(0x29f9, &[0xdd, 0x23], &["decode_dd", "INC rp[p]"])] // INC IX
+#[case::dd_inc_ixh(0x29f9, &[0xdd, 0x24], &["decode_dd", "INC r[y]"])] // INC IXH
+#[case::dd_dec_ixh(0x29f9, &[0xdd, 0x25], &["decode_dd", "DEC r[y]"])] // DEC IXH
+#[case::dd_ld_ixh_n(0x29f9, &[0xdd, 0x26, 0x42], &["decode_dd", "LD r[y], n", "H", "IXH"])] // LD IXH, n
+#[case::dd_add_ix_ix(0x29f9, &[0xdd, 0x29], &["decode_dd", "ADD HL/IX/IY, rp[p]",])] // ADD IX, IX
+#[case::dd_ld_ix_nni(0x29f9, &[0xdd, 0x2A, 0x34, 0x12], &["decode_dd", "LD HL/IX/IY, (nn)", "IX"])] // LD IX, (nn)
+#[case::dd_dec_ix(0x29f9, &[0xdd, 0x2B], &["decode_dd", "DEC rp[p]"])] // DEC IX
+#[case::dd_inc_ixl(0x29f9, &[0xdd, 0x2C], &["decode_dd", "INC r[y]"])] // INC IXL
+#[case::dd_dec_ixl(0x29f9, &[0xdd, 0x2D], &["decode_dd", "DEC r[y]"])] // DEC IXL
+#[case::dd_ld_ixl_n(0x29f9, &[0xdd, 0x2E, 0x42], &["decode_dd", "LD r[y], n", "L", "IXL"])] // LD IXL, n
+
+#[case::dd_inc_ixd(0x29f9, &[0xdd, 0x34], &["decode_dd", "INC r[y]"])] // INC (IX + d)
+#[case::dd_dec_ixd(0x29f9, &[0xdd, 0x35], &["decode_dd", "DEC r[y]"])] // DEC (IX + d)
+#[case::dd_ld_ixd_n(0x29f9, &[0xdd, 0x36, 0x42], &["decode_dd", "LD r[y], n", "(HL)", "(IX + d)"])] // LD (IX + d), n
+#[case::dd_add_ix_sp(0x29f9, &[0xdd, 0x39], &["decode_dd", "ADD HL/IX/IY, rp[p]",])] // ADD IX, SP
+#[case::dd_inc_a(0x29f9, &[0xdd, 0x3C], &["decode_dd", "INC r[y]"])] // INC A
+#[case::dd_dec_a(0x29f9, &[0xdd, 0x3D], &["decode_dd", "DEC r[y]"])] // DEC A
+#[case::dd_ld_a_n(0x29f9, &[0xdd, 0x3E, 0x42], &["decode_dd", "LD r[y], n", "A"])] // LD A, n
+
+#[case::dd_ld_b_b(0x29f9, &[0xdd, 0x40], &["decode_dd", "LD r[y], r[z]", "B", "B"])] // LD B, B
+#[case::dd_ld_b_c(0x29f9, &[0xdd, 0x41], &["decode_dd", "LD r[y], r[z]", "B", "C"])] // LD B, C
+#[case::dd_ld_b_d(0x29f9, &[0xdd, 0x42], &["decode_dd", "LD r[y], r[z]", "B", "D"])] // LD B, D
+#[case::dd_ld_b_e(0x29f9, &[0xdd, 0x43], &["decode_dd", "LD r[y], r[z]", "B", "E"])] // LD B, E
+#[case::dd_ld_b_ixh(0x29f9, &[0xdd, 0x44], &["decode_dd", "LD r[y], r[z]", "B", "H", "IXH"])] // LD B, IXH
+#[case::dd_ld_b_ixl(0x29f9, &[0xdd, 0x45], &["decode_dd", "LD r[y], r[z]", "B", "L", "IXL"])] // LD B, IXL
+#[case::dd_ld_b_ixd(0x29f9, &[0xdd, 0x46, 0x05], &["decode_dd", "LD r[y], r[z]", "B", "(HL)", "(IX + d)"])] // LD B, (IX + d)
+#[case::dd_ld_b_a(0x29f9, &[0xdd, 0x47], &["decode_dd", "LD r[y], r[z]", "B", "A"])] // LD B, A
+
+#[case::dd_ld_c_b(0x29f9, &[0xdd, 0x48], &["decode_dd", "LD r[y], r[z]", "C", "B"])] // LD C, B
+#[case::dd_ld_c_c(0x29f9, &[0xdd, 0x49], &["decode_dd", "LD r[y], r[z]", "C", "C"])] // LD C, C
+#[case::dd_ld_c_d(0x29f9, &[0xdd, 0x4A], &["decode_dd", "LD r[y], r[z]", "C", "D"])] // LD C, D
+#[case::dd_ld_c_e(0x29f9, &[0xdd, 0x4B], &["decode_dd", "LD r[y], r[z]", "C", "E"])] // LD C, E
+#[case::dd_ld_c_ixh(0x29f9, &[0xdd, 0x4C], &["decode_dd", "LD r[y], r[z]", "C", "H", "IXH"])] // LD C, IXH
+#[case::dd_ld_c_ixl(0x29f9, &[0xdd, 0x4D], &["decode_dd", "LD r[y], r[z]", "C", "L", "IXL"])] // LD C, IXL
+#[case::dd_ld_c_ixd(0x29f9, &[0xdd, 0x4E, 0x05], &["decode_dd", "LD r[y], r[z]", "C", "(HL)", "(IX + d)"])] // LD C, (IX + d)
+#[case::dd_ld_c_a(0x29f9, &[0xdd, 0x4F], &["decode_dd", "LD r[y], r[z]", "C", "A"])] // LD C, A
+
+#[case::dd_ld_d_b(0x29f9, &[0xdd, 0x50], &["decode_dd", "LD r[y], r[z]", "D", "B"])] // LD D, B
+#[case::dd_ld_d_c(0x29f9, &[0xdd, 0x51], &["decode_dd", "LD r[y], r[z]", "D", "C"])] // LD D, C
+#[case::dd_ld_d_d(0x29f9, &[0xdd, 0x52], &["decode_dd", "LD r[y], r[z]", "D", "D"])] // LD D, D
+#[case::dd_ld_d_e(0x29f9, &[0xdd, 0x53], &["decode_dd", "LD r[y], r[z]", "D", "E"])] // LD D, E
+#[case::dd_ld_d_ixh(0x29f9, &[0xdd, 0x54], &["decode_dd", "LD r[y], r[z]", "D", "H", "IXH"])] // LD D, IXH
+#[case::dd_ld_d_ixl(0x29f9, &[0xdd, 0x55], &["decode_dd", "LD r[y], r[z]", "D", "L", "IXL"])] // LD D, IXL
+#[case::dd_ld_d_ixd(0x29f9, &[0xdd, 0x56, 0x05], &["decode_dd", "LD r[y], r[z]", "D", "(HL)", "(IX + d)"])] // LD D, (IX + d)
+#[case::dd_ld_d_a(0x29f9, &[0xdd, 0x57], &["decode_dd", "LD r[y], r[z]", "D", "A"])] // LD D, A
+
+#[case::dd_ld_e_b(0x29f9, &[0xdd, 0x58], &["decode_dd", "LD r[y], r[z]", "E", "B"])] // LD E, B
+#[case::dd_ld_e_c(0x29f9, &[0xdd, 0x59], &["decode_dd", "LD r[y], r[z]", "E", "C"])] // LD E, C
+#[case::dd_ld_e_d(0x29f9, &[0xdd, 0x5A], &["decode_dd", "LD r[y], r[z]", "E", "D"])] // LD E, D
+#[case::dd_ld_e_e(0x29f9, &[0xdd, 0x5B], &["decode_dd", "LD r[y], r[z]", "E", "E"])] // LD E, E
+#[case::dd_ld_e_ixh(0x29f9, &[0xdd, 0x5C], &["decode_dd", "LD r[y], r[z]", "E", "H", "IXH"])] // LD E, IXH
+#[case::dd_ld_e_ixl(0x29f9, &[0xdd, 0x5D], &["decode_dd", "LD r[y], r[z]", "E", "L", "IXL"])] // LD E, IXL
+#[case::dd_ld_e_ixd(0x29f9, &[0xdd, 0x5E, 0x05], &["decode_dd", "LD r[y], r[z]", "E", "(HL)", "(IX + d)"])] // LD E, (IX + d)
+#[case::dd_ld_e_a(0x29f9, &[0xdd, 0x5F], &["decode_dd", "LD r[y], r[z]", "E", "A"])] // LD E, A
+
+#[case::dd_ld_ixh_b(0x29f9, &[0xdd, 0x60], &["decode_dd", "LD r[y], r[z]", "H", "IXH", "B"])] // LD IXH, B
+#[case::dd_ld_ixh_c(0x29f9, &[0xdd, 0x61], &["decode_dd", "LD r[y], r[z]", "H", "IXH", "C"])] // LD IXH, C
+#[case::dd_ld_ixh_d(0x29f9, &[0xdd, 0x62], &["decode_dd", "LD r[y], r[z]", "H", "IXH", "D"])] // LD IXH, D
+#[case::dd_ld_ixh_e(0x29f9, &[0xdd, 0x63], &["decode_dd", "LD r[y], r[z]", "H", "IXH", "E"])] // LD IXH, E
+#[case::dd_ld_ixh_ixh (0x29f9, &[0xdd, 0x64], &["decode_dd", "LD r[y], r[z]", "H", "IXH", "H", "IXH"])] // LD IXH, IXH
+#[case::dd_ld_ixh_ixl (0x29f9, &[0xdd, 0x65], &["decode_dd", "LD r[y], r[z]", "H", "IXH", "L", "IXL"])] // LD IXH, IXL
+#[case::dd_ld_ixh_ixd (0x29f9, &[0xdd, 0x66, 0x05], &["decode_dd", "LD r[y], r[z]", "H", "IXH", "(HL)", "(IX + d)"])] // LD IXH, (IX + d)
+#[case::dd_ld_ixh_a(0x29f9, &[0xdd, 0x67], &["decode_dd", "LD r[y], r[z]", "H", "IXH", "A"])] // LD IXH, A
+
+#[case::dd_ld_ixl_b(0x29f9, &[0xdd, 0x68], &["decode_dd", "LD r[y], r[z]", "L", "IXL", "B"])] // LD IXL, B
+#[case::dd_ld_ixl_c(0x29f9, &[0xdd, 0x69], &["decode_dd", "LD r[y], r[z]", "L", "IXL", "C"])] // LD IXL, C
+#[case::dd_ld_ixl_d(0x29f9, &[0xdd, 0x6A], &["decode_dd", "LD r[y], r[z]", "L", "IXL", "D"])] // LD IXL, D
+#[case::dd_ld_ixl_e(0x29f9, &[0xdd, 0x6B], &["decode_dd", "LD r[y], r[z]", "L", "IXL", "E"])] // LD IXL, E
+#[case::dd_ld_ixl_ixh (0x29f9, &[0xdd, 0x6C], &["decode_dd", "LD r[y], r[z]", "L", "IXL", "H", "IXH"])] // LD IXL, IXH
+#[case::dd_ld_ixl_ixl (0x29f9, &[0xdd, 0x6D], &["decode_dd", "LD r[y], r[z]", "L", "IXL", "L", "IXL"])] // LD IXL, IXL
+#[case::dd_ld_ixl_ixd (0x29f9, &[0xdd, 0x6E, 0x05], &["decode_dd", "LD r[y], r[z]", "L", "IXL", "(HL)", "(IX + d)"])] // LD IXL, (IX + d)
+#[case::dd_ld_ixl_a(0x29f9, &[0xdd, 0x6F], &["decode_dd", "LD r[y], r[z]", "L", "IXL", "A"])] // LD IXL, A
+
+#[case::dd_ld_ixd_b(0x29f9, &[0xdd, 0x70, 0x05], &["decode_dd", "LD r[y], r[z]", "(HL)", "(IX + d)", "B"])] // LD (IX + d), B
+#[case::dd_ld_ixd_c(0x29f9, &[0xdd, 0x71, 0x05], &["decode_dd", "LD r[y], r[z]", "(HL)", "(IX + d)", "C"])] // LD (IX + d), C
+#[case::dd_ld_ixd_d(0x29f9, &[0xdd, 0x72, 0x05], &["decode_dd", "LD r[y], r[z]", "(HL)", "(IX + d)", "D"])] // LD (IX + d), D
+#[case::dd_ld_ixd_e(0x29f9, &[0xdd, 0x73, 0x05], &["decode_dd", "LD r[y], r[z]", "(HL)", "(IX + d)", "E"])] // LD (IX + d), E
+#[case::dd_ld_ixd_ixh (0x29f9, &[0xdd, 0x74, 0x05], &["decode_dd", "LD r[y], r[z]", "(HL)", "(IX + d)", "H", "IXH"])] // LD (IX + d), IXH
+#[case::dd_ld_ixd_ixl (0x29f9, &[0xdd, 0x75, 0x05], &["decode_dd", "LD r[y], r[z]", "(HL)", "(IX + d)", "L", "IXL"])] // LD (IX + d), IXL
+#[case::dd_halt(0x29f9, &[0xdd, 0x76], &["decode_dd", "HALT"])] // HALT (IX)
+#[case::dd_ld_ixd_a(0x29f9, &[0xdd, 0x77, 0x05], &["decode_dd", "LD r[y], r[z]", "(HL)", "(IX + d)", "A"])] // LD (IX + d), A
+
+#[case::dd_ld_a_b(0x29f9, &[0xdd, 0x78], &["decode_dd", "LD r[y], r[z]", "A", "B"])] // LD A, B
+#[case::dd_ld_a_c(0x29f9, &[0xdd, 0x79], &["decode_dd", "LD r[y], r[z]", "A", "C"])] // LD A, C
+#[case::dd_ld_a_d(0x29f9, &[0xdd, 0x7A], &["decode_dd", "LD r[y], r[z]", "A", "D"])] // LD A, D
+#[case::dd_ld_a_e(0x29f9, &[0xdd, 0x7B], &["decode_dd", "LD r[y], r[z]", "A", "E"])] // LD A, E
+#[case::dd_ld_a_ixh(0x29f9, &[0xdd, 0x7C], &["decode_dd", "LD r[y], r[z]", "A", "H", "IXH"])] // LD A, IXH
+#[case::dd_ld_a_ixl(0x29f9, &[0xdd, 0x7D], &["decode_dd", "LD r[y], r[z]", "A", "L", "IXL"])] // LD A, IXL
+#[case::dd_ld_a_ixd(0x29f9, &[0xdd, 0x7E, 0x05], &["decode_dd", "LD r[y], r[z]", "A", "(HL)", "(IX + d)"])] // LD A, (IX + d)
+#[case::dd_ld_a_a(0x29f9, &[0xdd, 0x7F], &["decode_dd", "LD r[y], r[z]", "A", "A"])] // LD A, A
+
 fn test_opcode(
     #[case] starting_pc: u16,
     #[case] memory_contents: &[u8],
@@ -662,14 +785,8 @@ fn test_opcode(
     assert_eq!(expected_logs.len(), cpu.test_callback.0.len());
 
     // zip logs and cpu logs
-    let logs: Vec<&str> = cpu
-        .test_callback
-        .0
-        .iter()
-        .rev()
-        .map(|s| s.as_str())
-        .collect();
-    for (expected, actual) in expected_logs.iter().zip(logs.iter()) {
+ 
+    for (expected, actual) in expected_logs.iter().zip(cpu.test_callback.0.iter().rev()) {
         assert_eq!(expected, actual);
     }
 }

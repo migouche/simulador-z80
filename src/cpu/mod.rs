@@ -6,7 +6,7 @@ use std::collections::VecDeque;
 use std::rc::Rc;
 use std::usize;
 
-use crate::{cpu::alu::{rot::{self, RotOperation}, bit, res, set}, traits::{MemoryMapper, SyncronousComponent}};
+use crate::{cpu::alu::{rot::{self, RotOperation}, bit, res, set, alu_op}, traits::{MemoryMapper, SyncronousComponent}};
 
 #[cfg(test)]
 macro_rules! test_log {
@@ -103,6 +103,17 @@ enum PrefixAddressing {
     HL, // HL, H, L
     IX, // IX, IXH, IXL
     IY, // IY, IYH, IYL
+}
+
+enum ALUOperation {
+    ADD,
+    ADC,
+    SUB,
+    SBC,
+    AND,
+    OR,
+    XOR,
+    CP,
 }
 
 struct RegisterSet {
@@ -444,6 +455,94 @@ impl Z80A {
         }
     }
 
+
+
+    fn table_alu(&mut self, y: u8) -> ALUOperation{
+        match y {
+            0 => {
+                test_log!(self, "ADD A");
+                ALUOperation::ADD
+            },
+            1 => {
+                test_log!(self, "ADC A");
+                ALUOperation::ADC
+            },
+            2 => {
+                test_log!(self, "SUB A");
+                ALUOperation::SUB
+            },
+            3 => {
+                test_log!(self, "SBC A");
+                ALUOperation::SBC
+            },
+            4 => {
+                test_log!(self, "AND A");
+                ALUOperation::AND
+            },
+            5 => {
+                test_log!(self, "XOR A");
+                ALUOperation::XOR
+            },
+            6 => {
+                test_log!(self, "OR A");
+                ALUOperation::OR
+            },
+            7 => {
+                test_log!(self, "CP A");
+                ALUOperation::CP
+            },
+            _ => panic!("Invalid y value"), // should never happen
+        }
+    }
+
+    fn alu_op(&mut self, op: ALUOperation, value: u8){
+        match op {
+            ALUOperation::ADD => {
+                let (result, flags) = alu_op::add(self.get_register(GPR::A), value, false);
+                self.set_register(GPR::A, result);
+                self.main_set.F = flags;
+            },
+            ALUOperation::ADC => {
+                let carry = self.main_set.get_flag(Flag::C);
+                let (result, flags) = alu_op::add(self.get_register(GPR::A), value, carry);
+                self.set_register(GPR::A, result);
+                self.main_set.F = flags;
+            },
+            ALUOperation::SUB => {
+                let (result, flags) = alu_op::sub(self.get_register(GPR::A), value, false);
+                self.set_register(GPR::A, result);
+                self.main_set.F = flags;
+            },
+            ALUOperation::SBC => {
+                let carry = self.main_set.get_flag(Flag::C);
+                let (result, flags) = alu_op::sub(self.get_register(GPR::A), value, carry);
+                self.set_register(GPR::A, result);
+                self.main_set.F = flags;
+            },
+            ALUOperation::AND => {
+                let (result, flags) = alu_op::and(self.get_register(GPR::A), value);
+                self.set_register(GPR::A, result);
+                self.main_set.F = flags;
+            },
+            ALUOperation::OR => {
+                let (result, flags) = alu_op::or(self.get_register(GPR::A), value);
+                self.set_register(GPR::A, result);
+                self.main_set.F = flags;
+            },
+            ALUOperation::XOR => {
+                let (result, flags) = alu_op::xor(self.get_register(GPR::A), value);
+                self.set_register(GPR::A, result);
+                self.main_set.F = flags;
+            },
+            ALUOperation::CP => {
+                let (_, flags) = alu_op::sub(self.get_register(GPR::A), value, false);
+                // result is ignored for CP
+                self.main_set.F = flags;
+            },
+        }
+
+    }
+
     fn table_rp(&mut self, p: u8) -> AddressingMode {
         match p {
             0 => {
@@ -496,12 +595,20 @@ impl Z80A {
         match addressing {
             PrefixAddressing::HL => reg,
             PrefixAddressing::IX => match reg {
-                AddressingMode::Register(GPR::H) => AddressingMode::Special(SpecialRegister::IXH),
-                AddressingMode::Register(GPR::L) => AddressingMode::Special(SpecialRegister::IXL),
+                AddressingMode::Register(GPR::H) => {
+                    test_log!(self, "IXH");
+                    AddressingMode::Special(SpecialRegister::IXH)
+                },
+                AddressingMode::Register(GPR::L) => {
+                    test_log!(self, "IXL");
+                    AddressingMode::Special(SpecialRegister::IXL)
+                },
                 AddressingMode::RegisterIndirect(RegisterPair::HL) => {
+                    test_log!(self, "(IX + d)");
                     AddressingMode::Indexed(IndexRegister::IX, self.fetch_displacement())
                 }
                 AddressingMode::RegisterPair(RegisterPair::HL) => {
+                    test_log!(self, "IX");
                     AddressingMode::Special(SpecialRegister::IX)
                 }
                 _ => reg,
@@ -521,7 +628,12 @@ impl Z80A {
     }
 
     fn decode_unprefixed(&mut self, opcode: u8, addressing: PrefixAddressing) -> () {
-        test_log!(self, "decode_unprefixed");
+        //test_log!(self, "decode_unprefixed");
+        match addressing {
+            PrefixAddressing::HL => test_log!(self, "decode_unprefixed"),
+            PrefixAddressing::IX => test_log!(self, "decode_dd"),
+            PrefixAddressing::IY => test_log!(self, "decode_fd"),
+        }
 
         let (x, y, z, p, q) = decode_opcode(opcode);
         match x {
@@ -553,7 +665,7 @@ impl Z80A {
 
                 1 => {
                     if q {
-                        test_log!(self, "ADD HL, rp[p]"); // TODO: ADD HL, rp[p]
+                        test_log!(self, "ADD HL/IX/IY, rp[p]"); // TODO: ADD HL, rp[p]
                     } else {
                         // 16-bit load immediate/add
                         // LD rp[p], nn
@@ -692,7 +804,21 @@ impl Z80A {
                 }*/
             },
 
-            2 => test_log!(self, "ALU[y] r[z]"), // TODO: ALU[y] r[z]
+            2 => {// TODO: ALU[y] r[z]
+                test_log!(self, "ALU[y] r[z]");
+                let alu_op = self.table_alu(y);
+                let reg = self.table_r(z);
+                let src = self.transform_register(reg, addressing);
+                let value = match src {
+                    AddressingMode::Register(r) => self.get_register(r),
+                    AddressingMode::RegisterIndirect(RegisterPair::HL) => {
+                        let addr = self.get_register_pair(RegisterPair::HL);
+                        self.memory.borrow().read(addr)
+                            },
+                    _ =>  panic!("Invalid addressing mode for ALU[y] r[z]"), // should never happen (for now)
+                };
+                self.alu_op(alu_op, value);
+            },
             3 => match z {
                 0 => test_log!(self, "RET cc[y]"), // TODO: RET cc[y]
                 1 => match (q, p) {
@@ -780,7 +906,12 @@ impl Z80A {
                     (true, 3) => test_log!(self, "FD prefix"),    // TODO: FD prefix
                     _ => panic!("Invalid q, p values"),           // should never happen
                 },
-                6 => test_log!(self, "ALU[y] n"), // TODO: ALU[y] n
+                6 => {// TODO: ALU[y] n
+                test_log!(self, "ALU[y] n");
+                let alu_op = self.table_alu(y);
+                let n = self.fetch();
+                self.alu_op(alu_op, n);
+                }
                 7 => test_log!(self, "RST y*8"),  // TODO: RST y*8
                 _ => panic!("Invalid z value"),   // should never happen
             },
@@ -964,7 +1095,7 @@ impl Z80A {
     }
 
     fn decode_dd(&mut self, opcode: u8) {
-        test_log!(self, "decode_dd");
+        //test_log!(self, "decode_dd");
         match opcode {
             0xDD | 0xED | 0xFD => {
                 // Current DD is ignored (NONI), fetch next byte and process it
@@ -983,7 +1114,7 @@ impl Z80A {
     }
 
     fn decode_fd(&mut self, opcode: u8) {
-        test_log!(self, "decode_fd");
+        //test_log!(self, "decode_fd");
         match opcode {
             0xDD | 0xED | 0xFD => {
                 // Current FD is ignored (NONI), fetch next byte and process it

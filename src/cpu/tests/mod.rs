@@ -32,3 +32,13 @@ fn setup_cpu() -> Z80A {
         Rc::new(RefCell::new(MockMemory { data: [0; 0xFFFF] })) as Rc<RefCell<dyn MemoryMapper>>;
     Z80A::new(memory)
 }
+
+#[test]
+fn test_mock_memory_read_write() {
+    let mut memory = MockMemory::new();
+    memory.write(0x1234, 0xAB);
+    assert_eq!(memory.read(0x1234), 0xAB);
+
+    memory.write_word(0x1234, 0xCDEF);
+    assert_eq!(memory.read_word(0x1234), 0xCDEF);
+}

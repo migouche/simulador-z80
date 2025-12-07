@@ -1,6 +1,6 @@
 use rstest::rstest;
 
-use crate::cpu::alu::{rot::*, bit, res, set};
+use crate::cpu::alu::{rot::*, bit, res, set, alu_op::*, inc, dec};
 
 #[rstest]
 #[case(0b1000_0001, 0b0000_0011, 0b0000_0101)] // result=0x03, flags: C=1, PV=1
@@ -195,3 +195,108 @@ fn test_set(#[case] value: u8, #[case] bit_position: u8, #[case] expected: u8) {
     let result = set(value, bit_position);
     assert_eq!(result, expected);
 }
+
+#[rstest]
+#[case(1, 1, false, 2, 0x00)] // 1 + 1 = 2
+#[case(0xFF, 1, false, 0, 0x51)] // 0xFF + 1 = 0 (Z, H, C)
+#[case(0x7F, 1, false, 0x80, 0x94)] // 0x7F + 1 = 0x80 (S, H, PV)
+#[case(0x80, 0x80, false, 0, 0x45)] // 0x80 + 0x80 = 0 (Z, PV, C)
+#[case(0, 0, false, 0, 0x40)] // 0 + 0 = 0 (Z)
+#[case(0x10, 0x10, false, 0x20, 0x20)] // 0x10 + 0x10 = 0x20 (Y)
+#[case(0x04, 0x04, false, 0x08, 0x08)] // 0x04 + 0x04 = 0x08 (X)
+#[case(1, 1, true, 3, 0x00)] // 1 + 1 + 1 = 3
+fn test_add(#[case] a: u8, #[case] b: u8, #[case] carry_in: bool, #[case] expected_result: u8, #[case] expected_flags: u8) {
+    let (result, flags) = add(a, b, carry_in);
+    assert_eq!(result, expected_result, "Result mismatch");
+    assert_eq!(flags, expected_flags, "Flags mismatch");
+}
+
+#[rstest]
+#[case(0, 0, false, 0, 0x40)] // 0 + 0 + 0 = 0 (Z)
+#[case(0, 0, true, 1, 0x00)] // 0 + 0 + 1 = 1
+#[case(0xFF, 0, true, 0, 0x51)] // 0xFF + 0 + 1 = 0 (Z, H, C)
+#[case(0x7F, 0, true, 0x80, 0x94)] // 0x7F + 0 + 1 = 0x80 (S, H, PV)
+fn test_adc(#[case] a: u8, #[case] b: u8, #[case] carry_in: bool, #[case] expected_result: u8, #[case] expected_flags: u8) {
+    let (result, flags) = adc(a, b, carry_in);
+    assert_eq!(result, expected_result, "Result mismatch");
+    assert_eq!(flags, expected_flags, "Flags mismatch");
+}
+
+#[rstest]
+#[case(0, 0, false, 0, 0x42)] // 0 - 0 = 0 (Z, N)
+#[case(1, 1, false, 0, 0x42)] // 1 - 1 = 0 (Z, N)
+#[case(0, 1, false, 0xFF, 0xBB)] // 0 - 1 = -1 (S, Y, H, X, N, C)
+#[case(0x80, 1, false, 0x7F, 0x3E)] // -128 - 1 = 127 (PV, N, H, X, Y)
+fn test_sub(#[case] a: u8, #[case] b: u8, #[case] carry_in: bool, #[case] expected_result: u8, #[case] expected_flags: u8) {
+    let (result, flags) = sub(a, b, carry_in);
+    assert_eq!(result, expected_result, "Result mismatch");
+    assert_eq!(flags, expected_flags, "Flags mismatch");
+}
+
+#[rstest]
+#[case(0, 0, true, 0xFF, 0xBB)] // 0 - 0 - 1 = -1 (S, Y, H, X, N, C)
+#[case(10, 5, true, 4, 0x02)] // 10 - 5 - 1 = 4 (N)
+fn test_sbc(#[case] a: u8, #[case] b: u8, #[case] carry_in: bool, #[case] expected_result: u8, #[case] expected_flags: u8) {
+    let (result, flags) = sbc(a, b, carry_in);
+    assert_eq!(result, expected_result, "Result mismatch");
+    assert_eq!(flags, expected_flags, "Flags mismatch");
+}
+
+#[rstest]
+#[case(0xFF, 0xFF, 0xFF, 0xBC)] // 0xFF & 0xFF = 0xFF (S, H, PV, X, Y)
+#[case(0xFF, 0x00, 0x00, 0x54)] // 0xFF & 0x00 = 0x00 (Z, H, PV)
+fn test_and(#[case] a: u8, #[case] b: u8, #[case] expected_result: u8, #[case] expected_flags: u8) {
+    let (result, flags) = and(a, b);
+    assert_eq!(result, expected_result, "Result mismatch");
+    assert_eq!(flags, expected_flags, "Flags mismatch");
+}
+
+#[rstest]
+#[case(0xFF, 0xFF, 0x00, 0x44)] // 0xFF ^ 0xFF = 0x00 (Z, PV)
+#[case(0xFF, 0x00, 0xFF, 0xAC)] // 0xFF ^ 0x00 = 0xFF (S, PV, X, Y)
+fn test_xor(#[case] a: u8, #[case] b: u8, #[case] expected_result: u8, #[case] expected_flags: u8) {
+    let (result, flags) = xor(a, b);
+    assert_eq!(result, expected_result, "Result mismatch");
+    assert_eq!(flags, expected_flags, "Flags mismatch");
+}
+
+#[rstest]
+#[case(0xFF, 0xFF, 0xFF, 0xAC)] // 0xFF | 0xFF = 0xFF (S, PV, X, Y)
+#[case(0x00, 0x00, 0x00, 0x44)] // 0x00 | 0x00 = 0x00 (Z, PV)
+fn test_or(#[case] a: u8, #[case] b: u8, #[case] expected_result: u8, #[case] expected_flags: u8) {
+    let (result, flags) = or(a, b);
+    assert_eq!(result, expected_result, "Result mismatch");
+    assert_eq!(flags, expected_flags, "Flags mismatch");
+}
+
+#[rstest]
+#[case(0, 0, 0x42)] // 0 - 0 = 0 (Z, N)
+#[case(1, 1, 0x42)] // 1 - 1 = 0 (Z, N)
+#[case(0, 1, 0xBB)] // 0 - 1 = -1 (S, Y, H, X, N, C)
+#[case(0x80, 1, 0x3E)] // -128 - 1 = 127 (PV, N, H, X, Y)
+fn test_cp(#[case] a: u8, #[case] b: u8, #[case] expected_flags: u8) {
+    let (_, flags) = sub(a, b, false);
+    assert_eq!(flags, expected_flags, "Flags mismatch");
+}
+
+#[rstest]
+#[case(0x00, 0x01, 0x00)] // 0 + 1 = 1
+#[case(0xFF, 0x00, 0x50)] // 0xFF + 1 = 0 (Z, H)
+#[case(0x7F, 0x80, 0x94)] // 0x7F + 1 = 0x80 (S, H, PV)
+#[case(0x0F, 0x10, 0x10)] // 0x0F + 1 = 0x10 (H)
+fn test_inc(#[case] value: u8, #[case] expected_result: u8, #[case] expected_flags: u8) {
+    let (result, flags) = inc(value);
+    assert_eq!(result, expected_result, "Result mismatch");
+    assert_eq!(flags, expected_flags, "Flags mismatch");
+}
+
+#[rstest]
+#[case(0x01, 0x00, 0x42)] // 1 - 1 = 0 (Z, N)
+#[case(0x00, 0xFF, 0xBA)] // 0 - 1 = 0xFF (S, H, N, X, Y)
+#[case(0x80, 0x7F, 0x3E)] // 0x80 - 1 = 0x7F (H, PV, N, X, Y)
+fn test_dec(#[case] value: u8, #[case] expected_result: u8, #[case] expected_flags: u8) {
+    let (result, flags) = dec(value);
+    assert_eq!(result, expected_result, "Result mismatch");
+    assert_eq!(flags, expected_flags, "Flags mismatch");
+}
+
