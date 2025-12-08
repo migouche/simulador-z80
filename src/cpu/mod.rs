@@ -6,7 +6,7 @@ use std::collections::VecDeque;
 use std::rc::Rc;
 use std::usize;
 
-use crate::{cpu::alu::{rot::{self, RotOperation}, bit, res, set, alu_op}, traits::{MemoryMapper, SyncronousComponent}};
+use crate::{cpu::alu::{rot::{self, RotOperation}, bit, res, set, alu_op, inc, dec}, traits::{MemoryMapper, SyncronousComponent}};
 
 #[cfg(test)]
 macro_rules! test_log {
@@ -543,6 +543,122 @@ impl Z80A {
 
     }
 
+    fn inc_op(&mut self, dest: AddressingMode) {
+        let value = match dest {
+            AddressingMode::Register(r) => self.get_register(r),
+            AddressingMode::RegisterIndirect(RegisterPair::HL) => {
+                let addr = self.get_register_pair(RegisterPair::HL);
+                self.memory.borrow().read(addr)
+            }
+            AddressingMode::Indexed(idx, disp) => {
+                 let base = self.get_index_register(idx);
+                 let addr = base.wrapping_add(disp as i16 as u16);
+                 self.memory.borrow().read(addr)
+            }
+            AddressingMode::Special(r) => {
+                 (self.get_special_register(r) & 0xFF) as u8
+            }
+            _ => panic!("Invalid addressing mode for INC"),
+        };
+
+        let (result, flags) = inc(value);
+        
+        // Preserve Carry flag
+        let current_carry = self.main_set.F & 0x01;
+        self.main_set.F = flags | current_carry;
+
+        match dest {
+            AddressingMode::Register(r) => self.set_register(r, result),
+            AddressingMode::RegisterIndirect(RegisterPair::HL) => {
+                let addr = self.get_register_pair(RegisterPair::HL);
+                self.memory.borrow_mut().write(addr, result);
+            }
+            AddressingMode::Indexed(idx, disp) => {
+                 let base = self.get_index_register(idx);
+                 let addr = base.wrapping_add(disp as i16 as u16);
+                 self.memory.borrow_mut().write(addr, result);
+            }
+             AddressingMode::Special(r) => {
+                 self.set_special_register(r, result as u16);
+            }
+            _ => panic!("Invalid addressing mode for INC writeback"),
+        }
+    }
+
+    fn dec_op(&mut self, dest: AddressingMode) {
+        let value = match dest {
+            AddressingMode::Register(r) => self.get_register(r),
+            AddressingMode::RegisterIndirect(RegisterPair::HL) => {
+                let addr = self.get_register_pair(RegisterPair::HL);
+                self.memory.borrow().read(addr)
+            }
+            AddressingMode::Indexed(idx, disp) => {
+                 let base = self.get_index_register(idx);
+                 let addr = base.wrapping_add(disp as i16 as u16);
+                 self.memory.borrow().read(addr)
+            }
+            AddressingMode::Special(r) => {
+                 (self.get_special_register(r) & 0xFF) as u8
+            }
+            _ => panic!("Invalid addressing mode for DEC"),
+        };
+
+        let (result, flags) = dec(value);
+        
+        // Preserve Carry flag
+        let current_carry = self.main_set.F & 0x01;
+        self.main_set.F = flags | current_carry;
+
+        match dest {
+            AddressingMode::Register(r) => self.set_register(r, result),
+            AddressingMode::RegisterIndirect(RegisterPair::HL) => {
+                let addr = self.get_register_pair(RegisterPair::HL);
+                self.memory.borrow_mut().write(addr, result);
+            }
+            AddressingMode::Indexed(idx, disp) => {
+                 let base = self.get_index_register(idx);
+                 let addr = base.wrapping_add(disp as i16 as u16);
+                 self.memory.borrow_mut().write(addr, result);
+            }
+             AddressingMode::Special(r) => {
+                 self.set_special_register(r, result as u16);
+            }
+            _ => panic!("Invalid addressing mode for DEC writeback"),
+        }
+    }
+
+    fn inc_16_op(&mut self, dest: AddressingMode) {
+        let val = match dest {
+            AddressingMode::RegisterPair(rp) => self.get_register_pair(rp),
+            AddressingMode::Special(r) => self.get_special_register(r),
+            _ => panic!("Invalid addressing mode for INC 16"),
+        };
+        
+        let result = val.wrapping_add(1);
+        
+        match dest {
+            AddressingMode::RegisterPair(rp) => self.set_register_pair(rp, result),
+            AddressingMode::Special(r) => self.set_special_register(r, result),
+            _ => panic!("Invalid addressing mode for INC 16 writeback"),
+        }
+    }
+
+    fn dec_16_op(&mut self, dest: AddressingMode) {
+        let val = match dest {
+            AddressingMode::RegisterPair(rp) => self.get_register_pair(rp),
+            AddressingMode::Special(r) => self.get_special_register(r),
+            _ => panic!("Invalid addressing mode for DEC 16"),
+        };
+        
+        let result = val.wrapping_sub(1);
+        
+        match dest {
+            AddressingMode::RegisterPair(rp) => self.set_register_pair(rp, result),
+            AddressingMode::Special(r) => self.set_special_register(r, result),
+            _ => panic!("Invalid addressing mode for DEC 16 writeback"),
+        }
+    }
+
     fn table_rp(&mut self, p: u8) -> AddressingMode {
         match p {
             0 => {
@@ -747,15 +863,29 @@ impl Z80A {
                     if !q {
                         // 16-bit INC/DEC
                         test_log!(self, "INC rp[p]");
-                        () // TODO: INC rp[p]
+                        let rp = self.table_rp(p);
+                        let dest = self.transform_register(rp, addressing);
+                        self.inc_16_op(dest);
                     } else {
                         test_log!(self, "DEC rp[p]");
-                        () // TODO: DEC rp[p]
+                        let rp = self.table_rp(p);
+                        let dest = self.transform_register(rp, addressing);
+                        self.dec_16_op(dest);
                     }
                 }
 
-                4 => test_log!(self, "INC r[y]"), // TODO: INC r[y]
-                5 => test_log!(self, "DEC r[y]"), // TODO: DEC r[y]
+                4 => {
+                    test_log!(self, "INC r[y]");
+                    let reg = self.table_r(y);
+                    let dest = self.transform_register(reg, addressing);
+                    self.inc_op(dest);
+                }
+                5 => {
+                    test_log!(self, "DEC r[y]");
+                    let reg = self.table_r(y);
+                    let dest = self.transform_register(reg, addressing);
+                    self.dec_op(dest);
+                }
                 6 => {
                     test_log!(self, "LD r[y], n");
                     let n = self.fetch();
