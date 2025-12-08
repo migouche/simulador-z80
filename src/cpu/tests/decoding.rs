@@ -20,7 +20,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::ld_b_n(0x29f9, &[0x06, 0x56], &["decode_unprefixed", "LD r[y], n", "B"])] // LD B, n
 #[case::rlca(0x29f9, &[0x07], &["decode_unprefixed", "RLCA"])] // RLCA
 #[case::ex_af_afp(0x29f9, &[0x08], &["decode_unprefixed", "EX AF, AF'"])] // EX AF, AF'
-#[case::add_hl_bc(0x29f9, &[0x09], &["decode_unprefixed", "ADD HL/IX/IY, rp[p]"])] // ADD HL, BC
+#[case::add_hl_bc(0x29f9, &[0x09], &["decode_unprefixed", "ADD HL/IX/IY, rp[p]", "BC"])] // ADD HL, BC
 #[case::ld_a_bci(0x29f9, &[0x0a], &["decode_unprefixed", "LD A, (BC)"])] // LD A, (BC)
 #[case::dec_bc(0x29f9, &[0x0b], &["decode_unprefixed", "DEC rp[p]", "BC"])] // DEC BC
 #[case::inc_c(0x29f9, &[0x0c], &["decode_unprefixed", "INC r[y]", "C"])] // INC C
@@ -37,7 +37,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::ld_d_n(0x29f9, &[0x16, 0x9a], &["decode_unprefixed", "LD r[y], n", "D"])] // LD D, n
 #[case::rla(0x29f9, &[0x17], &["decode_unprefixed", "RLA"])] // RLA
 #[case::jr_d(0x29f9, &[0x18, 0xfe], &["decode_unprefixed", "JR d"])] // JR d
-#[case::add_hl_de(0x29f9, &[0x19], &["decode_unprefixed", "ADD HL/IX/IY, rp[p]"])] // ADD HL, DE
+#[case::add_hl_de(0x29f9, &[0x19], &["decode_unprefixed", "ADD HL/IX/IY, rp[p]", "DE"])] // ADD HL, DE
 #[case::ld_a_dei(0x29f9, &[0x1a], &["decode_unprefixed", "LD A, (DE)"])] // LD A, (DE)
 #[case::dec_de(0x29f9, &[0x1b], &["decode_unprefixed", "DEC rp[p]", "DE"])] // DEC DE
 #[case::inc_e(0x29f9, &[0x1c], &["decode_unprefixed", "INC r[y]", "E"])] // INC E
@@ -54,7 +54,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::ld_h_n(0x29f9, &[0x26, 0x56], &["decode_unprefixed", "LD r[y], n", "H"])] // LD H, n
 #[case::daa(0x29f9, &[0x27], &["decode_unprefixed", "DAA"])] // DAA
 #[case::jr_z_d(0x29f9, &[0x28, 0xfe], &["decode_unprefixed", "JR cc[y-4], d"])] // JR Z, d
-#[case::add_hl_hl(0x29f9, &[0x29], &["decode_unprefixed", "ADD HL/IX/IY, rp[p]"])] // ADD HL, HL
+#[case::add_hl_hl(0x29f9, &[0x29], &["decode_unprefixed", "ADD HL/IX/IY, rp[p]", "HL"])] // ADD HL, HL
 #[case::ld_hl_nni(0x29f9, &[0x2a, 0x00, 0x80], &["decode_unprefixed", "LD HL/IX/IY, (nn)"])] // LD HL, (nn)
 #[case::dec_hl(0x29f9, &[0x2b], &["decode_unprefixed", "DEC rp[p]", "HL"])] // DEC HL
 #[case::inc_l(0x29f9, &[0x2c], &["decode_unprefixed", "INC r[y]", "L"])] // INC L
@@ -71,7 +71,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::ld_hli_n(0x29f9, &[0x36, 0x56], &["decode_unprefixed", "LD r[y], n", "(HL)"])] // LD (HL), n
 #[case::scf(0x29f9, &[0x37], &["decode_unprefixed", "SCF"])] // SCF
 #[case::jr_c_d(0x29f9, &[0x38, 0xfe], &["decode_unprefixed", "JR cc[y-4], d"])] // JR C, d
-#[case::add_hl_sp(0x29f9, &[0x39], &["decode_unprefixed", "ADD HL/IX/IY, rp[p]"])] // ADD HL, SP
+#[case::add_hl_sp(0x29f9, &[0x39], &["decode_unprefixed", "ADD HL/IX/IY, rp[p]", "SP"])] // ADD HL, SP
 #[case::ld_a_nni(0x29f9, &[0x3a, 0x00, 0x80], &["decode_unprefixed", "LD A, (nn)"])] // LD A, (nn)
 #[case::dec_sp(0x29f9, &[0x3b], &["decode_unprefixed", "DEC rp[p]", "SP"])] // DEC SP
 #[case::inc_lli(0x29f9, &[0x3c], &["decode_unprefixed", "INC r[y]", "A"])] // INC A
@@ -662,7 +662,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::dd_inc_b(0x29f9, &[0xdd, 0x04], &["decode_dd", "INC r[y]", "B"])] // INC B
 #[case::dd_dec_b(0x29f9, &[0xdd, 0x05], &["decode_dd", "DEC r[y]", "B"])] // DEC B
 #[case::dd_ld_b_n(0x29f9, &[0xdd, 0x06, 0x42], &["decode_dd", "LD r[y], n", "B"])] // LD B, n
-#[case::dd_add_ix_bc(0x29f9, &[0xdd, 0x09], &["decode_dd", "ADD HL/IX/IY, rp[p]"])] // ADD IX, BC
+#[case::dd_add_ix_bc(0x29f9, &[0xdd, 0x09], &["decode_dd", "ADD HL/IX/IY, rp[p]", "IX", "BC"])] // ADD IX, BC
 #[case::dd_inc_c(0x29f9, &[0xdd, 0x0C], &["decode_dd", "INC r[y]", "C"])] // INC C
 #[case::dd_dec_c(0x29f9, &[0xdd, 0x0D], &["decode_dd", "DEC r[y]", "C"])] // DEC C
 #[case::dd_ld_c_n(0x29f9, &[0xdd, 0x0E, 0x42], &["decode_dd", "LD r[y], n", "C"])] // LD C, n
@@ -670,7 +670,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::dd_inc_d(0x29f9, &[0xdd, 0x14], &["decode_dd", "INC r[y]", "D"])] // INC D
 #[case::dd_dec_d(0x29f9, &[0xdd, 0x15], &["decode_dd", "DEC r[y]", "D"])] // DEC D
 #[case::dd_ld_d_n(0x29f9, &[0xdd, 0x16, 0x42], &["decode_dd", "LD r[y], n", "D"])] // LD D, n
-#[case::dd_add_ix_de(0x29f9, &[0xdd, 0x19], &["decode_dd", "ADD HL/IX/IY, rp[p]",])] // ADD IX, DE
+#[case::dd_add_ix_de(0x29f9, &[0xdd, 0x19], &["decode_dd", "ADD HL/IX/IY, rp[p]", "IX", "DE"])] // ADD IX, DE
 #[case::dd_inc_e(0x29f9, &[0xdd, 0x1C], &["decode_dd", "INC r[y]", "E"])] // INC E
 #[case::dd_dec_e(0x29f9, &[0xdd, 0x1D], &["decode_dd", "DEC r[y]", "E"])] // DEC E
 #[case::dd_ld_e_n(0x29f9, &[0xdd, 0x1E, 0x42], &["decode_dd", "LD r[y], n", "E"])] // LD E, n
@@ -681,7 +681,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::dd_inc_ixh(0x29f9, &[0xdd, 0x24], &["decode_dd", "INC r[y]", "H", "IXH"])] // INC IXH
 #[case::dd_dec_ixh(0x29f9, &[0xdd, 0x25], &["decode_dd", "DEC r[y]", "H", "IXH"])] // DEC IXH
 #[case::dd_ld_ixh_n(0x29f9, &[0xdd, 0x26, 0x42], &["decode_dd", "LD r[y], n", "H", "IXH"])] // LD IXH, n
-#[case::dd_add_ix_ix(0x29f9, &[0xdd, 0x29], &["decode_dd", "ADD HL/IX/IY, rp[p]",])] // ADD IX, IX
+#[case::dd_add_ix_ix(0x29f9, &[0xdd, 0x29], &["decode_dd", "ADD HL/IX/IY, rp[p]", "IX", "HL", "IX"])] // ADD IX, IX
 #[case::dd_ld_ix_nni(0x29f9, &[0xdd, 0x2A, 0x34, 0x12], &["decode_dd", "LD HL/IX/IY, (nn)", "IX"])] // LD IX, (nn)
 #[case::dd_dec_ix(0x29f9, &[0xdd, 0x2B], &["decode_dd", "DEC rp[p]", "HL", "IX"])] // DEC IX
 #[case::dd_inc_ixl(0x29f9, &[0xdd, 0x2C], &["decode_dd", "INC r[y]", "L", "IXL"])] // INC IXL
@@ -691,7 +691,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::dd_inc_ixd(0x29f9, &[0xdd, 0x34], &["decode_dd", "INC r[y]", "(HL)", "(IX + d)"])] // INC (IX + d)
 #[case::dd_dec_ixd(0x29f9, &[0xdd, 0x35], &["decode_dd", "DEC r[y]", "(HL)", "(IX + d)"])] // DEC (IX + d)
 #[case::dd_ld_ixd_n(0x29f9, &[0xdd, 0x36, 0x42], &["decode_dd", "LD r[y], n", "(HL)", "(IX + d)"])] // LD (IX + d), n
-#[case::dd_add_ix_sp(0x29f9, &[0xdd, 0x39], &["decode_dd", "ADD HL/IX/IY, rp[p]",])] // ADD IX, SP
+#[case::dd_add_ix_sp(0x29f9, &[0xdd, 0x39], &["decode_dd", "ADD HL/IX/IY, rp[p]", "IX", "SP"])] // ADD IX, SP
 #[case::dd_inc_a(0x29f9, &[0xdd, 0x3C], &["decode_dd", "INC r[y]", "A"])] // INC A
 #[case::dd_dec_a(0x29f9, &[0xdd, 0x3D], &["decode_dd", "DEC r[y]", "A"])] // DEC A
 #[case::dd_ld_a_n(0x29f9, &[0xdd, 0x3E, 0x42], &["decode_dd", "LD r[y], n", "A"])] // LD A, n

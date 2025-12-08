@@ -265,6 +265,34 @@ pub fn inc(value: u8) -> (u8, u8) {
     (result, flags)
 }
 
+pub fn add_16(a: u16, b: u16, current_flags: u8) -> (u16, u8) {
+    let (result, carry) = a.overflowing_add(b);
+    
+    let h = ((a & 0x0FFF) + (b & 0x0FFF)) > 0x0FFF;
+    let n = false;
+    let c = carry;
+    
+    // Undocumented flags X (bit 3) and Y (bit 5) come from the high byte of the result
+    let x = (result & 0x0800) != 0;
+    let y = (result & 0x2000) != 0;
+    
+    // S, Z, P/V are preserved from current_flags
+    let s = (current_flags & 0x80) != 0;
+    let z = (current_flags & 0x40) != 0;
+    let pv = (current_flags & 0x04) != 0;
+
+    let flags = (if c { 0x01 } else { 0x00 })
+        | (if n { 0x02 } else { 0x00 })
+        | (if pv { 0x04 } else { 0x00 })
+        | (if x { 0x08 } else { 0x00 })
+        | (if h { 0x10 } else { 0x00 })
+        | (if y { 0x20 } else { 0x00 })
+        | (if z { 0x40 } else { 0x00 })
+        | (if s { 0x80 } else { 0x00 });
+        
+    (result, flags)
+}
+
 pub fn dec(value: u8) -> (u8, u8) {
     let result = value.wrapping_sub(1);
     let z = result == 0;

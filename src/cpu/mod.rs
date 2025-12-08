@@ -6,7 +6,7 @@ use std::collections::VecDeque;
 use std::rc::Rc;
 use std::usize;
 
-use crate::{cpu::alu::{rot::{self, RotOperation}, bit, res, set, alu_op, inc, dec}, traits::{MemoryMapper, SyncronousComponent}};
+use crate::{cpu::alu::{rot::{self, RotOperation}, bit, res, set, alu_op, inc, dec, add_16}, traits::{MemoryMapper, SyncronousComponent}};
 
 #[cfg(test)]
 macro_rules! test_log {
@@ -659,6 +659,29 @@ impl Z80A {
         }
     }
 
+    fn add_16_op(&mut self, dest: AddressingMode, src: AddressingMode) {
+        let val_dest = match dest {
+            AddressingMode::RegisterPair(rp) => self.get_register_pair(rp),
+            AddressingMode::Special(r) => self.get_special_register(r),
+            _ => panic!("Invalid addressing mode for ADD 16 dest"),
+        };
+        
+        let val_src = match src {
+            AddressingMode::RegisterPair(rp) => self.get_register_pair(rp),
+            AddressingMode::Special(r) => self.get_special_register(r),
+            _ => panic!("Invalid addressing mode for ADD 16 src"),
+        };
+        
+        let (result, flags) = add_16(val_dest, val_src, self.main_set.F);
+        self.main_set.F = flags;
+        
+        match dest {
+            AddressingMode::RegisterPair(rp) => self.set_register_pair(rp, result),
+            AddressingMode::Special(r) => self.set_special_register(r, result),
+            _ => panic!("Invalid addressing mode for ADD 16 writeback"),
+        }
+    }
+
     fn table_rp(&mut self, p: u8) -> AddressingMode {
         match p {
             0 => {
@@ -781,7 +804,11 @@ impl Z80A {
 
                 1 => {
                     if q {
-                        test_log!(self, "ADD HL/IX/IY, rp[p]"); // TODO: ADD HL, rp[p]
+                        test_log!(self, "ADD HL/IX/IY, rp[p]");
+                        let dest = self.transform_register(AddressingMode::RegisterPair(RegisterPair::HL), addressing);
+                        let rp = self.table_rp(p);
+                        let src = self.transform_register(rp, addressing);
+                        self.add_16_op(dest, src);
                     } else {
                         // 16-bit load immediate/add
                         // LD rp[p], nn
