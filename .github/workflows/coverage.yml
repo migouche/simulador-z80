@@ -35,7 +35,7 @@ jobs:
       - name: Run llvm-cov (JSON)
         run: |
           cargo llvm-cov clean
-          cargo llvm-cov --branch --json --output-path coverage.json
+          cargo llvm-cov --json --output-path coverage.json
 
       - name: Parse coverage and update gist
         env:
