@@ -7,28 +7,45 @@ on:
 jobs:
   coverage:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install toolchain
+      - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
 
-      - name: Install Tarpaulin
-        run: cargo install cargo-tarpaulin
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
 
-      - name: Run Tarpaulin
-        run: cargo tarpaulin --out Json
+      - name: Install cargo-llvm-cov
+        run: cargo install cargo-llvm-cov
+
+      - name: Run llvm-cov (JSON)
+        run: |
+          cargo llvm-cov clean
+          cargo llvm-cov --branch --json --output-path coverage.json
 
       - name: Parse coverage and update gist
         env:
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
         run: |
           set -e
-          # Extract numeric coverage (integer or float)
-          COVERAGE=$(jq '.coverage' tarpaulin-report.json)
+
+          # Extract total branch coverage percentage
+          COVERAGE=$(jq '.data[0].totals.lines.percent' coverage.json)
+
           # cap to 2 decimal places
           COVERAGE=$(printf "%.2f" "$COVERAGE")
           echo "Coverage: $COVERAGE"
@@ -40,7 +57,7 @@ jobs:
           fi
 
           # Create JSON for badge
-          cat <<EOJ > coverage.json
+          cat <<EOJ > badge.json
           {
             "schemaVersion": 1,
             "label": "coverage",
@@ -49,7 +66,7 @@ jobs:
           }
           EOJ
 
-          CONTENT=$(jq -Rs . coverage.json)
+          CONTENT=$(jq -Rs . badge.json)
 
           # Upload to Gist
           curl -X PATCH \

@@ -16,6 +16,7 @@ macro_rules! test_log {
 }
 
 #[cfg(not(test))]
+#[cfg(not(coverage))]
 macro_rules! test_log {
     ($self:expr, $msg:expr) => {
         ()
