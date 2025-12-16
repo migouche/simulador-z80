@@ -1,6 +1,6 @@
 use rstest::rstest;
 
-use crate::{cpu::{GPR, RegisterPair, SpecialRegister, Z80A}, traits::MemoryMapper};
+use crate::cpu::{GPR, RegisterPair, SpecialRegister};
 
 use super::setup_cpu;
 

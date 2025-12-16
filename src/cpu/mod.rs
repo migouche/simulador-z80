@@ -945,20 +945,6 @@ impl Z80A {
                 let reg = self.table_r(z);
                 let src = self.transform_register(reg, addressing);
                 self.ld(dest, src); // LD r[y], r[z] (still have to transform r[y] and r[z] if IX/IY prefixed)
-                /*
-                6 => test_log!(self, "HALT"), // TODO: HALT
-                _ => {
-                    if y > 7 {
-                        // 8-bit loading
-                        panic!("Invalid y value") // should never happen
-                    } else {
-                        test_log!(self, "LD r[y], r[z]");
-                        let dest = self.transform_register(Self::table_r(y), addressing);
-                        let src = self.transform_register(Self::table_r(z), addressing);
-                        self.ld(dest, src); // LD r[y], r[z] (still have to transform r[y] and r[z] if IX/IY prefixed)
-                        // TODO: if there is a (HL), there should be no more changes
-                    }
-                }*/
             },
 
             2 => {// TODO: ALU[y] r[z]
@@ -1005,7 +991,14 @@ impl Z80A {
                         );
                     }
                     (true, 2) => test_log!(self, "JP HL"), // TODO: JP HL
-                    (true, 3) => test_log!(self, "LD SP, HL"), // TODO: LD SP, HL
+                    (true, 3) => { // LD SP, HL (or LD SP, IX/IY if prefixed)
+                        test_log!(self, "LD SP, HL");
+                        let src = self.transform_register(
+                            AddressingMode::RegisterPair(RegisterPair::HL),
+                            addressing,
+                        );
+                        self.ld_16(AddressingMode::RegisterPair(RegisterPair::SP), src);
+                }, 
                     _ => panic!("Invalid q, p values"),    // should never happen
                 },
                 2 => test_log!(self, "JP cc[y], nn"), // TODO: JP cc[y], nn

@@ -1,5 +1,3 @@
-use std::mem::transmute;
-
 pub mod rot {
 
     pub enum RotOperation {
