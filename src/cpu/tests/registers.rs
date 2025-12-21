@@ -29,7 +29,6 @@ fn test_register_pair(#[case] reg: RegisterPair, #[case] value: u16) {
     assert_eq!(cpu.get_register_pair(reg), value);
 }
 
-
 #[rstest]
 #[case(SpecialRegister::PC, 0x9ABC)]
 #[case(SpecialRegister::SP, 0xDEF0)]

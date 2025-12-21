@@ -1,7 +1,7 @@
 use rstest::rstest;
 
 use crate::cpu::tests::setup_cpu;
-use crate::cpu::{GPR, Flag};
+use crate::cpu::{Flag, GPR};
 use crate::traits::SyncronousComponent;
 
 #[rstest]
@@ -22,34 +22,45 @@ fn test_rot_accumulator(
     #[case] initial_a: u8,
     #[case] initial_c: bool,
     #[case] expected_a: u8,
-    #[case] expected_c: bool
+    #[case] expected_c: bool,
 ) {
     let mut cpu = setup_cpu();
     cpu.set_register(GPR::A, initial_a);
     cpu.main_set.set_flag(initial_c, Flag::C);
-    
+
     // Set Z, S, P/V flags to true to verify they are preserved
     // These instructions (RLCA, RRCA, RLA, RRA) should NOT affect these flags.
     cpu.main_set.set_flag(true, Flag::Z);
     cpu.main_set.set_flag(true, Flag::S);
     cpu.main_set.set_flag(true, Flag::PV);
-    
+
     // Set H and N to true to verify they are reset
     // These instructions should reset H and N.
     cpu.main_set.set_flag(true, Flag::H);
     cpu.main_set.set_flag(true, Flag::N);
 
     cpu.memory.borrow_mut().write(0x0000, opcode);
-    
+
     cpu.tick();
 
-    assert_eq!(cpu.get_register(GPR::A), expected_a, "Accumulator value mismatch");
-    assert_eq!(cpu.main_set.get_flag(Flag::C), expected_c, "Carry flag mismatch");
-    
+    assert_eq!(
+        cpu.get_register(GPR::A),
+        expected_a,
+        "Accumulator value mismatch"
+    );
+    assert_eq!(
+        cpu.main_set.get_flag(Flag::C),
+        expected_c,
+        "Carry flag mismatch"
+    );
+
     // Verify Z, S, P are preserved (should still be true)
     assert!(cpu.main_set.get_flag(Flag::Z), "Z flag should be preserved");
     assert!(cpu.main_set.get_flag(Flag::S), "S flag should be preserved");
-    assert!(cpu.main_set.get_flag(Flag::PV), "P/V flag should be preserved");
+    assert!(
+        cpu.main_set.get_flag(Flag::PV),
+        "P/V flag should be preserved"
+    );
 
     // Verify H and N are reset
     assert!(!cpu.main_set.get_flag(Flag::H), "H flag should be reset");

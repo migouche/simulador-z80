@@ -2,9 +2,9 @@ use std::{cell::RefCell, rc::Rc};
 
 use crate::{cpu::Z80A, traits::MemoryMapper};
 
+pub mod alu_tests;
 pub mod decoding;
 pub mod instructions;
-pub mod alu_tests;
 pub mod registers;
 
 struct MockMemory {
