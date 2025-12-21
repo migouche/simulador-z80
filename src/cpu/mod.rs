@@ -16,7 +16,6 @@ macro_rules! test_log {
 }
 
 #[cfg(not(test))]
-#[cfg(not(coverage))]
 macro_rules! test_log {
     ($self:expr, $msg:expr) => {
         ()
@@ -492,7 +491,7 @@ impl Z80A {
                 test_log!(self, "CP A");
                 ALUOperation::CP
             },
-            _ => panic!("Invalid y value"), // should never happen
+            _ => unreachable!("Invalid y value"), // should never happen
         }
     }
 
@@ -754,12 +753,20 @@ impl Z80A {
                 _ => reg,
             },
             PrefixAddressing::IY => match reg {
-                AddressingMode::Register(GPR::H) => AddressingMode::Special(SpecialRegister::IYH),
-                AddressingMode::Register(GPR::L) => AddressingMode::Special(SpecialRegister::IYL),
+                AddressingMode::Register(GPR::H) => {
+                    test_log!(self, "IYH");
+                    AddressingMode::Special(SpecialRegister::IYH)
+                },
+                AddressingMode::Register(GPR::L) => {   
+                    test_log!(self, "IYL");
+                    AddressingMode::Special(SpecialRegister::IYL)
+                },
                 AddressingMode::RegisterIndirect(RegisterPair::HL) => {
+                    test_log!(self, "(IY + d)");
                     AddressingMode::Indexed(IndexRegister::IY, self.fetch_displacement())
                 }
                 AddressingMode::RegisterPair(RegisterPair::HL) => {
+                    test_log!(self, "IY");
                     AddressingMode::Special(SpecialRegister::IY)
                 }
                 _ => reg,
@@ -924,14 +931,60 @@ impl Z80A {
                 7 => {
                     // Assorted operations on accumulator/flags
                     match y {
-                        0 => test_log!(self, "RLCA"),   // TODO: RLCA
-                        1 => test_log!(self, "RRCA"),   // TODO: RRCA
-                        2 => test_log!(self, "RLA"),    // TODO: RLA
-                        3 => test_log!(self, "RRA"),    // TODO: RRA
-                        4 => test_log!(self, "DAA"),    // TODO: DAA
-                        5 => test_log!(self, "CPL"),    // TODO: CPL
-                        6 => test_log!(self, "SCF"),    // TODO: SCF
-                        7 => test_log!(self, "CCF"),    // TODO: CCF
+                        0 => { // RLCA
+                            test_log!(self, "RLCA");
+                            let a = self.get_register(GPR::A);
+                            let (res, f) = rot::rlc(a);
+                            self.set_register(GPR::A, res);
+
+                            self.main_set.set_flag((f & 0x01) == 1, Flag::C);
+                            self.main_set.set_flag(false, Flag::N);
+                            self.main_set.set_flag(false, Flag::H);
+                        }
+                        1 => { // RRCA
+                            test_log!(self, "RRCA");
+                            let a = self.get_register(GPR::A);
+                            let (res, f) = rot::rrc(a);
+                            self.set_register(GPR::A, res);
+
+                            self.main_set.set_flag((f & 0x01) == 1, Flag::C);
+                            self.main_set.set_flag(false, Flag::N);
+                            self.main_set.set_flag(false, Flag::H);
+                        }
+                        2 => { // RLA
+                            test_log!(self, "RLA");
+                            let a = self.get_register(GPR::A);
+                            let carry = self.main_set.get_flag(Flag::C);
+                            let (res, f) = rot::rl(a, carry);
+                            self.set_register(GPR::A, res);
+
+                            self.main_set.set_flag((f & 0x01) == 1, Flag::C);
+                            self.main_set.set_flag(false, Flag::N);
+                            self.main_set.set_flag(false, Flag::H);
+                        }
+                        3 => { // RRA
+                            test_log!(self, "RRA");
+                            let a = self.get_register(GPR::A);
+                            let carry = self.main_set.get_flag(Flag::C);
+                            let (res, f) = rot::rr(a, carry);
+                            self.set_register(GPR::A, res);
+
+                            self.main_set.set_flag((f & 0x01) == 1, Flag::C);
+                            self.main_set.set_flag(false, Flag::N);
+                            self.main_set.set_flag(false, Flag::H);
+                        }
+                        4 => { // DAA
+                            test_log!(self, "DAA");
+                        }
+                        5 => { // CPL
+                            test_log!(self, "CPL");
+                        }
+                        6 => { // SCF
+                            test_log!(self, "SCF");
+                        }
+                        7 => { // CCF
+                            test_log!(self, "CCF");
+                        }
                         _ => panic!("Invalid y value"), // should never happen
                     }
                 }

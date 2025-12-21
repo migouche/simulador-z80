@@ -768,6 +768,117 @@ use crate::cpu::tests::setup_cpu;
 #[case::dd_ld_a_ixd(0x29f9, &[0xdd, 0x7E, 0x05], &["decode_dd", "LD r[y], r[z]", "A", "(HL)", "(IX + d)"])] // LD A, (IX + d)
 #[case::dd_ld_a_a(0x29f9, &[0xdd, 0x7F], &["decode_dd", "LD r[y], r[z]", "A", "A"])] // LD A, A
 
+// ----------------------------------------------------------------------------------------------------
+// FD TABLE (IY INSTRUCTIONS) - duplicated from DD with IX->IY mapping
+// ----------------------------------------------------------------------------------------------------
+#[case::fd_inc_b(0x29f9, &[0xfd, 0x04], &["decode_fd", "INC r[y]", "B"])] // INC B
+#[case::fd_dec_b(0x29f9, &[0xfd, 0x05], &["decode_fd", "DEC r[y]", "B"])] // DEC B
+#[case::fd_ld_b_n(0x29f9, &[0xfd, 0x06, 0x42], &["decode_fd", "LD r[y], n", "B"])] // LD B, n
+#[case::fd_add_iy_bc(0x29f9, &[0xfd, 0x09], &["decode_fd", "ADD HL/IX/IY, rp[p]", "IY", "BC"])] // ADD IY, BC
+#[case::fd_inc_c(0x29f9, &[0xfd, 0x0C], &["decode_fd", "INC r[y]", "C"])] // INC C
+#[case::fd_dec_c(0x29f9, &[0xfd, 0x0D], &["decode_fd", "DEC r[y]", "C"])] // DEC C
+#[case::fd_ld_c_n(0x29f9, &[0xfd, 0x0E, 0x42], &["decode_fd", "LD r[y], n", "C"])] // LD C, n
+
+#[case::fd_inc_d(0x29f9, &[0xfd, 0x14], &["decode_fd", "INC r[y]", "D"])] // INC D
+#[case::fd_dec_d(0x29f9, &[0xfd, 0x15], &["decode_fd", "DEC r[y]", "D"])] // DEC D
+#[case::fd_ld_d_n(0x29f9, &[0xfd, 0x16, 0x42], &["decode_fd", "LD r[y], n", "D"])] // LD D, n
+#[case::fd_add_iy_de(0x29f9, &[0xfd, 0x19], &["decode_fd", "ADD HL/IX/IY, rp[p]", "IY", "DE"])] // ADD IY, DE
+#[case::fd_inc_e(0x29f9, &[0xfd, 0x1C], &["decode_fd", "INC r[y]", "E"])] // INC E
+#[case::fd_dec_e(0x29f9, &[0xfd, 0x1D], &["decode_fd", "DEC r[y]", "E"])] // DEC E
+#[case::fd_ld_e_n(0x29f9, &[0xfd, 0x1E, 0x42], &["decode_fd", "LD r[y], n", "E"])] // LD E, n
+
+#[case::fd_ld_iy_nn(0x29f9, &[0xfd, 0x21, 0x34, 0x12], &["decode_fd", "LD rp[p], nn", "HL"])] // LD IY, nn
+#[case::fd_ld_nni_iy(0x29f9, &[0xfd, 0x22, 0x34, 0x12], &["decode_fd", "LD (nn), HL/IX/IY", "IY"])] // LD (nn), IY
+#[case::fd_inc_iy(0x29f9, &[0xfd, 0x23], &["decode_fd", "INC rp[p]", "HL", "IY"])] // INC IY
+#[case::fd_inc_iyh(0x29f9, &[0xfd, 0x24], &["decode_fd", "INC r[y]", "H", "IYH"])] // INC IYH
+#[case::fd_dec_iyh(0x29f9, &[0xfd, 0x25], &["decode_fd", "DEC r[y]", "H", "IYH"])] // DEC IYH
+#[case::fd_ld_iyh_n(0x29f9, &[0xfd, 0x26, 0x42], &["decode_fd", "LD r[y], n", "H", "IYH"])] // LD IYH, n
+#[case::fd_add_iy_iy(0x29f9, &[0xfd, 0x29], &["decode_fd", "ADD HL/IX/IY, rp[p]", "IY", "HL", "IY"])] // ADD IY, IY
+#[case::fd_ld_iy_nni(0x29f9, &[0xfd, 0x2A, 0x34, 0x12], &["decode_fd", "LD HL/IX/IY, (nn)", "IY"])] // LD IY, (nn)
+#[case::fd_dec_iy(0x29f9, &[0xfd, 0x2B], &["decode_fd", "DEC rp[p]", "HL", "IY"])] // DEC IY
+#[case::fd_inc_iyl(0x29f9, &[0xfd, 0x2C], &["decode_fd", "INC r[y]", "L", "IYL"])] // INC IYL
+#[case::fd_dec_iyl(0x29f9, &[0xfd, 0x2D], &["decode_fd", "DEC r[y]", "L", "IYL"])] // DEC IYL
+#[case::fd_ld_iyl_n(0x29f9, &[0xfd, 0x2E, 0x42], &["decode_fd", "LD r[y], n", "L", "IYL"])] // LD IYL, n
+
+#[case::fd_inc_iyd(0x29f9, &[0xfd, 0x34], &["decode_fd", "INC r[y]", "(HL)", "(IY + d)"])] // INC (IY + d)
+#[case::fd_dec_iyd(0x29f9, &[0xfd, 0x35], &["decode_fd", "DEC r[y]", "(HL)", "(IY + d)"])] // DEC (IY + d)
+#[case::fd_ld_iyd_n(0x29f9, &[0xfd, 0x36, 0x42], &["decode_fd", "LD r[y], n", "(HL)", "(IY + d)"])] // LD (IY + d), n
+#[case::fd_add_iy_sp(0x29f9, &[0xfd, 0x39], &["decode_fd", "ADD HL/IX/IY, rp[p]", "IY", "SP"])] // ADD IY, SP
+#[case::fd_inc_a(0x29f9, &[0xfd, 0x3C], &["decode_fd", "INC r[y]", "A"])] // INC A
+#[case::fd_dec_a(0x29f9, &[0xfd, 0x3D], &["decode_fd", "DEC r[y]", "A"])] // DEC A
+#[case::fd_ld_a_n(0x29f9, &[0xfd, 0x3E, 0x42], &["decode_fd", "LD r[y], n", "A"])] // LD A, n
+
+#[case::fd_ld_b_b(0x29f9, &[0xfd, 0x40], &["decode_fd", "LD r[y], r[z]", "B", "B"])] // LD B, B
+#[case::fd_ld_b_c(0x29f9, &[0xfd, 0x41], &["decode_fd", "LD r[y], r[z]", "B", "C"])] // LD B, C
+#[case::fd_ld_b_d(0x29f9, &[0xfd, 0x42], &["decode_fd", "LD r[y], r[z]", "B", "D"])] // LD B, D
+#[case::fd_ld_b_e(0x29f9, &[0xfd, 0x43], &["decode_fd", "LD r[y], r[z]", "B", "E"])] // LD B, E
+#[case::fd_ld_b_iyh(0x29f9, &[0xfd, 0x44], &["decode_fd", "LD r[y], r[z]", "B", "H", "IYH"])] // LD B, IYH
+#[case::fd_ld_b_iyl(0x29f9, &[0xfd, 0x45], &["decode_fd", "LD r[y], r[z]", "B", "L", "IYL"])] // LD B, IYL
+#[case::fd_ld_b_iyd(0x29f9, &[0xfd, 0x46, 0x05], &["decode_fd", "LD r[y], r[z]", "B", "(HL)", "(IY + d)"])] // LD B, (IY + d)
+#[case::fd_ld_b_a(0x29f9, &[0xfd, 0x47], &["decode_fd", "LD r[y], r[z]", "B", "A"])] // LD B, A
+
+#[case::fd_ld_c_b(0x29f9, &[0xfd, 0x48], &["decode_fd", "LD r[y], r[z]", "C", "B"])] // LD C, B
+#[case::fd_ld_c_c(0x29f9, &[0xfd, 0x49], &["decode_fd", "LD r[y], r[z]", "C", "C"])] // LD C, C
+#[case::fd_ld_c_d(0x29f9, &[0xfd, 0x4A], &["decode_fd", "LD r[y], r[z]", "C", "D"])] // LD C, D
+#[case::fd_ld_c_e(0x29f9, &[0xfd, 0x4B], &["decode_fd", "LD r[y], r[z]", "C", "E"])] // LD C, E
+#[case::fd_ld_c_iyh(0x29f9, &[0xfd, 0x4C], &["decode_fd", "LD r[y], r[z]", "C", "H", "IYH"])] // LD C, IYH
+#[case::fd_ld_c_iyl(0x29f9, &[0xfd, 0x4D], &["decode_fd", "LD r[y], r[z]", "C", "L", "IYL"])] // LD C, IYL
+#[case::fd_ld_c_iyd(0x29f9, &[0xfd, 0x4E, 0x05], &["decode_fd", "LD r[y], r[z]", "C", "(HL)", "(IY + d)"])] // LD C, (IY + d)
+#[case::fd_ld_c_a(0x29f9, &[0xfd, 0x4F], &["decode_fd", "LD r[y], r[z]", "C", "A"])] // LD C, A
+
+#[case::fd_ld_d_b(0x29f9, &[0xfd, 0x50], &["decode_fd", "LD r[y], r[z]", "D", "B"])] // LD D, B
+#[case::fd_ld_d_c(0x29f9, &[0xfd, 0x51], &["decode_fd", "LD r[y], r[z]", "D", "C"])] // LD D, C
+#[case::fd_ld_d_d(0x29f9, &[0xfd, 0x52], &["decode_fd", "LD r[y], r[z]", "D", "D"])] // LD D, D
+#[case::fd_ld_d_e(0x29f9, &[0xfd, 0x53], &["decode_fd", "LD r[y], r[z]", "D", "E"])] // LD D, E
+#[case::fd_ld_d_iyh(0x29f9, &[0xfd, 0x54], &["decode_fd", "LD r[y], r[z]", "D", "H", "IYH"])] // LD D, IYH
+#[case::fd_ld_d_iyl(0x29f9, &[0xfd, 0x55], &["decode_fd", "LD r[y], r[z]", "D", "L", "IYL"])] // LD D, IYL
+#[case::fd_ld_d_iyd(0x29f9, &[0xfd, 0x56, 0x05], &["decode_fd", "LD r[y], r[z]", "D", "(HL)", "(IY + d)"])] // LD D, (IY + d)
+#[case::fd_ld_d_a(0x29f9, &[0xfd, 0x57], &["decode_fd", "LD r[y], r[z]", "D", "A"])] // LD D, A
+
+#[case::fd_ld_e_b(0x29f9, &[0xfd, 0x58], &["decode_fd", "LD r[y], r[z]", "E", "B"])] // LD E, B
+#[case::fd_ld_e_c(0x29f9, &[0xfd, 0x59], &["decode_fd", "LD r[y], r[z]", "E", "C"])] // LD E, C
+#[case::fd_ld_e_d(0x29f9, &[0xfd, 0x5A], &["decode_fd", "LD r[y], r[z]", "E", "D"])] // LD E, D
+#[case::fd_ld_e_e(0x29f9, &[0xfd, 0x5B], &["decode_fd", "LD r[y], r[z]", "E", "E"])] // LD E, E
+#[case::fd_ld_e_iyh(0x29f9, &[0xfd, 0x5C], &["decode_fd", "LD r[y], r[z]", "E", "H", "IYH"])] // LD E, IYH
+#[case::fd_ld_e_iyl(0x29f9, &[0xfd, 0x5D], &["decode_fd", "LD r[y], r[z]", "E", "L", "IYL"])] // LD E, IYL
+#[case::fd_ld_e_iyd(0x29f9, &[0xfd, 0x5E, 0x05], &["decode_fd", "LD r[y], r[z]", "E", "(HL)", "(IY + d)"])] // LD E, (IY + d)
+#[case::fd_ld_e_a(0x29f9, &[0xfd, 0x5F], &["decode_fd", "LD r[y], r[z]", "E", "A"])] // LD E, A
+
+#[case::fd_ld_iyh_b(0x29f9, &[0xfd, 0x60], &["decode_fd", "LD r[y], r[z]", "H", "IYH", "B"])] // LD IYH, B
+#[case::fd_ld_iyh_c(0x29f9, &[0xfd, 0x61], &["decode_fd", "LD r[y], r[z]", "H", "IYH", "C"])] // LD IYH, C
+#[case::fd_ld_iyh_d(0x29f9, &[0xfd, 0x62], &["decode_fd", "LD r[y], r[z]", "H", "IYH", "D"])] // LD IYH, D
+#[case::fd_ld_iyh_e(0x29f9, &[0xfd, 0x63], &["decode_fd", "LD r[y], r[z]", "H", "IYH", "E"])] // LD IYH, E
+#[case::fd_ld_iyh_iyh (0x29f9, &[0xfd, 0x64], &["decode_fd", "LD r[y], r[z]", "H", "IYH", "H", "IYH"])] // LD IYH, IYH
+#[case::fd_ld_iyh_iyl (0x29f9, &[0xfd, 0x65], &["decode_fd", "LD r[y], r[z]", "H", "IYH", "L", "IYL"])] // LD IYH, IYL
+#[case::fd_ld_iyh_iyd (0x29f9, &[0xfd, 0x66, 0x05], &["decode_fd", "LD r[y], r[z]", "H", "IYH", "(HL)", "(IY + d)"])] // LD IYH, (IY + d)
+#[case::fd_ld_iyh_a(0x29f9, &[0xfd, 0x67], &["decode_fd", "LD r[y], r[z]", "H", "IYH", "A"])] // LD IYH, A
+
+#[case::fd_ld_iyl_b(0x29f9, &[0xfd, 0x68], &["decode_fd", "LD r[y], r[z]", "L", "IYL", "B"])] // LD IYL, B
+#[case::fd_ld_iyl_c(0x29f9, &[0xfd, 0x69], &["decode_fd", "LD r[y], r[z]", "L", "IYL", "C"])] // LD IYL, C
+#[case::fd_ld_iyl_d(0x29f9, &[0xfd, 0x6A], &["decode_fd", "LD r[y], r[z]", "L", "IYL", "D"])] // LD IYL, D
+#[case::fd_ld_iyl_e(0x29f9, &[0xfd, 0x6B], &["decode_fd", "LD r[y], r[z]", "L", "IYL", "E"])] // LD IYL, E
+#[case::fd_ld_iyl_iyh (0x29f9, &[0xfd, 0x6C], &["decode_fd", "LD r[y], r[z]", "L", "IYL", "H", "IYH"])] // LD IYL, IYH
+#[case::fd_ld_iyl_iyl (0x29f9, &[0xfd, 0x6D], &["decode_fd", "LD r[y], r[z]", "L", "IYL", "L", "IYL"])] // LD IYL, IYL
+#[case::fd_ld_iyl_iyd (0x29f9, &[0xfd, 0x6E, 0x05], &["decode_fd", "LD r[y], r[z]", "L", "IYL", "(HL)", "(IY + d)"])] // LD IYL, (IY + d)
+#[case::fd_ld_iyl_a(0x29f9, &[0xfd, 0x6F], &["decode_fd", "LD r[y], r[z]", "L", "IYL", "A"])] // LD IYL, A
+
+#[case::fd_ld_iyd_b(0x29f9, &[0xfd, 0x70, 0x05], &["decode_fd", "LD r[y], r[z]", "(HL)", "(IY + d)", "B"])] // LD (IY + d), B
+#[case::fd_ld_iyd_c(0x29f9, &[0xfd, 0x71, 0x05], &["decode_fd", "LD r[y], r[z]", "(HL)", "(IY + d)", "C"])] // LD (IY + d), C
+#[case::fd_ld_iyd_d(0x29f9, &[0xfd, 0x72, 0x05], &["decode_fd", "LD r[y], r[z]", "(HL)", "(IY + d)", "D"])] // LD (IY + d), D
+#[case::fd_ld_iyd_e(0x29f9, &[0xfd, 0x73, 0x05], &["decode_fd", "LD r[y], r[z]", "(HL)", "(IY + d)", "E"])] // LD (IY + d), E
+#[case::fd_ld_iyd_iyh (0x29f9, &[0xfd, 0x74, 0x05], &["decode_fd", "LD r[y], r[z]", "(HL)", "(IY + d)", "H", "IYH"])] // LD (IY + d), IYH
+#[case::fd_ld_iyd_iyl (0x29f9, &[0xfd, 0x75, 0x05], &["decode_fd", "LD r[y], r[z]", "(HL)", "(IY + d)", "L", "IYL"])] // LD (IY + d), IYL
+#[case::fd_halt(0x29f9, &[0xfd, 0x76], &["decode_fd", "HALT"])] // HALT (IY)
+#[case::fd_ld_iyd_a(0x29f9, &[0xfd, 0x77, 0x05], &["decode_fd", "LD r[y], r[z]", "(HL)", "(IY + d)", "A"])] // LD (IY + d), A
+
+#[case::fd_ld_a_b(0x29f9, &[0xfd, 0x78], &["decode_fd", "LD r[y], r[z]", "A", "B"])] // LD A, B
+#[case::fd_ld_a_c(0x29f9, &[0xfd, 0x79], &["decode_fd", "LD r[y], r[z]", "A", "C"])] // LD A, C
+#[case::fd_ld_a_d(0x29f9, &[0xfd, 0x7A], &["decode_fd", "LD r[y], r[z]", "A", "D"])] // LD A, D
+#[case::fd_ld_a_e(0x29f9, &[0xfd, 0x7B], &["decode_fd", "LD r[y], r[z]", "A", "E"])] // LD A, E
+#[case::fd_ld_a_iyh(0x29f9, &[0xfd, 0x7C], &["decode_fd", "LD r[y], r[z]", "A", "H", "IYH"])] // LD A, IYH
+#[case::fd_ld_a_iyl(0x29f9, &[0xfd, 0x7D], &["decode_fd", "LD r[y], r[z]", "A", "L", "IYL"])] // LD A, IYL
+#[case::fd_ld_a_iyd(0x29f9, &[0xfd, 0x7E, 0x05], &["decode_fd", "LD r[y], r[z]", "A", "(HL)", "(IY + d)"])] // LD A, (IY + d)
+#[case::fd_ld_a_a(0x29f9, &[0xfd, 0x7F], &["decode_fd", "LD r[y], r[z]", "A", "A"])] // LD A, A
 fn test_opcode(
     #[case] starting_pc: u16,
     #[case] memory_contents: &[u8],
@@ -782,7 +893,7 @@ fn test_opcode(
     cpu.PC = starting_pc;
     cpu.tick();
 
-    assert_eq!(expected_logs.len(), cpu.test_callback.0.len());
+    assert_eq!(expected_logs.len(), cpu.test_callback.0.len(), "Log length mismatch, expected {} entries but got {} entries. Expected logs: {:?}, Actual logs: {:?}", expected_logs.len(), cpu.test_callback.0.len(), expected_logs, cpu.test_callback.0.iter().rev().collect::<Vec<_>>());
 
     // zip logs and cpu logs
  
