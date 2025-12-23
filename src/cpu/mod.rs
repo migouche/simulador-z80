@@ -123,6 +123,17 @@ enum ALUOperation {
     CP,
 }
 
+enum Condition {
+    NZ,
+    Z,
+    NC,
+    C,
+    PO,
+    PE,
+    P,
+    M,
+}
+
 struct RegisterSet {
     // z80 has two register sets, so doing this for easier access
     pub A: u8,
@@ -566,7 +577,7 @@ impl Z80A {
         let (result, flags) = inc(value);
 
         // Preserve Carry flag
-        let current_carry = self.main_set.F & 0x01;
+        let current_carry = self.main_set.get_flag(Flag::C) as u8;
         self.main_set.F = flags | current_carry;
 
         match dest {
@@ -726,6 +737,44 @@ impl Z80A {
         }
     }
 
+    fn table_cc(&mut self, y: u8) -> Condition {
+        match y {
+            0 => {
+                test_log!(self, "NZ");
+                Condition::NZ
+            }
+            1 => {
+                test_log!(self, "Z");
+                Condition::Z
+            }
+            2 => {
+                test_log!(self, "NC");
+                Condition::NC
+            }
+            3 => {
+                test_log!(self, "C");
+                Condition::C
+            }
+            4 => {
+                test_log!(self, "PO");
+                Condition::PO
+            }
+            5 => {
+                test_log!(self, "PE");
+                Condition::PE
+            }
+            6 => {
+                test_log!(self, "P");
+                Condition::P
+            }
+            7 => {
+                test_log!(self, "M");
+                Condition::M
+            }
+            _ => unreachable!("Invalid y value"), // should never happen
+        }
+    }
+
     fn transform_register(
         &mut self,
         reg: AddressingMode,
@@ -774,6 +823,19 @@ impl Z80A {
         }
     }
 
+    fn evaluate_condition(&mut self, condition: Condition) -> bool {
+        match condition {
+            Condition::NZ => !self.main_set.get_flag(Flag::Z),
+            Condition::Z => self.main_set.get_flag(Flag::Z),
+            Condition::NC => !self.main_set.get_flag(Flag::C),
+            Condition::C => self.main_set.get_flag(Flag::C),
+            Condition::PO => !self.main_set.get_flag(Flag::PV),
+            Condition::PE => self.main_set.get_flag(Flag::PV),
+            Condition::P => !self.main_set.get_flag(Flag::S),
+            Condition::M => self.main_set.get_flag(Flag::S),
+        }
+    }
+
     fn decode_unprefixed(&mut self, opcode: u8, addressing: PrefixAddressing) -> () {
         //test_log!(self, "decode_unprefixed");
         match addressing {
@@ -810,11 +872,21 @@ impl Z80A {
                         }
                     }
                     3 => {
-                        // TODO: JR d
+                        // JR d
                         test_log!(self, "JR d");
+                        let d = self.fetch_displacement();
+                        self.PC = self.PC.wrapping_add(d as i16 as u16);
                     }
-                    4..=7 => test_log!(self, "JR cc[y-4], d"), // TODO: JR cc[y-4], d
-                    _ => unreachable!("Invalid y value"),      // should never happen
+                    4..=7 => {
+                        // JR cc[y-4], d
+                        test_log!(self, "JR cc[y-4], d");
+                        let condition = self.table_cc(y - 4);
+                        let d = self.fetch_displacement();
+                        if self.evaluate_condition(condition) {
+                            self.PC = self.PC.wrapping_add(d as i16 as u16);
+                        }
+                    }
+                    _ => unreachable!("Invalid y value"), // should never happen
                 },
 
                 1 => {

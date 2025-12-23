@@ -42,7 +42,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::dec_e(0x29f9, &[0x1d], &["decode_unprefixed", "DEC r[y]", "E"])] // DEC E
 #[case::ld_e_n(0x29f9, &[0x1e, 0xbc], &["decode_unprefixed", "LD r[y], n", "E"])] // LD E, n
 #[case::rra(0x29f9, &[0x1f], &["decode_unprefixed", "RRA"])] // RRA
-#[case::jr_nz_d(0x29f9, &[0x20, 0xfe], &["decode_unprefixed", "JR cc[y-4], d"])] // JR NZ, d
+#[case::jr_nz_d(0x29f9, &[0x20, 0xfe], &["decode_unprefixed", "JR cc[y-4], d", "NZ"])] // JR NZ, d
 #[case::ld_hl_nn(0x29f9, &[0x21, 0x34, 0x12], &["decode_unprefixed", "LD rp[p], nn", "HL"])] // LD HL, nn
 #[case::ld_nni_hl(0x29f9, &[0x22, 0x00, 0x80], &["decode_unprefixed", "LD (nn), HL/IX/IY"])] // LD (nn), HL
 #[case::inc_hl(0x29f9, &[0x23], &["decode_unprefixed", "INC rp[p]", "HL"])] // INC HL
@@ -50,7 +50,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::dec_h(0x29f9, &[0x25], &["decode_unprefixed", "DEC r[y]", "H"])] // DEC H
 #[case::ld_h_n(0x29f9, &[0x26, 0x56], &["decode_unprefixed", "LD r[y], n", "H"])] // LD H, n
 #[case::daa(0x29f9, &[0x27], &["decode_unprefixed", "DAA"])] // DAA
-#[case::jr_z_d(0x29f9, &[0x28, 0xfe], &["decode_unprefixed", "JR cc[y-4], d"])] // JR Z, d
+#[case::jr_z_d(0x29f9, &[0x28, 0xfe], &["decode_unprefixed", "JR cc[y-4], d", "Z"])] // JR Z, d
 #[case::add_hl_hl(0x29f9, &[0x29], &["decode_unprefixed", "ADD HL/IX/IY, rp[p]", "HL"])] // ADD HL, HL
 #[case::ld_hl_nni(0x29f9, &[0x2a, 0x00, 0x80], &["decode_unprefixed", "LD HL/IX/IY, (nn)"])] // LD HL, (nn)
 #[case::dec_hl(0x29f9, &[0x2b], &["decode_unprefixed", "DEC rp[p]", "HL"])] // DEC HL
@@ -58,7 +58,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::dec_l(0x29f9, &[0x2d], &["decode_unprefixed", "DEC r[y]", "L"])] // DEC L
 #[case::ld_l_n(0x29f9, &[0x2e, 0x78], &["decode_unprefixed", "LD r[y], n", "L"])] // LD L, n
 #[case::cpl(0x29f9, &[0x2f], &["decode_unprefixed", "CPL"])] // CPL
-#[case::jr_nc_d(0x29f9, &[0x30, 0xfe], &["decode_unprefixed", "JR cc[y-4], d"])] // JR NC, d
+#[case::jr_nc_d(0x29f9, &[0x30, 0xfe], &["decode_unprefixed", "JR cc[y-4], d", "NC"])] // JR NC, d
 #[case::ld_sp_nn(0x29f9, &[0x31, 0x34, 0x12], &["decode_unprefixed", "LD rp[p], nn", "SP"])] // LD SP, nn
 #[case::ld_nni_a(0x29f9, &[0x32, 0x00, 0x80], &["decode_unprefixed", "LD (nn), A"])] // LD (nn), A
 #[case::inc_sp(0x29f9, &[0x33], &["decode_unprefixed", "INC rp[p]", "SP"])] // INC SP
@@ -66,7 +66,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::dec_hli(0x29f9, &[0x35], &["decode_unprefixed", "DEC r[y]", "(HL)"])] // DEC (HL)
 #[case::ld_hli_n(0x29f9, &[0x36, 0x56], &["decode_unprefixed", "LD r[y], n", "(HL)"])] // LD (HL), n
 #[case::scf(0x29f9, &[0x37], &["decode_unprefixed", "SCF"])] // SCF
-#[case::jr_c_d(0x29f9, &[0x38, 0xfe], &["decode_unprefixed", "JR cc[y-4], d"])] // JR C, d
+#[case::jr_c_d(0x29f9, &[0x38, 0xfe], &["decode_unprefixed", "JR cc[y-4], d", "C"])] // JR C, d
 #[case::add_hl_sp(0x29f9, &[0x39], &["decode_unprefixed", "ADD HL/IX/IY, rp[p]", "SP"])] // ADD HL, SP
 #[case::ld_a_nni(0x29f9, &[0x3a, 0x00, 0x80], &["decode_unprefixed", "LD A, (nn)"])] // LD A, (nn)
 #[case::dec_sp(0x29f9, &[0x3b], &["decode_unprefixed", "DEC rp[p]", "SP"])] // DEC SP

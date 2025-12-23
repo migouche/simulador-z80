@@ -28,8 +28,7 @@ impl MemoryMapper for MockMemory {
 }
 
 fn setup_cpu() -> Z80A {
-    let memory =
-        Rc::new(RefCell::new(MockMemory::new())) as Rc<RefCell<dyn MemoryMapper>>;
+    let memory = Rc::new(RefCell::new(MockMemory::new())) as Rc<RefCell<dyn MemoryMapper>>;
     Z80A::new(memory)
 }
 
