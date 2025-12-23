@@ -4,3 +4,4 @@ pub mod cb;
 pub mod inc_dec;
 pub mod ld;
 pub mod rot;
+pub mod jumps;

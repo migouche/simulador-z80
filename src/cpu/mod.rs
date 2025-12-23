@@ -322,7 +322,7 @@ impl Z80A {
 
     fn fetch(&mut self) -> u8 {
         let data = self.memory.borrow().read(self.PC);
-        self.PC += 1;
+        self.PC = self.PC.wrapping_add(1);
         data
     }
 
@@ -458,7 +458,7 @@ impl Z80A {
                 test_log!(self, "A");
                 AddressingMode::Register(GPR::A)
             }
-            _ => panic!("Invalid p value"), // should never happen
+            _ => unreachable!("Invalid p value"), // should never happen
         }
     }
 
@@ -722,7 +722,7 @@ impl Z80A {
                 test_log!(self, "AF");
                 AddressingMode::RegisterPair(RegisterPair::AF)
             }
-            _ => panic!("Invalid p value"), // should never happen
+            _ => unreachable!("Invalid p value"), // should never happen
         }
     }
 
@@ -799,15 +799,22 @@ impl Z80A {
                         ); // EX AF, AF'
                     }
                     2 => {
-                        // TODO: DJNZ d
+                        // DJNZ d
                         test_log!(self, "DJNZ d");
+
+                        let d = self.fetch_displacement();
+                        let b = self.get_register(GPR::B).wrapping_sub(1);
+                        self.set_register(GPR::B, b);
+                        if b != 0 {
+                            self.PC = self.PC.wrapping_add(d as i16 as u16);
+                        }
                     }
                     3 => {
                         // TODO: JR d
                         test_log!(self, "JR d");
                     }
                     4..=7 => test_log!(self, "JR cc[y-4], d"), // TODO: JR cc[y-4], d
-                    _ => panic!("Invalid y value"),            // should never happen
+                    _ => unreachable!("Invalid y value"),      // should never happen
                 },
 
                 1 => {
@@ -894,7 +901,7 @@ impl Z80A {
                             AddressingMode::Absolute(addr),
                         )
                     } // LD A, (nn)
-                    _ => panic!("Invalid q, p values"), // should never happen
+                    _ => unreachable!("Invalid q, p values"), // should never happen
                 },
 
                 3 => {
@@ -996,10 +1003,10 @@ impl Z80A {
                             // CCF
                             test_log!(self, "CCF");
                         }
-                        _ => panic!("Invalid y value"), // should never happen
+                        _ => unreachable!("Invalid y value"), // should never happen
                     }
                 }
-                _ => panic!("Invalid z value"), // should never happen
+                _ => unreachable!("Invalid z value"), // should never happen
             },
             1 => {
                 if (z == 6) && (y == 6) {
@@ -1026,7 +1033,7 @@ impl Z80A {
                         let addr = self.get_register_pair(RegisterPair::HL);
                         self.memory.borrow().read(addr)
                     }
-                    _ => panic!("Invalid addressing mode for ALU[y] r[z]"), // should never happen (for now)
+                    _ => unreachable!("Invalid addressing mode for ALU[y] r[z]"), // should never happen (for now)
                 };
                 self.alu_op(alu_op, value);
             }
@@ -1068,7 +1075,7 @@ impl Z80A {
                         );
                         self.ld_16(AddressingMode::RegisterPair(RegisterPair::SP), src);
                     }
-                    _ => panic!("Invalid q, p values"), // should never happen
+                    _ => unreachable!("Invalid q, p values"), // should never happen
                 },
                 2 => test_log!(self, "JP cc[y], nn"), // TODO: JP cc[y], nn
                 3 => match y {
@@ -1090,7 +1097,7 @@ impl Z80A {
                         let rp = if let AddressingMode::RegisterPair(rp) = register_pair {
                             self.main_set.get_pair(rp)
                         } else {
-                            panic!("Invalid addressing mode for EX (SP), HL/IX/IY"); // should never happen
+                            unreachable!("Invalid addressing mode for EX (SP), HL/IX/IY"); // should never happen
                         };
                         self.memory.borrow_mut().write(self.SP, (rp & 0xFF) as u8);
                         self.memory
@@ -1099,7 +1106,7 @@ impl Z80A {
                         if let AddressingMode::RegisterPair(rp) = register_pair {
                             self.set_register_pair(rp, ((temp_h as u16) << 8) | (temp_l as u16));
                         } else {
-                            panic!("Invalid addressing mode for EX (SP), HL/IX/IY"); // should never happen
+                            unreachable!("Invalid addressing mode for EX (SP), HL/IX/IY"); // should never happen
                         }
                     }
                     5 => {
@@ -1111,9 +1118,9 @@ impl Z80A {
                             RegSet::Main,
                         )
                     } // EX DE, HL (NOTE: REMAINS UNCHANGED)
-                    6 => test_log!(self, "DI"),     // TODO: DI
-                    7 => test_log!(self, "EI"),     // TODO: EI
-                    _ => panic!("Invalid y value"), // should never happen
+                    6 => test_log!(self, "DI"),           // TODO: DI
+                    7 => test_log!(self, "EI"),           // TODO: EI
+                    _ => unreachable!("Invalid y value"), // should never happen
                 },
                 4 => test_log!(self, "CALL cc[y], nn"), // TODO: CALL cc[y], nn
                 5 => match (q, p) {
@@ -1123,7 +1130,7 @@ impl Z80A {
                     (true, 1) => test_log!(self, "DD prefix"),    // TODO: DD prefix
                     (true, 2) => test_log!(self, "ED prefix"),    // TODO: ED prefix
                     (true, 3) => test_log!(self, "FD prefix"),    // TODO: FD prefix
-                    _ => panic!("Invalid q, p values"),           // should never happen
+                    _ => unreachable!("Invalid q, p values"),     // should never happen
                 },
                 6 => {
                     // TODO: ALU[y] n
@@ -1133,9 +1140,9 @@ impl Z80A {
                     self.alu_op(alu_op, n);
                 }
                 7 => test_log!(self, "RST y*8"), // TODO: RST y*8
-                _ => panic!("Invalid z value"),  // should never happen
+                _ => unreachable!("Invalid z value"), // should never happen
             },
-            _ => panic!("Invalid x value"), // should never happen
+            _ => unreachable!("Invalid x value"), // should never happen
         }
     }
 
@@ -1165,7 +1172,7 @@ impl Z80A {
                 let reg = self.table_r(z);
                 self.set(y, reg)
             } // NOTE: SET y, r[z]
-            _ => panic!("Invalid x value"), // should never happen
+            _ => unreachable!("Invalid x value"), // should never happen
         }
     }
 
@@ -1187,7 +1194,7 @@ impl Z80A {
                     } else if y < 8 {
                         test_log!(self, "IN r[y], (C)"); // TODO: IN r[y], (C)
                     } else {
-                        panic!("Invalid y value") // should never happen
+                        unreachable!("Invalid y value") // should never happen
                     }
                 }
                 1 => {
@@ -1196,7 +1203,7 @@ impl Z80A {
                     } else if y < 8 {
                         test_log!(self, "OUT (C), r[y]"); // TODO: OUT (C), r[y]
                     } else {
-                        panic!("Invalid y value") // should never happen
+                        unreachable!("Invalid y value") // should never happen
                     }
                 }
                 2 => {
@@ -1239,7 +1246,7 @@ impl Z80A {
                     } else if y < 8 {
                         test_log!(self, "NONI"); // NOTE: NONI
                     } else {
-                        panic!("Invalid y value") // should never happen
+                        unreachable!("Invalid y value") // should never happen
                     }
                 }
                 /*
@@ -1291,13 +1298,13 @@ impl Z80A {
                             AddressingMode::Special(SpecialRegister::R),
                         )
                     } //  LD A, R
-                    4 => test_log!(self, "RRD"),    // TODO: RRD
-                    5 => test_log!(self, "RLD"),    // TODO: RLD
-                    6 => test_log!(self, "NONI"),   // NOTE: NONI
-                    7 => test_log!(self, "NONI"),   // NOTE: NONI
-                    _ => panic!("Invalid y value"), // should never happen
+                    4 => test_log!(self, "RRD"),          // TODO: RRD
+                    5 => test_log!(self, "RLD"),          // TODO: RLD
+                    6 => test_log!(self, "NONI"),         // NOTE: NONI
+                    7 => test_log!(self, "NONI"),         // NOTE: NONI
+                    _ => unreachable!("Invalid y value"), // should never happen
                 },
-                _ => panic!("Invalid z value"), // should never happen
+                _ => unreachable!("Invalid z value"), // should never happen
             },
             2 => {
                 if z <= 3 && y >= 4 {
@@ -1306,7 +1313,7 @@ impl Z80A {
                     test_log!(self, "NONI"); // NOTE: NONI
                 }
             }
-            _ => panic!("Invalid x value"), // should never happen
+            _ => unreachable!("Invalid x value"), // should never happen
         }
     }
 
@@ -1361,7 +1368,7 @@ impl Z80A {
                 } else if z < 8 {
                     test_log!(self, "LD r[z], rot[y] (IX+d)"); // TODO: LD r[z], rot[y] (IX+d)
                 } else {
-                    panic!("Invalid z value") // should never happen
+                    unreachable!("Invalid z value") // should never happen
                 }
             }
             1 => test_log!(self, "BIT y, (IX+d)"), // TODO: BIT y, (IX+d)
@@ -1371,7 +1378,7 @@ impl Z80A {
                 } else if z < 8 {
                     test_log!(self, "LD r[z], RES y, (IX+d)"); // TODO: LD r[z], RES y, (IX+d)
                 } else {
-                    panic!("Invalid z value") // should never happen
+                    unreachable!("Invalid z value") // should never happen
                 }
             }
             3 => {
@@ -1380,10 +1387,10 @@ impl Z80A {
                 } else if z < 8 {
                     test_log!(self, "LD r[z], SET y, (IX+d)"); // TODO: LD r[z], SET y, (IX+d)
                 } else {
-                    panic!("Invalid z value") // should never happen
+                    unreachable!("Invalid z value") // should never happen
                 }
             }
-            _ => panic!("Invalid x value"), // should never happen
+            _ => unreachable!("Invalid x value"), // should never happen
         }
     }
 
@@ -1514,7 +1521,7 @@ impl Z80A {
                 test_log!(self, "SRL");
                 RotOperation::SRL
             }
-            _ => panic!("Invalid y value"), // should never happen
+            _ => unreachable!("Invalid y value"), // should never happen
         }
     }
 

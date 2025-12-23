@@ -8,12 +8,12 @@ pub mod instructions;
 pub mod registers;
 
 struct MockMemory {
-    data: [u8; 0xFFFF],
+    data: [u8; 0x10000],
 }
 
 impl MockMemory {
     fn new() -> Self {
-        Self { data: [0; 0xFFFF] }
+        Self { data: [0; 0x10000] }
     }
 }
 
@@ -29,7 +29,7 @@ impl MemoryMapper for MockMemory {
 
 fn setup_cpu() -> Z80A {
     let memory =
-        Rc::new(RefCell::new(MockMemory { data: [0; 0xFFFF] })) as Rc<RefCell<dyn MemoryMapper>>;
+        Rc::new(RefCell::new(MockMemory::new())) as Rc<RefCell<dyn MemoryMapper>>;
     Z80A::new(memory)
 }
 
