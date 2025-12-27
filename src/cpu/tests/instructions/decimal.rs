@@ -42,7 +42,7 @@ fn test_daa_file() {
     // read every line from the file and parse it to a test case
 
     let contents = std::fs::read_to_string(file).expect("Failed to read test file");
-    for (i, line) in contents.lines().enumerate() {
+    for line in contents.lines() {
         if let Some((
             initial_a,
             n_flag,

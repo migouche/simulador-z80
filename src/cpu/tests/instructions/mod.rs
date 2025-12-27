@@ -7,3 +7,4 @@ pub mod jumps;
 pub mod ld;
 pub mod rot;
 pub mod cpl;
+pub mod carry;

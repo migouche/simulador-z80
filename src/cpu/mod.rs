@@ -1065,7 +1065,7 @@ impl Z80A {
                             self.daa();
                         }
                         5 => {
-                            // TODO CPL
+                            // CPL
                             test_log!(self, "CPL");
 
                             let a = self.get_register(GPR::A);
@@ -1079,12 +1079,31 @@ impl Z80A {
                             self.main_set.set_flag((result & 0x20) != 0, Flag::Y);
                         }
                         6 => {
-                            // TODO SCF
+                            //  SCF
                             test_log!(self, "SCF");
+
+                            self.main_set.set_flag(true, Flag::C);
+                            self.main_set.set_flag(false, Flag::N);
+                            self.main_set.set_flag(false, Flag::H);
+                            // undocummented x and y flags
+                            let a = self.get_register(GPR::A);
+                            self.main_set.set_flag((a & 0x08) != 0, Flag::X);
+                            self.main_set.set_flag((a & 0x20) != 0, Flag::Y);
                         }
                         7 => {
-                            // TODO CCF
+                            // CCF
                             test_log!(self, "CCF");
+
+                            let current_carry = self.main_set.get_flag(Flag::C);
+                            self.main_set.set_flag(!current_carry, Flag::C);
+                            self.main_set.set_flag(false, Flag::N);
+                            // NOTE: H flag is set to previous C flag
+                            self.main_set.set_flag(current_carry, Flag::H);
+
+                            // undocummented x and y flags
+                            let a = self.get_register(GPR::A);
+                            self.main_set.set_flag((a & 0x08) != 0, Flag::X);
+                            self.main_set.set_flag((a & 0x20) != 0, Flag::Y);
                         }
                         _ => unreachable!("Invalid y value"), // should never happen
                     }
