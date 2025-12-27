@@ -1065,15 +1065,25 @@ impl Z80A {
                             self.daa();
                         }
                         5 => {
-                            // CPL
+                            // TODO CPL
                             test_log!(self, "CPL");
+
+                            let a = self.get_register(GPR::A);
+                            let result = a ^ 0xFF;
+                            self.set_register(GPR::A, result);
+                            self.main_set.set_flag(true, Flag::N);
+                            self.main_set.set_flag(true, Flag::H);
+                            // undocummented x and y flags
+                            // set bit 3 and 5 according to result
+                            self.main_set.set_flag((result & 0x08) != 0, Flag::X);
+                            self.main_set.set_flag((result & 0x20) != 0, Flag::Y);
                         }
                         6 => {
-                            // SCF
+                            // TODO SCF
                             test_log!(self, "SCF");
                         }
                         7 => {
-                            // CCF
+                            // TODO CCF
                             test_log!(self, "CCF");
                         }
                         _ => unreachable!("Invalid y value"), // should never happen

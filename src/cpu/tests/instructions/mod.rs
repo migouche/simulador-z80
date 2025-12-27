@@ -6,3 +6,4 @@ pub mod inc_dec;
 pub mod jumps;
 pub mod ld;
 pub mod rot;
+pub mod cpl;
