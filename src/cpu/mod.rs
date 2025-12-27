@@ -1062,6 +1062,7 @@ impl Z80A {
                         4 => {
                             // DAA
                             test_log!(self, "DAA");
+                            self.daa();
                         }
                         5 => {
                             // CPL
@@ -1688,6 +1689,58 @@ impl Z80A {
             }
             _ => panic!("Unsupported addressing mode for SET"),
         }
+    }
+
+    fn daa(&mut self) {
+        let mut t: u8 = 0;
+        let mut a = self.get_register(GPR::A);
+
+        if self.main_set.get_flag(Flag::H) || ((a & 0xf) > 9) {
+            t = t.wrapping_add(1);
+        }
+
+        if self.main_set.get_flag(Flag::C) || (a > 0x99) {
+            t = t.wrapping_add(2);
+            self.main_set.set_flag(true, Flag::C);
+        }
+
+        if self.main_set.get_flag(Flag::N) && !self.main_set.get_flag(Flag::H) {
+            self.main_set.set_flag(false, Flag::H);
+        } else {
+            if self.main_set.get_flag(Flag::N) && self.main_set.get_flag(Flag::H) {
+                self.main_set.set_flag((a & 0x0f) < 6, Flag::H);
+            } else {
+                self.main_set.set_flag((a & 0x0f) >= 0x0a, Flag::H);
+            }
+        }
+
+        if t == 1 {
+            a = a.wrapping_add(if self.main_set.get_flag(Flag::N) {
+                0xFA
+            } else {
+                0x06
+            })
+        } else if t == 2 {
+            a = a.wrapping_add(if self.main_set.get_flag(Flag::N) {
+                0xA0
+            } else {
+                0x60
+            })
+        } else if t == 3 {
+            a = a.wrapping_add(if self.main_set.get_flag(Flag::N) {
+                0x9A
+            } else {
+                0x66
+            })
+        }
+
+        self.set_register(GPR::A, a);
+
+        self.main_set.set_flag(a & 0x80 == 0x80, Flag::S);
+        self.main_set.set_flag(a == 0, Flag::Z);
+        self.main_set.set_flag(a.count_ones() % 2 == 0, Flag::PV);
+        self.main_set.set_flag(a & 0x08 == 0x08, Flag::X);
+        self.main_set.set_flag(a & 0x20 == 0x20, Flag::Y);
     }
 }
 

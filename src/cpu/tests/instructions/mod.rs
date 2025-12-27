@@ -1,6 +1,7 @@
 pub mod add_16;
 pub mod alu_table_ops;
 pub mod cb;
+pub mod decimal;
 pub mod inc_dec;
 pub mod jumps;
 pub mod ld;
