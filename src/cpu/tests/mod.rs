@@ -6,6 +6,7 @@ pub mod alu_tests;
 pub mod decoding;
 pub mod instructions;
 pub mod registers;
+pub mod stack;
 
 struct MockMemory {
     data: [u8; 0x10000],

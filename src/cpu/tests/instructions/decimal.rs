@@ -55,16 +55,9 @@ fn test_daa_file() {
         )) = parse_line_to_test_case(line)
         {
             test_daa_instruction(
-                initial_a,
-                n_flag,
-                c_flag,
-                h_flag,
-                expected_a,
-                expected_n,
-                expected_c,
-                expected_h,
+                initial_a, n_flag, c_flag, h_flag, expected_a, expected_n, expected_c, expected_h,
             );
-        }  // ignore if fails
+        } // ignore if fails
     }
 }
 

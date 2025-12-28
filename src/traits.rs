@@ -8,12 +8,12 @@ pub trait MemoryMapper {
 
     fn read_word(&self, address: u16) -> u16 {
         let low = self.read(address);
-        let high = self.read(address + 1);
+        let high = self.read(address.overflowing_add(1).0);
         ((high as u16) << 8) | (low as u16)
     }
 
     fn write_word(&mut self, address: u16, data: u16) {
         self.write(address, (data & 0xFF) as u8);
-        self.write(address + 1, (data >> 8) as u8);
+        self.write(address.overflowing_add(1).0, (data >> 8) as u8);
     }
 }

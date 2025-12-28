@@ -29,6 +29,17 @@ macro_rules! test_log {
     };
 }
 
+mod flags{
+    pub const CARRY: u8 = 0b00000001;
+    pub const ADD_SUB: u8 = 0b00000010;
+    pub const PARITY_OVERFLOW: u8 = 0b00000100;
+    pub const X: u8 = 0b00001000;
+    pub const HALF_CARRY: u8 = 0b00010000;
+    pub const Y: u8 = 0b00100000;
+    pub const ZERO: u8 = 0b01000000;
+    pub const SIGN: u8 = 0b10000000;
+}
+
 #[derive(PartialEq, Clone, Copy)]
 enum GPR {
     A,
@@ -431,6 +442,17 @@ impl Z80A {
             IndexRegister::IX => self.IX = value,
             IndexRegister::IY => self.IY = value,
         }
+    }
+
+    fn push(&mut self, value: u16) {
+        self.SP = self.SP.wrapping_sub(2);
+        self.memory.borrow_mut().write_word(self.SP, value);
+    }
+
+    fn pop(&mut self) -> u16 {
+        let value = self.memory.borrow().read_word(self.SP);
+        self.SP = self.SP.wrapping_add(2);
+        value
     }
 
     // TABLES FROM http://www.z80.info/decoding.htm
@@ -1124,7 +1146,7 @@ impl Z80A {
             }
 
             2 => {
-                // TODO: ALU[y] r[z]
+                // ALU[y] r[z]
                 test_log!(self, "ALU[y] r[z]");
                 let alu_op = self.table_alu(y);
                 let reg = self.table_r(z);
@@ -1140,11 +1162,25 @@ impl Z80A {
                 self.alu_op(alu_op, value);
             }
             3 => match z {
-                0 => test_log!(self, "RET cc[y]"), // TODO: RET cc[y]
+                0 => {
+                    // RET cc[y]
+                    test_log!(self, "RET cc[y]");
+                    let condition = self.table_cc(y);
+                    if self.evaluate_condition(condition) {
+                        let ret_addr = self.pop();
+                        self.PC = ret_addr;
+                    }
+                }
                 1 => match (q, p) {
                     // POP & various ops
                     (false, _) => test_log!(self, "POP rp2[p]"), // TODO: POP rp2[p]
-                    (true, 0) => test_log!(self, "RET"),         // TODO: RET
+                    (true, 0) => {
+                        // RET
+                        test_log!(self, "RET");
+
+                        let ret_addr = self.pop();
+                        self.PC = ret_addr;
+                    }
                     (true, 1) => {
                         test_log!(self, "EXX");
                         // EXX

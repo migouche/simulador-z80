@@ -13,7 +13,10 @@ fn test_cpl_instruction(
     #[case] expected_a: u8,
     #[case] expected_f: u8,
 ) {
-    use crate::{cpu::{GPR, tests::setup_cpu}, traits::SyncronousComponent};
+    use crate::{
+        cpu::{GPR, tests::setup_cpu},
+        traits::SyncronousComponent,
+    };
 
     let mut cpu = setup_cpu();
 
@@ -25,14 +28,16 @@ fn test_cpl_instruction(
     cpu.tick();
 
     assert_eq!(
-        cpu.get_register(GPR::A), 
-        expected_a, 
-        "A mismatch: expected {:02X}, got {:02X}", expected_a, cpu.get_register(GPR::A)
+        cpu.get_register(GPR::A),
+        expected_a,
+        "A mismatch: expected {:02X}, got {:02X}",
+        expected_a,
+        cpu.get_register(GPR::A)
     );
-    
+
     assert_eq!(
-        cpu.main_set.F, 
-        expected_f, 
-        "F mismatch: expected {:08b}, got {:08b}", expected_f, cpu.main_set.F
+        cpu.main_set.F, expected_f,
+        "F mismatch: expected {:08b}, got {:08b}",
+        expected_f, cpu.main_set.F
     );
 }
