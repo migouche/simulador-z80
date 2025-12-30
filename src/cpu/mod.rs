@@ -53,6 +53,7 @@ enum GPR {
 }
 
 #[derive(PartialEq, Clone, Copy)]
+#[cfg_attr(test, derive(Debug))] // For easier debugging in tests
 enum RegisterPair {
     BC,
     DE,
@@ -1173,7 +1174,13 @@ impl Z80A {
                 }
                 1 => match (q, p) {
                     // POP & various ops
-                    (false, _) => test_log!(self, "POP rp2[p]"), // TODO: POP rp2[p]
+                    (false, _) => { // POP rp2[p]
+                        test_log!(self, "POP rp2[p]");
+                        let rp = self.table_rp2(p);
+                        let dest = self.transform_register(rp, addressing);
+                        let value = self.pop();
+                        self.ld_16(dest, AddressingMode::ImmediateExtended(value));
+                    } 
                     (true, 0) => {
                         // RET
                         test_log!(self, "RET");

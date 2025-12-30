@@ -9,3 +9,4 @@ pub mod jumps;
 pub mod ld;
 pub mod ret;
 pub mod rot;
+pub mod pop;
