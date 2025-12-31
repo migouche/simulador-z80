@@ -1,36 +1,54 @@
-use regex::Regex;
-
 use crate::traits::SyncronousComponent;
 
 const DAA_OPCODE: u8 = 0x27;
 
 fn parse_line_to_test_case(line: &str) -> Option<(u8, bool, bool, bool, u8, bool, bool, bool)> {
-    let re =
-        Regex::new(r"N (\d) C (\d) H (\d) ([0-9A-Fa-f]{2}) N (\d) C (\d) H (\d) ([0-9A-Fa-f]{2})")
-            .unwrap();
-    if let Some(caps) = re.captures(line) {
-        let n_flag = caps.get(1)?.as_str() == "1";
-        let c_flag = caps.get(2)?.as_str() == "1";
-        let h_flag = caps.get(3)?.as_str() == "1";
-        let initial_a = u8::from_str_radix(caps.get(4)?.as_str(), 16).ok()?;
-        let expected_n_flag = caps.get(5)?.as_str() == "1";
-        let expected_c_flag = caps.get(6)?.as_str() == "1";
-        let expected_h_flag = caps.get(7)?.as_str() == "1";
-        let expected_a = u8::from_str_radix(caps.get(8)?.as_str(), 16).ok()?;
+    let mut parts = line.split_whitespace();
 
-        Some((
-            initial_a,
-            n_flag,
-            c_flag,
-            h_flag,
-            expected_a,
-            expected_n_flag,
-            expected_c_flag,
-            expected_h_flag,
-        ))
-    } else {
-        None
+    if parts.next()? != "N" {
+        return None;
     }
+    let n_flag = parts.next()? == "1";
+
+    if parts.next()? != "C" {
+        return None;
+    }
+    let c_flag = parts.next()? == "1";
+
+    if parts.next()? != "H" {
+        return None;
+    }
+    let h_flag = parts.next()? == "1";
+
+    let initial_a = u8::from_str_radix(parts.next()?, 16).ok()?;
+
+    if parts.next()? != "N" {
+        return None;
+    }
+    let expected_n_flag = parts.next()? == "1";
+
+    if parts.next()? != "C" {
+        return None;
+    }
+    let expected_c_flag = parts.next()? == "1";
+
+    if parts.next()? != "H" {
+        return None;
+    }
+    let expected_h_flag = parts.next()? == "1";
+
+    let expected_a = u8::from_str_radix(parts.next()?, 16).ok()?;
+
+    Some((
+        initial_a,
+        n_flag,
+        c_flag,
+        h_flag,
+        expected_a,
+        expected_n_flag,
+        expected_c_flag,
+        expected_h_flag,
+    ))
 }
 
 #[test]
