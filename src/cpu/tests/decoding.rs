@@ -204,7 +204,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::cp_a_a(0x29f9, &[0xbf], &["decode_unprefixed", "ALU[y] r[z]", "CP A", "A"])] // CP A, A
 #[case::ret_nz(0x29f9, &[0xc0], &["decode_unprefixed", "RET cc[y]", "NZ"])] // RET NZ
 #[case::pop_bc(0x29f9, &[0xc1], &["decode_unprefixed", "POP rp2[p]", "BC"])] // POP BC
-#[case::jp_nz_nn(0x29f9, &[0xc2, 0x34, 0x12], &["decode_unprefixed", "JP cc[y], nn"])] // JP NZ, nn
+#[case::jp_nz_nn(0x29f9, &[0xc2, 0x34, 0x12], &["decode_unprefixed", "JP cc[y], nn", "NZ"])] // JP NZ, nn
 #[case::jp_nn(0x29f9, &[0xc3, 0x34, 0x12], &["decode_unprefixed", "JP nn"])] // JP nn
 #[case::call_nz_nn(0x29f9, &[0xc4, 0x34, 0x12], &["decode_unprefixed", "CALL cc[y], nn"])] // CALL NZ, nn
 #[case::push_bc(0x29f9, &[0xc5], &["decode_unprefixed", "PUSH rp2[p]"])] // PUSH BC
@@ -212,7 +212,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::rst_00h(0x29f9, &[0xc7], &["decode_unprefixed", "RST y*8"])] // RST 00h
 #[case::ret_z(0x29f9, &[0xc8], &["decode_unprefixed", "RET cc[y]", "Z"])] // RET Z
 #[case::ret(0x29f9, &[0xc9], &["decode_unprefixed", "RET"])] // RET
-#[case::jp_z_nn(0x29f9, &[0xca, 0x34, 0x12], &["decode_unprefixed", "JP cc[y], nn"])] // JP Z, nn
+#[case::jp_z_nn(0x29f9, &[0xca, 0x34, 0x12], &["decode_unprefixed", "JP cc[y], nn", "Z"])] // JP Z, nn
 #[case::cb_prefix(0x29f9, &[0xcb, 0x00], &["decode_cb", "rot[y] r[z]", "RLC", "B"])] // CB Prefix (RLC B)
 #[case::call_z_nn(0x29f9, &[0xcc, 0x34, 0x12], &["decode_unprefixed", "CALL cc[y], nn"])] // CALL Z, nn
 #[case::call_nn(0x29f9, &[0xcd, 0x34, 0x12], &["decode_unprefixed", "CALL nn"])] // CALL nn
@@ -220,7 +220,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::rst_08h(0x29f9, &[0xcf], &["decode_unprefixed", "RST y*8"])] // RST 08h
 #[case::ret_nc(0x29f9, &[0xd0], &["decode_unprefixed", "RET cc[y]", "NC"])] // RET NC
 #[case::pop_de(0x29f9, &[0xd1], &["decode_unprefixed", "POP rp2[p]", "DE"])] // POP DE
-#[case::jp_nc_nn(0x29f9, &[0xd2, 0x34, 0x12], &["decode_unprefixed", "JP cc[y], nn"])] // JP NC, nn
+#[case::jp_nc_nn(0x29f9, &[0xd2, 0x34, 0x12], &["decode_unprefixed", "JP cc[y], nn", "NC"])] // JP NC, nn
 #[case::out_n_a(0x29f9, &[0xd3, 0x56], &["decode_unprefixed", "OUT (n), A"])] // OUT (n), A
 #[case::call_nc_nn(0x29f9, &[0xd4, 0x34, 0x12], &["decode_unprefixed", "CALL cc[y], nn"])] // CALL NC, nn
 #[case::push_de(0x29f9, &[0xd5], &["decode_unprefixed", "PUSH rp2[p]"])] // PUSH DE
@@ -228,7 +228,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::rst_10h(0x29f9, &[0xd7], &["decode_unprefixed", "RST y*8"])] // RST 10h
 #[case::ret_c(0x29f9, &[0xd8], &["decode_unprefixed", "RET cc[y]", "C"])] // RET C
 #[case::exx(0x29f9, &[0xd9], &["decode_unprefixed", "EXX"])] // EXX
-#[case::jp_c_nn(0x29f9, &[0xda, 0x34, 0x12], &["decode_unprefixed", "JP cc[y], nn"])] // JP C, nn
+#[case::jp_c_nn(0x29f9, &[0xda, 0x34, 0x12], &["decode_unprefixed", "JP cc[y], nn", "C"])] // JP C, nn
 #[case::in_a_n(0x29f9, &[0xdb, 0x56], &["decode_unprefixed", "IN A, (n)"])] // IN A, (n)
 #[case::call_c_nn(0x29f9, &[0xdc, 0x34, 0x12], &["decode_unprefixed", "CALL cc[y], nn"])] // CALL C, nn
 #[case::dd_prefix(0x29f9, &[0xdd, 0x00], &["decode_dd", "NOP"])] // DD Prefix (NOP)
@@ -236,7 +236,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::rst_18h(0x29f9, &[0xdf], &["decode_unprefixed", "RST y*8"])] // RST 18h
 #[case::ret_po(0x29f9, &[0xe0], &["decode_unprefixed", "RET cc[y]", "PO"])] // RET PO
 #[case::pop_hl(0x29f9, &[0xe1], &["decode_unprefixed", "POP rp2[p]", "HL"])] // POP HL
-#[case::jp_po_nn(0x29f9, &[0xe2, 0x34, 0x12], &["decode_unprefixed", "JP cc[y], nn"])] // JP PO, nn
+#[case::jp_po_nn(0x29f9, &[0xe2, 0x34, 0x12], &["decode_unprefixed", "JP cc[y], nn", "PO"])] // JP PO, nn
 #[case::ex_sp_hl(0x29f9, &[0xe3], &["decode_unprefixed", "EX (SP), HL/IX/IY"])] // EX (SP), HL/IX/IY
 #[case::call_po_nn(0x29f9, &[0xe4, 0x34, 0x12], &["decode_unprefixed", "CALL cc[y], nn"])] // CALL PO, nn
 #[case::push_hl(0x29f9, &[0xe5], &["decode_unprefixed", "PUSH rp2[p]"])] // PUSH HL
@@ -244,7 +244,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::rst_20h(0x29f9, &[0xe7], &["decode_unprefixed", "RST y*8"])] // RST 20h
 #[case::ret_pe(0x29f9, &[0xe8], &["decode_unprefixed", "RET cc[y]", "PE"])] // RET PE
 #[case::jp_hl(0x29f9, &[0xe9], &["decode_unprefixed", "JP HL"])] // JP HL
-#[case::jp_pe_nn(0x29f9, &[0xea, 0x34, 0x12], &["decode_unprefixed", "JP cc[y], nn"])] // JP PE, nn
+#[case::jp_pe_nn(0x29f9, &[0xea, 0x34, 0x12], &["decode_unprefixed", "JP cc[y], nn", "PE"])] // JP PE, nn
 #[case::ex_de_hl(0x29f9, &[0xeb], &["decode_unprefixed", "EX DE, HL"])] // EX DE, HL NOTE: this is the unaffected by prefixes
 #[case::call_pe_nn(0x29f9, &[0xec, 0x34, 0x12], &["decode_unprefixed", "CALL cc[y], nn"])] // CALL PE, nn
 #[case::ed_prefix(0x29f9, &[0xed, 0x00], &["decode_ed", "NONI"])] // ED Prefix (NONI)
@@ -252,7 +252,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::rst_28h(0x29f9, &[0xef], &["decode_unprefixed", "RST y*8"])] // RST 28h
 #[case::ret_p(0x29f9, &[0xf0], &["decode_unprefixed", "RET cc[y]", "P"])] // RET P
 #[case::pop_af(0x29f9, &[0xf1], &["decode_unprefixed", "POP rp2[p]", "AF"])] // POP AF
-#[case::jp_p_nn(0x29f9, &[0xf2, 0x34, 0x12], &["decode_unprefixed", "JP cc[y], nn"])] // JP P, nn
+#[case::jp_p_nn(0x29f9, &[0xf2, 0x34, 0x12], &["decode_unprefixed", "JP cc[y], nn", "P"])] // JP P, nn
 #[case::di(0x29f9, &[0xf3], &["decode_unprefixed", "DI"])] // DI
 #[case::call_p_nn(0x29f9, &[0xf4, 0x34, 0x12], &["decode_unprefixed", "CALL cc[y], nn"])] // CALL P, nn
 #[case::push_af(0x29f9, &[0xf5], &["decode_unprefixed", "PUSH rp2[p]"])] // PUSH AF
@@ -260,7 +260,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::rst_30h(0x29f9, &[0xf7], &["decode_unprefixed", "RST y*8"])] // RST 30h
 #[case::ret_m(0x29f9, &[0xf8], &["decode_unprefixed", "RET cc[y]", "M"])] // RET M
 #[case::ld_sp_hl(0x29f9, &[0xf9], &["decode_unprefixed", "LD SP, HL"])] // LD SP, HL
-#[case::jp_m_nn(0x29f9, &[0xfa, 0x34, 0x12], &["decode_unprefixed", "JP cc[y], nn"])] // JP M, nn
+#[case::jp_m_nn(0x29f9, &[0xfa, 0x34, 0x12], &["decode_unprefixed", "JP cc[y], nn", "M"])] // JP M, nn
 #[case::ei(0x29f9, &[0xfb], &["decode_unprefixed", "EI"])] // EI
 #[case::call_m_nn(0x29f9, &[0xfc, 0x34, 0x12], &["decode_unprefixed", "CALL cc[y], nn"])] // CALL M, nn
 #[case::fd_prefix(0x29f9, &[0xfd, 0x00], &["decode_fd", "NOP"])] // DD Prefix (NOP)
@@ -707,7 +707,77 @@ use crate::cpu::tests::setup_cpu;
 #[case::dd_ld_a_ixh(0x29f9, &[0xdd, 0x7C], &["decode_dd", "LD r[y], r[z]", "A", "H", "IXH"])] // LD A, IXH
 #[case::dd_ld_a_ixl(0x29f9, &[0xdd, 0x7D], &["decode_dd", "LD r[y], r[z]", "A", "L", "IXL"])] // LD A, IXL
 #[case::dd_ld_a_ixd(0x29f9, &[0xdd, 0x7E, 0x05], &["decode_dd", "LD r[y], r[z]", "A", "(HL)", "(IX + d)"])] // LD A, (IX + d)
-#[case::dd_ld_a_a(0x29f9, &[0xdd, 0x7F], &["decode_dd", "LD r[y], r[z]", "A", "A"])]
+#[case::dd_ld_a_a(0x29f9, &[0xdd, 0x7F], &["decode_dd", "LD r[y], r[z]", "A", "A"])] // LD A, A
+#[case::dd_add_a_b(0x29f9, &[0xdd, 0x80], & ["decode_dd", "ALU[y] r[z]", "ADD A", "B"])] // ADD A, B
+#[case::dd_add_a_c(0x29f9, &[0xdd, 0x81], & ["decode_dd", "ALU[y] r[z]", "ADD A", "C"])] // ADD A, C
+#[case::dd_add_a_d(0x29f9, &[0xdd, 0x82], & ["decode_dd", "ALU[y] r[z]", "ADD A", "D"])] // ADD A, D
+#[case::dd_add_a_e(0x29f9, &[0xdd, 0x83], & ["decode_dd", "ALU[y] r[z]", "ADD A", "E"])] // ADD A, E
+#[case::dd_add_a_ixh(0x29f9, &[0xdd, 0x84], & ["decode_dd", "ALU[y] r[z]", "ADD A", "H", "IXH"])] // ADD A, IXH
+#[case::dd_add_a_ixl(0x29f9, &[0xdd, 0x85], & ["decode_dd", "ALU[y] r[z]", "ADD A", "L", "IXL"])] // ADD A, IXL
+#[case::dd_add_a_ixd(0x29f9, &[0xdd, 0x86, 0x05], & ["decode_dd", "ALU[y] r[z]", "ADD A", "(HL)", "(IX + d)"])] // ADD A, (IX + d)
+#[case::dd_add_a_a(0x29f9, &[0xdd, 0x87], & ["decode_dd", "ALU[y] r[z]", "ADD A", "A"])] // ADD A, A
+#[case::dd_adc_a_b(0x29f9, &[0xdd, 0x88], & ["decode_dd", "ALU[y] r[z]", "ADC A", "B"])] // ADC A, B
+#[case::dd_adc_a_c(0x29f9, &[0xdd, 0x89], & ["decode_dd", "ALU[y] r[z]", "ADC A", "C"])] // ADC A, C
+#[case::dd_adc_a_d(0x29f9, &[0xdd, 0x8A], & ["decode_dd", "ALU[y] r[z]", "ADC A", "D"])] // ADC A, D
+#[case::dd_adc_a_e(0x29f9, &[0xdd, 0x8B], & ["decode_dd", "ALU[y] r[z]", "ADC A", "E"])] // ADC A, E
+#[case::dd_adc_a_ixh(0x29f9, &[0xdd, 0x8C], & ["decode_dd", "ALU[y] r[z]", "ADC A", "H", "IXH"])] // ADC A, IXH
+#[case::dd_adc_a_ixl(0x29f9, &[0xdd, 0x8D], & ["decode_dd", "ALU[y] r[z]", "ADC A", "L", "IXL"])] // ADC A, IXL
+#[case::dd_adc_a_ixd(0x29f9, &[0xdd, 0x8E, 0x05], & ["decode_dd", "ALU[y] r[z]", "ADC A", "(HL)", "(IX + d)"])] // ADC A, (IX + d)
+#[case::dd_adc_a_a(0x29f9, &[0xdd, 0x8F], & ["decode_dd", "ALU[y] r[z]", "ADC A", "A"])] // ADC A, A
+#[case::dd_sub_a_b(0x29f9, &[0xdd, 0x90], & ["decode_dd", "ALU[y] r[z]", "SUB A", "B"])] // SUB A, B
+#[case::dd_sub_a_c(0x29f9, &[0xdd, 0x91], & ["decode_dd", "ALU[y] r[z]", "SUB A", "C"])] // SUB A, C
+#[case::dd_sub_a_d(0x29f9, &[0xdd, 0x92], & ["decode_dd", "ALU[y] r[z]", "SUB A", "D"])] // SUB A, D
+#[case::dd_sub_a_e(0x29f9, &[0xdd, 0x93], & ["decode_dd", "ALU[y] r[z]", "SUB A", "E"])] // SUB A, E
+#[case::dd_sub_a_ixh(0x29f9, &[0xdd, 0x94], & ["decode_dd", "ALU[y] r[z]", "SUB A", "H", "IXH"])] // SUB A, IXH
+#[case::dd_sub_a_ixl(0x29f9, &[0xdd, 0x95], & ["decode_dd", "ALU[y] r[z]", "SUB A", "L", "IXL"])] // SUB A, IXL
+#[case::dd_sub_a_ixd(0x29f9, &[0xdd, 0x96, 0x05], & ["decode_dd", "ALU[y] r[z]", "SUB A", "(HL)", "(IX + d)"])] // SUB A, (IX + d)
+#[case::dd_sub_a_a(0x29f9, &[0xdd, 0x97], & ["decode_dd", "ALU[y] r[z]", "SUB A", "A"])] // SUB A, A
+#[case::dd_sbc_a_b(0x29f9, &[0xdd, 0x98], & ["decode_dd", "ALU[y] r[z]", "SBC A", "B"])] // SBC A, B
+#[case::dd_sbc_a_c(0x29f9, &[0xdd, 0x99], & ["decode_dd", "ALU[y] r[z]", "SBC A", "C"])] // SBC A, C
+#[case::dd_sbc_a_d(0x29f9, &[0xdd, 0x9A], & ["decode_dd", "ALU[y] r[z]", "SBC A", "D"])] // SBC A, D
+#[case::dd_sbc_a_e(0x29f9, &[0xdd, 0x9B], & ["decode_dd", "ALU[y] r[z]", "SBC A", "E"])] // SBC A, E
+#[case::dd_sbc_a_ixh(0x29f9, &[0xdd, 0x9C], & ["decode_dd", "ALU[y] r[z]", "SBC A", "H", "IXH"])] // SBC A, IXH
+#[case::dd_sbc_a_ixl(0x29f9, &[0xdd, 0x9D], & ["decode_dd", "ALU[y] r[z]", "SBC A", "L", "IXL"])] // SBC A, IXL
+#[case::dd_sbc_a_ixd(0x29f9, &[0xdd, 0x9E, 0x05], & ["decode_dd", "ALU[y] r[z]", "SBC A", "(HL)", "(IX + d)"])] // SBC A, (IX + d)
+#[case::dd_sbc_a_a(0x29f9, &[0xdd, 0x9F], & ["decode_dd", "ALU[y] r[z]", "SBC A", "A"])] // SBC A, A
+#[case::dd_and_a_b(0x29f9, &[0xdd, 0xA0], & ["decode_dd", "ALU[y] r[z]", "AND A", "B"])] // AND A, B
+#[case::dd_and_a_c(0x29f9, &[0xdd, 0xA1], & ["decode_dd", "ALU[y] r[z]", "AND A", "C"])] // AND A, C
+#[case::dd_and_a_d(0x29f9, &[0xdd, 0xA2], & ["decode_dd", "ALU[y] r[z]", "AND A", "D"])] // AND A, D
+#[case::dd_and_a_e(0x29f9, &[0xdd, 0xA3], & ["decode_dd", "ALU[y] r[z]", "AND A", "E"])] // AND A, E
+#[case::dd_and_a_ixh(0x29f9, &[0xdd, 0xA4], & ["decode_dd", "ALU[y] r[z]", "AND A", "H", "IXH"])] // AND A, IXH
+#[case::dd_and_a_ixl(0x29f9, &[0xdd, 0xA5], & ["decode_dd", "ALU[y] r[z]", "AND A", "L", "IXL"])] // AND A, IXL
+#[case::dd_and_a_ixd(0x29f9, &[0xdd, 0xA6, 0x05], & ["decode_dd", "ALU[y] r[z]", "AND A", "(HL)", "(IX + d)"])] // AND A, (IX + d)
+#[case::dd_and_a_a(0x29f9, &[0xdd, 0xA7], & ["decode_dd", "ALU[y] r[z]", "AND A", "A"])] // AND A, A
+#[case::dd_xor_a_b(0x29f9, &[0xdd, 0xA8], & ["decode_dd", "ALU[y] r[z]", "XOR A", "B"])] // XOR A, B
+#[case::dd_xor_a_c(0x29f9, &[0xdd, 0xA9], & ["decode_dd", "ALU[y] r[z]", "XOR A", "C"])] // XOR A, C
+#[case::dd_xor_a_d(0x29f9, &[0xdd, 0xAA], & ["decode_dd", "ALU[y] r[z]", "XOR A", "D"])] // XOR A, D
+#[case::dd_xor_a_e(0x29f9, &[0xdd, 0xAB], & ["decode_dd", "ALU[y] r[z]", "XOR A", "E"])] // XOR A, E
+#[case::dd_xor_a_ixh(0x29f9, &[0xdd, 0xAC], & ["decode_dd", "ALU[y] r[z]", "XOR A", "H", "IXH"])] // XOR A, IXH
+#[case::dd_xor_a_ixl(0x29f9, &[0xdd, 0xAD], & ["decode_dd", "ALU[y] r[z]", "XOR A", "L", "IXL"])] // XOR A, IXL
+#[case::dd_xor_a_ixd(0x29f9, &[0xdd, 0xAE, 0x05], & ["decode_dd", "ALU[y] r[z]", "XOR A", "(HL)", "(IX + d)"])] // XOR A, (IX + d)
+#[case::dd_xor_a_a(0x29f9, &[0xdd, 0xAF], & ["decode_dd", "ALU[y] r[z]", "XOR A", "A"])] // XOR A, A
+#[case::dd_or_a_b(0x29f9, &[0xdd, 0xB0], & ["decode_dd", "ALU[y] r[z]", "OR A", "B"])] // OR A, B
+#[case::dd_or_a_c(0x29f9, &[0xdd, 0xB1], & ["decode_dd", "ALU[y] r[z]", "OR A", "C"])] // OR A, C
+#[case::dd_or_a_d(0x29f9, &[0xdd, 0xB2], & ["decode_dd", "ALU[y] r[z]", "OR A", "D"])] // OR A, D
+#[case::dd_or_a_e(0x29f9, &[0xdd, 0xB3], & ["decode_dd", "ALU[y] r[z]", "OR A", "E"])] // OR A, E
+#[case::dd_or_a_ixh(0x29f9, &[0xdd, 0xB4], & ["decode_dd", "ALU[y] r[z]", "OR A", "H", "IXH"])] // OR A, IXH
+#[case::dd_or_a_ixl(0x29f9, &[0xdd, 0xB5], & ["decode_dd", "ALU[y] r[z]", "OR A", "L", "IXL"])] // OR A, IXL
+#[case::dd_or_a_ixd(0x29f9, &[0xdd, 0xB6, 0x05], & ["decode_dd", "ALU[y] r[z]", "OR A", "(HL)", "(IX + d)"])] // OR A, (IX + d)
+#[case::dd_or_a_a(0x29f9, &[0xdd, 0xB7], & ["decode_dd", "ALU[y] r[z]", "OR A", "A"])] // OR A, A
+#[case::dd_cp_a_b(0x29f9, &[0xdd, 0xB8], & ["decode_dd", "ALU[y] r[z]", "CP A", "B"])] // CP A, B
+#[case::dd_cp_a_c(0x29f9, &[0xdd, 0xB9], & ["decode_dd", "ALU[y] r[z]", "CP A", "C"])] // CP A, C
+#[case::dd_cp_a_d(0x29f9, &[0xdd, 0xBA], & ["decode_dd", "ALU[y] r[z]", "CP A", "D"])] // CP A, D
+#[case::dd_cp_a_e(0x29f9, &[0xdd, 0xBB], & ["decode_dd", "ALU[y] r[z]", "CP A", "E"])] // CP A, E
+#[case::dd_cp_a_ixh(0x29f9, &[0xdd, 0xBC], & ["decode_dd", "ALU[y] r[z]", "CP A", "H", "IXH"])] // CP A, IXH
+#[case::dd_cp_a_ixl(0x29f9, &[0xdd, 0xBD], & ["decode_dd", "ALU[y] r[z]", "CP A", "L", "IXL"])] // CP A, IXL
+#[case::dd_cp_a_ixd(0x29f9, &[0xdd, 0xBE, 0x05], & ["decode_dd", "ALU[y] r[z]", "CP A", "(HL)", "(IX + d)"])] // CP A, (IX + d)
+#[case::dd_cp_a_a(0x29f9, &[0xdd, 0xBF], & ["decode_dd", "ALU[y] r[z]", "CP A", "A"])] // CP A, A
+// TODO: DDCB case
+#[case::dd_pop_ix(0x29f9, &[0xdd, 0xe1], &["decode_dd", "POP rp2[p]", "HL", "IX"])] // POP IX
+#[case::dd_ex_sp_ix(0x29f9, &[0xdd, 0xe3], &["decode_dd", "EX (SP), HL/IX/IY", "IX"])] // EX (SP), IX
+#[case::dd_push_ix(0x29f9, &[0xdd, 0xe5], &["decode_dd", "PUSH rp2[p]"])] // PUSH IX
+#[case::dd_jp_ix(0x29f9, &[0xdd, 0xe9], &["decode_dd", "JP HL", "IX"])] // JP IX
+#[case::dd_ld_sp_ix(0x29f9, &[0xdd, 0xf9], &["decode_dd", "LD SP, HL", "IX"])] // LD SP, IX
 // LD A, A
 
 // ----------------------------------------------------------------------------------------------------
