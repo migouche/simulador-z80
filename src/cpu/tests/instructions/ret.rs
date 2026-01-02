@@ -176,7 +176,7 @@ const RET_M_OPCODE: u8 = 0xF8;
     0x1001, // PC should just advance
     0x1300  // SP should remain unchanged
 )]
-    
+
 fn test_ret(
     #[case] initial_pc: u16,
     #[case] initial_sp: u16,

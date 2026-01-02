@@ -29,7 +29,7 @@ macro_rules! test_log {
     };
 }
 
-mod flags{
+mod flags {
     pub const CARRY: u8 = 0b00000001;
     pub const ADD_SUB: u8 = 0b00000010;
     pub const PARITY_OVERFLOW: u8 = 0b00000100;
@@ -54,7 +54,7 @@ enum GPR {
 }
 
 #[derive(PartialEq, Clone, Copy)]
-#[cfg_attr(test, derive(Debug))] 
+#[cfg_attr(test, derive(Debug))]
 enum RegisterPair {
     BC,
     DE,
@@ -77,7 +77,7 @@ enum IndexRegister {
 }
 
 #[derive(PartialEq, Clone, Copy)]
-#[cfg_attr(test, derive(Debug))] 
+#[cfg_attr(test, derive(Debug))]
 enum SpecialRegister {
     PC,
     SP,
@@ -1162,7 +1162,7 @@ impl Z80A {
                     AddressingMode::RegisterIndirect(RegisterPair::HL) => {
                         let addr = self.get_register_pair(RegisterPair::HL);
                         self.memory.borrow().read(addr)
-                    },
+                    }
                     AddressingMode::Special(sr) => match sr {
                         SpecialRegister::IXH => self.get_special_register(sr) as u8,
                         SpecialRegister::IXL => self.get_special_register(sr) as u8,
@@ -1174,7 +1174,7 @@ impl Z80A {
                         let base = self.get_index_register(idx);
                         let addr = base.wrapping_add(disp as i16 as u16);
                         self.memory.borrow().read(addr)
-                    },
+                    }
                     _ => unreachable!("Invalid addressing mode for ALU[y] r[z]"), // should never happen (for now)
                 };
                 self.alu_op(alu_op, value);
@@ -1191,13 +1191,14 @@ impl Z80A {
                 }
                 1 => match (q, p) {
                     // POP & various ops
-                    (false, _) => { // POP rp2[p]
+                    (false, _) => {
+                        // POP rp2[p]
                         test_log!(self, "POP rp2[p]");
                         let rp = self.table_rp2(p);
                         let dest = self.transform_register(rp, addressing);
                         let value = self.pop();
                         self.ld_16(dest, AddressingMode::ImmediateExtended(value));
-                    } 
+                    }
                     (true, 0) => {
                         // RET
                         test_log!(self, "RET");
@@ -1227,7 +1228,8 @@ impl Z80A {
                             RegSet::Alt,
                         );
                     }
-                    (true, 2) => { // JP HL/IX/IY
+                    (true, 2) => {
+                        // JP HL/IX/IY
                         test_log!(self, "JP HL");
                         let src = self.transform_register(
                             AddressingMode::RegisterPair(RegisterPair::HL),
@@ -1255,24 +1257,26 @@ impl Z80A {
                     }
                     _ => unreachable!("Invalid q, p values"), // should never happen
                 },
-                2 => { // JP cc[y], nn
+                2 => {
+                    // JP cc[y], nn
                     test_log!(self, "JP cc[y], nn");
                     let condition = self.table_cc(y);
                     let addr = self.fetch_word();
                     if self.evaluate_condition(condition) {
                         self.PC = addr;
                     }
-                }, 
+                }
                 3 => match y {
                     // Assorted operations
-                    0 => { // JP nn
+                    0 => {
+                        // JP nn
                         test_log!(self, "JP nn");
                         let addr = self.fetch_word();
                         self.PC = addr;
-                    },
-                    1 => test_log!(self, "CB prefix"),  // TODO: CB prefix
+                    }
+                    1 => test_log!(self, "CB prefix"), // TODO: CB prefix
                     2 => test_log!(self, "OUT (n), A"), // TODO: OUT (n), A
-                    3 => test_log!(self, "IN A, (n)"),  // TODO: IN A, (n)
+                    3 => test_log!(self, "IN A, (n)"), // TODO: IN A, (n)
                     4 => {
                         // EX (SP), HL (or EX (SP), IX/IY if prefixed)
                         test_log!(self, "EX (SP), HL/IX/IY");
@@ -1285,8 +1289,12 @@ impl Z80A {
 
                         let rp = match register_pair {
                             AddressingMode::RegisterPair(rp) => self.main_set.get_pair(rp),
-                            AddressingMode::Special(SpecialRegister::IX) => self.get_special_register(SpecialRegister::IX),
-                            AddressingMode::Special(SpecialRegister::IY) => self.get_special_register(SpecialRegister::IY),
+                            AddressingMode::Special(SpecialRegister::IX) => {
+                                self.get_special_register(SpecialRegister::IX)
+                            }
+                            AddressingMode::Special(SpecialRegister::IY) => {
+                                self.get_special_register(SpecialRegister::IY)
+                            }
                             _ => unreachable!("Invalid addressing mode for EX (SP), HL/IX/IY"), // should never happen
                         };
                         self.memory.borrow_mut().write(self.SP, (rp & 0xFF) as u8);
@@ -1298,26 +1306,16 @@ impl Z80A {
                         } else if let AddressingMode::Special(sr) = register_pair {
                             match sr {
                                 SpecialRegister::IX => {
-                                    self.set_special_register(
-                                        SpecialRegister::IXH,
-                                        temp_h as u16,
-                                    );
-                                    self.set_special_register(
-                                        SpecialRegister::IXL,
-                                        temp_l as u16,
-                                    );
+                                    self.set_special_register(SpecialRegister::IXH, temp_h as u16);
+                                    self.set_special_register(SpecialRegister::IXL, temp_l as u16);
                                 }
                                 SpecialRegister::IY => {
-                                    self.set_special_register(
-                                        SpecialRegister::IYH,
-                                        temp_h as u16,
-                                    );
-                                    self.set_special_register(
-                                        SpecialRegister::IYL,
-                                        temp_l as u16,
-                                    );
+                                    self.set_special_register(SpecialRegister::IYH, temp_h as u16);
+                                    self.set_special_register(SpecialRegister::IYL, temp_l as u16);
                                 }
-                                _ => unreachable!("Invalid special register for EX (SP), HL/IX/IY."), // should never happen
+                                _ => {
+                                    unreachable!("Invalid special register for EX (SP), HL/IX/IY.")
+                                } // should never happen
                             }
                         } else {
                             unreachable!("Invalid addressing mode for EX (SP), HL/IX/IY."); // should never happen

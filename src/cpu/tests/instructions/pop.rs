@@ -1,9 +1,7 @@
-use rstest::rstest;
 use crate::cpu::RegisterPair;
 use crate::cpu::tests::setup_cpu;
 use crate::traits::SyncronousComponent;
-
-
+use rstest::rstest;
 
 #[rstest]
 // Case 1: Standard POP BC
@@ -17,9 +15,8 @@ use crate::traits::SyncronousComponent;
     0x3344,                         // Expected Value in Register
     0x1002                          // Expected Final SP (+2)
 )]
-
 // Case 2: POP HL with Address Wrapping
-// SP starts at 0xFFFF. 
+// SP starts at 0xFFFF.
 // 1. Reads Low byte at 0xFFFF.
 // 2. Increments SP to 0x0000.
 // 3. Reads High byte at 0x0000.
@@ -32,7 +29,6 @@ use crate::traits::SyncronousComponent;
     0xBBAA,                         // Expected HL (High=BB, Low=AA)
     0x0001                          // Final SP
 )]
-
 // Case 3: POP AF (The Flags Register)
 // Validating that the F register accepts values from the stack.
 // Stack: 0xC0 (F) and 0x12 (A).
@@ -45,7 +41,6 @@ use crate::traits::SyncronousComponent;
     0x12C0,
     0x2002
 )]
-
 // Case 4: POP DE - "Circular" Stack
 // If SP is 0x0000, it pops from 0x0000 then 0x0001.
 // This ensures your emulator treats 0x0000 as a valid start point for POP.
@@ -66,8 +61,6 @@ fn test_pop(
     #[case] expected_value: u16,
     #[case] expected_sp: u16,
 ) {
-
-
     let mut cpu = setup_cpu();
 
     cpu.PC = starting_pc;
@@ -87,7 +80,7 @@ fn test_pop(
     };
     cpu.memory.borrow_mut().write(cpu.PC, pop_opcode);
 
-    cpu.tick(); 
+    cpu.tick();
 
     let result = cpu.get_register_pair(dest_reg);
     assert_eq!(

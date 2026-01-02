@@ -777,7 +777,8 @@ use crate::cpu::tests::setup_cpu;
 #[case::dd_ex_sp_ix(0x29f9, &[0xdd, 0xe3], &["decode_dd", "EX (SP), HL/IX/IY", "IX"])] // EX (SP), IX
 #[case::dd_push_ix(0x29f9, &[0xdd, 0xe5], &["decode_dd", "PUSH rp2[p]"])] // PUSH IX
 #[case::dd_jp_ix(0x29f9, &[0xdd, 0xe9], &["decode_dd", "JP HL", "IX"])] // JP IX
-#[case::dd_ld_sp_ix(0x29f9, &[0xdd, 0xf9], &["decode_dd", "LD SP, HL", "IX"])] // LD SP, IX
+#[case::dd_ld_sp_ix(0x29f9, &[0xdd, 0xf9], &["decode_dd", "LD SP, HL", "IX"])]
+// LD SP, IX
 // LD A, A
 
 // ----------------------------------------------------------------------------------------------------
