@@ -1360,7 +1360,7 @@ impl Z80A {
                     _ => unreachable!("Invalid q, p values"),  // should never happen
                 },
                 6 => {
-                    // TODO: ALU[y] n
+                    // ALU[y] n
                     test_log!(self, "ALU[y] n");
                     let alu_op = self.table_alu(y);
                     let n = self.fetch();
