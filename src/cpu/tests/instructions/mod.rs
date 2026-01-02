@@ -7,6 +7,6 @@ pub mod decimal;
 pub mod inc_dec;
 pub mod jumps;
 pub mod ld;
-pub mod pop;
-pub mod ret;
+pub mod push_pop;
 pub mod rot;
+pub mod subroutines;

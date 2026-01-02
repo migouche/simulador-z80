@@ -1274,9 +1274,9 @@ impl Z80A {
                         let addr = self.fetch_word();
                         self.PC = addr;
                     }
-                    1 => test_log!(self, "CB prefix"), // TODO: CB prefix
+                    1 => unreachable!("CB prefix, should be handled separately"), // should never reach this
                     2 => test_log!(self, "OUT (n), A"), // TODO: OUT (n), A
-                    3 => test_log!(self, "IN A, (n)"), // TODO: IN A, (n)
+                    3 => test_log!(self, "IN A, (n)"),  // TODO: IN A, (n)
                     4 => {
                         // EX (SP), HL (or EX (SP), IX/IY if prefixed)
                         test_log!(self, "EX (SP), HL/IX/IY");
@@ -1334,15 +1334,30 @@ impl Z80A {
                     7 => test_log!(self, "EI"),           // TODO: EI
                     _ => unreachable!("Invalid y value"), // should never happen
                 },
-                4 => test_log!(self, "CALL cc[y], nn"), // TODO: CALL cc[y], nn
+                4 => {
+                    // CALL cc[y], nn
+                    test_log!(self, "CALL cc[y], nn");
+                    let condition = self.table_cc(y);
+                    let addr = self.fetch_word();
+                    if self.evaluate_condition(condition) {
+                        self.push(self.PC);
+                        self.PC = addr;
+                    }
+                }
                 5 => match (q, p) {
                     // PUSH & various ops
                     (false, _) => test_log!(self, "PUSH rp2[p]"), // TODO: PUSH rp2[p]
-                    (true, 0) => test_log!(self, "CALL nn"),      // TODO: CALL nn
-                    (true, 1) => test_log!(self, "DD prefix"),    // TODO: DD prefix
-                    (true, 2) => test_log!(self, "ED prefix"),    // TODO: ED prefix
-                    (true, 3) => test_log!(self, "FD prefix"),    // TODO: FD prefix
-                    _ => unreachable!("Invalid q, p values"),     // should never happen
+                    (true, 0) => {
+                        // CALL nn
+                        test_log!(self, "CALL nn");
+                        let addr = self.fetch_word();
+                        self.push(self.PC);
+                        self.PC = addr;
+                    }
+                    (true, 1) => test_log!(self, "DD prefix"), // TODO: DD prefix
+                    (true, 2) => test_log!(self, "ED prefix"), // TODO: ED prefix
+                    (true, 3) => test_log!(self, "FD prefix"), // TODO: FD prefix
+                    _ => unreachable!("Invalid q, p values"),  // should never happen
                 },
                 6 => {
                     // TODO: ALU[y] n

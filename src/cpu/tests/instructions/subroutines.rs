@@ -219,3 +219,245 @@ fn test_ret(
         expected_final_sp, cpu.SP
     );
 }
+
+const CALL_OPCODE: u8 = 0xCD;
+const CALL_NZ_OPCODE: u8 = 0xC4;
+const CALL_Z_OPCODE: u8 = 0xCC;
+const CALL_NC_OPCODE: u8 = 0xD4;
+const CALL_C_OPCODE: u8 = 0xDC;
+const CALL_PO_OPCODE: u8 = 0xE4;
+const CALL_PE_OPCODE: u8 = 0xEC;
+const CALL_P_OPCODE: u8 = 0xF4;
+const CALL_M_OPCODE: u8 = 0xFC;
+
+enum CallCC {
+    None,
+    Condition(Condition),
+}
+
+#[rstest]
+#[case::call(
+    0x1000,
+    0x2000,
+    0x00,
+    0x55AA,
+    CallCC::None,
+    0x55AA, // PC jumps to target
+    0x1FFE  // SP decrements by 2
+)]
+#[case::call_nz_taken(
+    0x1000,
+    0x3000,
+    0xFF ^ crate::cpu::flags::ZERO, // Z flag cleared
+    0x66BB,
+    CallCC::Condition(Condition::NZ),
+    0x66BB,
+    0x2FFE
+)]
+#[case::call_nz_not_taken(
+    0x1000,
+    0x4000,
+    crate::cpu::flags::ZERO, // Z flag set
+    0x66BB,
+    CallCC::Condition(Condition::NZ),
+    0x1003, // PC advances by 3 (opcode + 2 byte addr)
+    0x4000  // SP remains unchanged
+)]
+#[case::call_z_taken(
+    0x1000,
+    0x5000,
+    crate::cpu::flags::ZERO, // Z flag set
+    0x77CC,
+    CallCC::Condition(Condition::Z),
+    0x77CC,
+    0x4FFE
+)]
+#[case::call_z_not_taken(
+    0x1000,
+    0x6000,
+    0xFF ^ crate::cpu::flags::ZERO, // Z flag cleared
+    0x77CC,
+    CallCC::Condition(Condition::Z),
+    0x1003,
+    0x6000
+)]
+#[case::call_nc_taken(
+    0x1000,
+    0x7000,
+    0xFF ^ crate::cpu::flags::CARRY, // C flag cleared
+    0x88DD,
+    CallCC::Condition(Condition::NC),
+    0x88DD,
+    0x6FFE
+)]
+#[case::call_nc_not_taken(
+    0x1000,
+    0x8000,
+    crate::cpu::flags::CARRY, // C flag set
+    0x88DD,
+    CallCC::Condition(Condition::NC),
+    0x1003,
+    0x8000
+)]
+#[case::call_c_taken(
+    0x1000,
+    0x9000,
+    crate::cpu::flags::CARRY, // C flag set
+    0x99EE,
+    CallCC::Condition(Condition::C),
+    0x99EE,
+    0x8FFE
+)]
+#[case::call_c_not_taken(
+    0x1000,
+    0xA000,
+    0xFF ^ crate::cpu::flags::CARRY, // C flag cleared
+    0x99EE,
+    CallCC::Condition(Condition::C),
+    0x1003,
+    0xA000
+)]
+#[case::call_po_taken(
+    0x1000,
+    0xB000,
+    0xFF ^ crate::cpu::flags::PARITY_OVERFLOW,
+    0xAA11,
+    CallCC::Condition(Condition::PO),
+    0xAA11,
+    0xAFFE
+)]
+#[case::call_po_not_taken(
+    0x1000,
+    0xC000,
+    crate::cpu::flags::PARITY_OVERFLOW,
+    0xAA11,
+    CallCC::Condition(Condition::PO),
+    0x1003,
+    0xC000
+)]
+#[case::call_pe_taken(
+    0x1000,
+    0xD000,
+    crate::cpu::flags::PARITY_OVERFLOW,
+    0xBB22,
+    CallCC::Condition(Condition::PE),
+    0xBB22,
+    0xCFFE
+)]
+#[case::call_pe_not_taken(
+    0x1000,
+    0xE000,
+    0xFF ^ crate::cpu::flags::PARITY_OVERFLOW,
+    0xBB22,
+    CallCC::Condition(Condition::PE),
+    0x1003,
+    0xE000
+)]
+#[case::call_p_taken(
+    0x1000,
+    0xF000,
+    0xFF ^ crate::cpu::flags::SIGN,
+    0xCC33,
+    CallCC::Condition(Condition::P),
+    0xCC33,
+    0xEFFE
+)]
+#[case::call_p_not_taken(
+    0x1000,
+    0x0100,
+    crate::cpu::flags::SIGN,
+    0xCC33,
+    CallCC::Condition(Condition::P),
+    0x1003,
+    0x0100
+)]
+#[case::call_m_taken(
+    0x1000,
+    0x0200,
+    crate::cpu::flags::SIGN,
+    0xDD44,
+    CallCC::Condition(Condition::M),
+    0xDD44,
+    0x01FE
+)]
+#[case::call_m_not_taken(
+    0x1000,
+    0x0300,
+    0xFF ^ crate::cpu::flags::SIGN,
+    0xDD44,
+    CallCC::Condition(Condition::M),
+    0x1003,
+    0x0300
+)]
+fn test_call(
+    #[case] initial_pc: u16,
+    #[case] initial_sp: u16,
+    #[case] initial_flags: u8,
+    #[case] target_addr: u16,
+    #[case] call_cc: CallCC,
+    #[case] expected_final_pc: u16,
+    #[case] expected_final_sp: u16,
+) {
+    let mut cpu = setup_cpu();
+
+    cpu.PC = initial_pc;
+    cpu.SP = initial_sp;
+    cpu.set_register(GPR::F, initial_flags);
+
+    let opcode = match call_cc {
+        CallCC::None => CALL_OPCODE,
+        CallCC::Condition(Condition::NZ) => CALL_NZ_OPCODE,
+        CallCC::Condition(Condition::Z) => CALL_Z_OPCODE,
+        CallCC::Condition(Condition::NC) => CALL_NC_OPCODE,
+        CallCC::Condition(Condition::C) => CALL_C_OPCODE,
+        CallCC::Condition(Condition::PO) => CALL_PO_OPCODE,
+        CallCC::Condition(Condition::PE) => CALL_PE_OPCODE,
+        CallCC::Condition(Condition::P) => CALL_P_OPCODE,
+        CallCC::Condition(Condition::M) => CALL_M_OPCODE,
+    };
+
+    // Write Opcode
+    cpu.memory.borrow_mut().write(cpu.PC, opcode);
+
+    // Write Target Address (Little Endian)
+    let low_byte = (target_addr & 0xFF) as u8;
+    let high_byte = ((target_addr >> 8) & 0xFF) as u8;
+    cpu.memory
+        .borrow_mut()
+        .write(cpu.PC.wrapping_add(1), low_byte);
+    cpu.memory
+        .borrow_mut()
+        .write(cpu.PC.wrapping_add(2), high_byte);
+
+    cpu.tick();
+
+    // 1. Check PC and SP
+    assert_eq!(
+        cpu.PC, expected_final_pc,
+        "PC mismatch: expected 0x{:04X}, got 0x{:04X}",
+        expected_final_pc, cpu.PC
+    );
+    assert_eq!(
+        cpu.SP, expected_final_sp,
+        "SP mismatch: expected 0x{:04X}, got 0x{:04X}",
+        expected_final_sp, cpu.SP
+    );
+
+    // 2. Check Stack Content (Only if the call was taken)
+    if expected_final_sp != initial_sp {
+        let ret_addr = initial_pc.wrapping_add(3);
+        let ret_low = (ret_addr & 0xFF) as u8;
+        let ret_high = ((ret_addr >> 8) & 0xFF) as u8;
+
+        // In Little Endian, the value at SP should be Low, and SP+1 should be High
+        // (Because we Pushed High first to SP-1, then Low to SP-2)
+        let stack_low = cpu.memory.borrow().read(cpu.SP);
+        let stack_high = cpu.memory.borrow().read(cpu.SP.wrapping_add(1));
+
+        assert_eq!(stack_low, ret_low, "Stack Low Byte (Return Addr) mismatch");
+        assert_eq!(
+            stack_high, ret_high,
+            "Stack High Byte (Return Addr) mismatch"
+        );
+    }
+}
