@@ -223,42 +223,42 @@ impl RegisterSet {
     }
 
     pub fn get_flag(&self, flag: Flag) -> bool {
-        let flags = self.F;
+        let f = self.F;
         match flag {
-            Flag::C => flags & 0b00000001 != 0,
-            Flag::N => flags & 0b00000010 != 0,
-            Flag::PV => flags & 0b00000100 != 0,
-            Flag::Y => flags & 0b00001000 != 0,
-            Flag::H => flags & 0b00010000 != 0,
-            Flag::X => flags & 0b00100000 != 0,
-            Flag::Z => flags & 0b01000000 != 0,
-            Flag::S => flags & 0b10000000 != 0,
+            Flag::C => f & flags::CARRY != 0,
+            Flag::N => f & flags::ADD_SUB != 0,
+            Flag::PV => f & flags::PARITY_OVERFLOW != 0,
+            Flag::Y => f & flags::X != 0,
+            Flag::H => f & flags::HALF_CARRY != 0,
+            Flag::X => f & flags::Y != 0,
+            Flag::Z => f & flags::ZERO != 0,
+            Flag::S => f & flags::SIGN != 0,
         }
     }
 
     pub fn set_flag(&mut self, value: bool, flag: Flag) {
-        let flags = &mut self.F;
+        let f = &mut self.F;
         if value {
             match flag {
-                Flag::C => *flags |= 0b00000001,
-                Flag::N => *flags |= 0b00000010,
-                Flag::PV => *flags |= 0b00000100,
-                Flag::Y => *flags |= 0b00001000,
-                Flag::H => *flags |= 0b00010000,
-                Flag::X => *flags |= 0b00100000,
-                Flag::Z => *flags |= 0b01000000,
-                Flag::S => *flags |= 0b10000000,
+                Flag::C => *f |= flags::CARRY,
+                Flag::N => *f |= flags::ADD_SUB,
+                Flag::PV => *f |= flags::PARITY_OVERFLOW,
+                Flag::Y => *f |= flags::X,
+                Flag::H => *f |= flags::HALF_CARRY,
+                Flag::X => *f |= flags::Y,
+                Flag::Z => *f |= flags::ZERO,
+                Flag::S => *f |= flags::SIGN,
             }
         } else {
             match flag {
-                Flag::C => *flags &= !0b00000001,
-                Flag::N => *flags &= !0b00000010,
-                Flag::PV => *flags &= !0b00000100,
-                Flag::Y => *flags &= !0b00001000,
-                Flag::H => *flags &= !0b00010000,
-                Flag::X => *flags &= !0b00100000,
-                Flag::Z => *flags &= !0b01000000,
-                Flag::S => *flags &= !0b10000000,
+                Flag::C => *f &= !flags::CARRY,
+                Flag::N => *f &= !flags::ADD_SUB,
+                Flag::PV => *f &= !flags::PARITY_OVERFLOW,
+                Flag::Y => *f &= !flags::X,
+                Flag::H => *f &= !flags::HALF_CARRY,
+                Flag::X => *f &= !flags::Y,
+                Flag::Z => *f &= !flags::ZERO,
+                Flag::S => *f &= !flags::SIGN,
             }
         }
     }
@@ -645,7 +645,7 @@ impl Z80A {
         let (result, flags) = dec(value);
 
         // Preserve Carry flag
-        let current_carry = self.main_set.F & 0x01;
+        let current_carry = self.main_set.F & flags::CARRY;
         self.main_set.F = flags | current_carry;
 
         match dest {
@@ -1048,7 +1048,7 @@ impl Z80A {
                             let (res, f) = rot::rlc(a);
                             self.set_register(GPR::A, res);
 
-                            self.main_set.set_flag((f & 0x01) == 1, Flag::C);
+                            self.main_set.set_flag((f & flags::CARRY) != 0, Flag::C);
                             self.main_set.set_flag(false, Flag::N);
                             self.main_set.set_flag(false, Flag::H);
                         }
@@ -1059,7 +1059,7 @@ impl Z80A {
                             let (res, f) = rot::rrc(a);
                             self.set_register(GPR::A, res);
 
-                            self.main_set.set_flag((f & 0x01) == 1, Flag::C);
+                            self.main_set.set_flag((f & flags::CARRY) != 0, Flag::C);
                             self.main_set.set_flag(false, Flag::N);
                             self.main_set.set_flag(false, Flag::H);
                         }
@@ -1071,7 +1071,7 @@ impl Z80A {
                             let (res, f) = rot::rl(a, carry);
                             self.set_register(GPR::A, res);
 
-                            self.main_set.set_flag((f & 0x01) == 1, Flag::C);
+                            self.main_set.set_flag((f & flags::CARRY) != 0, Flag::C);
                             self.main_set.set_flag(false, Flag::N);
                             self.main_set.set_flag(false, Flag::H);
                         }
@@ -1083,7 +1083,7 @@ impl Z80A {
                             let (res, f) = rot::rr(a, carry);
                             self.set_register(GPR::A, res);
 
-                            self.main_set.set_flag((f & 0x01) == 1, Flag::C);
+                            self.main_set.set_flag((f & flags::CARRY) != 0, Flag::C);
                             self.main_set.set_flag(false, Flag::N);
                             self.main_set.set_flag(false, Flag::H);
                         }
@@ -1103,8 +1103,8 @@ impl Z80A {
                             self.main_set.set_flag(true, Flag::H);
                             // undocummented x and y flags
                             // set bit 3 and 5 according to result
-                            self.main_set.set_flag((result & 0x08) != 0, Flag::X);
-                            self.main_set.set_flag((result & 0x20) != 0, Flag::Y);
+                            self.main_set.set_flag((result & flags::X) != 0, Flag::X);
+                            self.main_set.set_flag((result & flags::Y) != 0, Flag::Y);
                         }
                         6 => {
                             //  SCF
@@ -1115,8 +1115,8 @@ impl Z80A {
                             self.main_set.set_flag(false, Flag::H);
                             // undocummented x and y flags
                             let a = self.get_register(GPR::A);
-                            self.main_set.set_flag((a & 0x08) != 0, Flag::X);
-                            self.main_set.set_flag((a & 0x20) != 0, Flag::Y);
+                            self.main_set.set_flag((a & flags::X) != 0, Flag::X);
+                            self.main_set.set_flag((a & flags::Y) != 0, Flag::Y);
                         }
                         7 => {
                             // CCF
@@ -1130,8 +1130,8 @@ impl Z80A {
 
                             // undocummented x and y flags
                             let a = self.get_register(GPR::A);
-                            self.main_set.set_flag((a & 0x08) != 0, Flag::X);
-                            self.main_set.set_flag((a & 0x20) != 0, Flag::Y);
+                            self.main_set.set_flag((a & flags::X) != 0, Flag::X);
+                            self.main_set.set_flag((a & flags::Y) != 0, Flag::Y);
                         }
                         _ => unreachable!("Invalid y value"), // should never happen
                     }
@@ -1890,11 +1890,11 @@ impl Z80A {
 
         self.set_register(GPR::A, a);
 
-        self.main_set.set_flag(a & 0x80 == 0x80, Flag::S);
+        self.main_set.set_flag((a & flags::SIGN) == flags::SIGN, Flag::S);
         self.main_set.set_flag(a == 0, Flag::Z);
         self.main_set.set_flag(a.count_ones() % 2 == 0, Flag::PV);
-        self.main_set.set_flag(a & 0x08 == 0x08, Flag::X);
-        self.main_set.set_flag(a & 0x20 == 0x20, Flag::Y);
+        self.main_set.set_flag((a & flags::X) == flags::X, Flag::X);
+        self.main_set.set_flag((a & flags::Y) == flags::Y, Flag::Y);
     }
 
     fn jmp(&mut self, addr: u16) {
