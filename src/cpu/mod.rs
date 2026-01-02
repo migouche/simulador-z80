@@ -1330,6 +1330,7 @@ impl Z80A {
                             RegSet::Main,
                         )
                     } // EX DE, HL (NOTE: REMAINS UNCHANGED)
+                    // TODO: will do interrupts later
                     6 => test_log!(self, "DI"),           // TODO: DI
                     7 => test_log!(self, "EI"),           // TODO: EI
                     _ => unreachable!("Invalid y value"), // should never happen
@@ -1346,7 +1347,23 @@ impl Z80A {
                 }
                 5 => match (q, p) {
                     // PUSH & various ops
-                    (false, _) => test_log!(self, "PUSH rp2[p]"), // TODO: PUSH rp2[p]
+                    (false, _) => {
+                        // PUSH rp2[p]
+                        test_log!(self, "PUSH rp2[p]");
+                        let rp = self.table_rp2(p);
+                        let src = self.transform_register(rp, addressing);
+                        let value = match src {
+                            AddressingMode::RegisterPair(rp) => self.get_register_pair(rp),
+                            AddressingMode::Special(SpecialRegister::IX) => {
+                                self.get_special_register(SpecialRegister::IX)
+                            },
+                            AddressingMode::Special(SpecialRegister::IY) => {
+                                self.get_special_register(SpecialRegister::IY)
+                            }
+                            _ => unreachable!("Invalid addressing mode for PUSH rp2[p]"), // should never happen
+                        };
+                        self.push(value);
+                    }, // TODO: PUSH rp2[p]
                     (true, 0) => {
                         // CALL nn
                         test_log!(self, "CALL nn");
