@@ -93,7 +93,7 @@ use crate::cpu::{AddressingMode, SyncronousComponent};
     0x10,
     false,
     0x20,
-    AddressingMode::Implied,
+    AddressingMode::Immediate(0),
     0x30,
     0b00100000
 )] // ADD A, n
@@ -185,7 +185,7 @@ use crate::cpu::{AddressingMode, SyncronousComponent};
     0x00,
     true,
     0x00,
-    AddressingMode::Implied,
+    AddressingMode::Immediate(0),
     0x01,
     0b00000000
 )] // ADC A, n
@@ -277,7 +277,7 @@ use crate::cpu::{AddressingMode, SyncronousComponent};
     0x00,
     false,
     0x01,
-    AddressingMode::Implied,
+    AddressingMode::Immediate(0),
     0xFF,
     0b10111011
 )] // SUB A, n
@@ -369,7 +369,7 @@ use crate::cpu::{AddressingMode, SyncronousComponent};
     0x00,
     true,
     0x00,
-    AddressingMode::Implied,
+    AddressingMode::Immediate(0),
     0xFF,
     0b10111011
 )] // SBC A, n
@@ -461,7 +461,7 @@ use crate::cpu::{AddressingMode, SyncronousComponent};
     0x55,
     false,
     0xAA,
-    AddressingMode::Implied,
+    AddressingMode::Immediate(0),
     0x00,
     0b01010100
 )] // AND A, n
@@ -553,7 +553,7 @@ use crate::cpu::{AddressingMode, SyncronousComponent};
     0x55,
     false,
     0x55,
-    AddressingMode::Implied,
+    AddressingMode::Immediate(0),
     0x00,
     0b01000100
 )] // XOR A, n
@@ -645,7 +645,7 @@ use crate::cpu::{AddressingMode, SyncronousComponent};
     0x00,
     false,
     0x00,
-    AddressingMode::Implied,
+    AddressingMode::Immediate(0),
     0x00,
     0b01000100
 )] // OR A, n
@@ -737,7 +737,7 @@ use crate::cpu::{AddressingMode, SyncronousComponent};
     0x05,
     false,
     0x02,
-    AddressingMode::Implied,
+    AddressingMode::Immediate(0),
     0x05,
     0b00000010
 )] // CP A, n
@@ -757,7 +757,7 @@ fn test_alu_op(
     cpu.main_set.set_flag(initial_carry, crate::cpu::Flag::C);
 
     match initial_b_src {
-        AddressingMode::Implied => {
+        AddressingMode::Immediate(_) => {
             cpu.memory.borrow_mut().write(pc + 1, initial_b_val);
         }
         AddressingMode::Register(r) => {

@@ -76,16 +76,15 @@ enum IndexRegister {
     IY,
 }
 
-#[derive(PartialEq, Clone, Copy)]
-#[cfg_attr(test, derive(Debug))]
-enum SpecialRegister {
-    PC,
-    SP,
-    IX,
-    IY,
+#[derive(PartialEq, Clone, Copy, Debug)]
+enum SystemRegister {
     I,
     R,
-    A,
+    PC,
+}
+
+#[derive(PartialEq, Clone, Copy, Debug)]
+enum IndexRegisterPart {
     IXH,
     IXL,
     IYH,
@@ -98,15 +97,13 @@ enum AddressingMode {
     Immediate(u8),
     ImmediateExtended(u16),
     Absolute(u16),
-    ZeroPage,
-    Relative(u8),
-    Extended,
     Indexed(IndexRegister, i8),
     Register(GPR),
-    Special(SpecialRegister),
-    Implied,
-    RegisterIndirect(RegisterPair),
     RegisterPair(RegisterPair),
+    RegisterIndirect(RegisterPair),
+    IndexRegister(IndexRegister),
+    System(SystemRegister),
+    IndexRegisterPart(IndexRegisterPart),
 }
 
 #[derive(PartialEq, Clone, Copy)]
@@ -397,35 +394,97 @@ impl Z80A {
         }
     }
 
-    fn set_special_register(&mut self, reg: SpecialRegister, value: u16) {
+    fn set_system_register(&mut self, reg: SystemRegister, value: u16) {
         match reg {
-            SpecialRegister::PC => self.PC = value,
-            SpecialRegister::SP => self.SP = value,
-            SpecialRegister::IX => self.IX = value,
-            SpecialRegister::IY => self.IY = value,
-            SpecialRegister::A => self.main_set.A = value as u8,
-            SpecialRegister::I => self.I = value as u8,
-            SpecialRegister::R => self.R = value as u8,
-            SpecialRegister::IXH => self.IX = (self.IX & 0x00FF) | ((value as u16) << 8),
-            SpecialRegister::IXL => self.IX = (self.IX & 0xFF00) | (value as u16),
-            SpecialRegister::IYH => self.IY = (self.IY & 0x00FF) | ((value as u16) << 8),
-            SpecialRegister::IYL => self.IY = (self.IY & 0xFF00) | (value as u16),
+            SystemRegister::PC => self.PC = value,
+            SystemRegister::I => self.I = value as u8,
+            SystemRegister::R => self.R = value as u8,
         }
     }
 
-    fn get_special_register(&self, reg: SpecialRegister) -> u16 {
+    fn get_system_register(&self, reg: SystemRegister) -> u16 {
         match reg {
-            SpecialRegister::PC => self.PC,
-            SpecialRegister::SP => self.SP,
-            SpecialRegister::IX => self.IX,
-            SpecialRegister::IY => self.IY,
-            SpecialRegister::A => self.main_set.A as u16,
-            SpecialRegister::I => self.I as u16,
-            SpecialRegister::R => self.R as u16,
-            SpecialRegister::IXH => (self.IX >> 8) as u16,
-            SpecialRegister::IXL => (self.IX & 0x00FF) as u16,
-            SpecialRegister::IYH => (self.IY >> 8) as u16,
-            SpecialRegister::IYL => (self.IY & 0x00FF) as u16,
+            SystemRegister::PC => self.PC,
+            SystemRegister::I => self.I as u16,
+            SystemRegister::R => self.R as u16,
+        }
+    }
+
+    fn set_index_register_part(&mut self, reg: IndexRegisterPart, value: u8) {
+        match reg {
+            IndexRegisterPart::IXH => self.IX = (self.IX & 0x00FF) | ((value as u16) << 8),
+            IndexRegisterPart::IXL => self.IX = (self.IX & 0xFF00) | (value as u16),
+            IndexRegisterPart::IYH => self.IY = (self.IY & 0x00FF) | ((value as u16) << 8),
+            IndexRegisterPart::IYL => self.IY = (self.IY & 0xFF00) | (value as u16),
+        }
+    }
+
+    fn get_index_register_part(&self, reg: IndexRegisterPart) -> u8 {
+        match reg {
+            IndexRegisterPart::IXH => (self.IX >> 8) as u8,
+            IndexRegisterPart::IXL => (self.IX & 0x00FF) as u8,
+            IndexRegisterPart::IYH => (self.IY >> 8) as u8,
+            IndexRegisterPart::IYL => (self.IY & 0x00FF) as u8,
+        }
+    }
+
+    fn read_8(&mut self, mode: AddressingMode) -> u8 {
+        match mode {
+            AddressingMode::Register(r) => self.get_register(r),
+            AddressingMode::RegisterIndirect(rp) => {
+                let addr = self.get_register_pair(rp);
+                self.memory.borrow().read(addr)
+            }
+            AddressingMode::Indexed(idx, disp) => {
+                let base = self.get_index_register(idx);
+                let addr = base.wrapping_add_signed(disp as i16);
+                self.memory.borrow().read(addr)
+            }
+            AddressingMode::Immediate(n) => n,
+            AddressingMode::Absolute(addr) => self.memory.borrow().read(addr),
+            AddressingMode::System(r) => (self.get_system_register(r) & 0xFF) as u8,
+            AddressingMode::IndexRegisterPart(r) => self.get_index_register_part(r),
+            _ => panic!("Invalid addressing mode for read_8."),
+        }
+    }
+
+    fn write_8(&mut self, mode: AddressingMode, value: u8) {
+        match mode {
+            AddressingMode::Register(r) => self.set_register(r, value),
+            AddressingMode::RegisterIndirect(rp) => {
+                let addr = self.get_register_pair(rp);
+                self.memory.borrow_mut().write(addr, value);
+            }
+            AddressingMode::Indexed(idx, disp) => {
+                let base = self.get_index_register(idx);
+                let addr = base.wrapping_add_signed(disp as i16);
+                self.memory.borrow_mut().write(addr, value);
+            }
+            AddressingMode::Absolute(addr) => self.memory.borrow_mut().write(addr, value),
+            AddressingMode::System(r) => self.set_system_register(r, value as u16),
+            AddressingMode::IndexRegisterPart(r) => self.set_index_register_part(r, value),
+            _ => panic!("Invalid addressing mode for write_8."),
+        }
+    }
+
+    fn read_16(&mut self, mode: AddressingMode) -> u16 {
+        match mode {
+            AddressingMode::RegisterPair(rp) => self.get_register_pair(rp),
+            AddressingMode::IndexRegister(idx) => self.get_index_register(idx),
+            AddressingMode::System(r) => self.get_system_register(r),
+            AddressingMode::ImmediateExtended(nn) => nn,
+            AddressingMode::Absolute(addr) => self.memory.borrow().read_word(addr),
+            _ => panic!("Invalid addressing mode for read_16."),
+        }
+    }
+
+    fn write_16(&mut self, mode: AddressingMode, value: u16) {
+        match mode {
+            AddressingMode::RegisterPair(rp) => self.set_register_pair(rp, value),
+            AddressingMode::IndexRegister(idx) => self.set_index_register(idx, value),
+            AddressingMode::System(r) => self.set_system_register(r, value),
+            AddressingMode::Absolute(addr) => self.memory.borrow_mut().write_word(addr, value),
+            _ => panic!("Invalid addressing mode for write_16."),
         }
     }
 
@@ -587,138 +646,47 @@ impl Z80A {
     }
 
     fn inc_op(&mut self, dest: AddressingMode) {
-        let value = match dest {
-            AddressingMode::Register(r) => self.get_register(r),
-            AddressingMode::RegisterIndirect(RegisterPair::HL) => {
-                let addr = self.get_register_pair(RegisterPair::HL);
-                self.memory.borrow().read(addr)
-            }
-            AddressingMode::Indexed(idx, disp) => {
-                let base = self.get_index_register(idx);
-                let addr = base.wrapping_add(disp as i16 as u16);
-                self.memory.borrow().read(addr)
-            }
-            AddressingMode::Special(r) => (self.get_special_register(r) & 0xFF) as u8,
-            _ => panic!("Invalid addressing mode for INC"),
-        };
-
+        let value = self.read_8(dest);
         let (result, flags) = inc(value);
 
         // Preserve Carry flag
         let current_carry = self.main_set.get_flag(Flag::C) as u8;
         self.main_set.F = flags | current_carry;
 
-        match dest {
-            AddressingMode::Register(r) => self.set_register(r, result),
-            AddressingMode::RegisterIndirect(RegisterPair::HL) => {
-                let addr = self.get_register_pair(RegisterPair::HL);
-                self.memory.borrow_mut().write(addr, result);
-            }
-            AddressingMode::Indexed(idx, disp) => {
-                let base = self.get_index_register(idx);
-                let addr = base.wrapping_add(disp as i16 as u16);
-                self.memory.borrow_mut().write(addr, result);
-            }
-            AddressingMode::Special(r) => {
-                self.set_special_register(r, result as u16);
-            }
-            _ => panic!("Invalid addressing mode for INC writeback"),
-        }
+        self.write_8(dest, result);
     }
 
     fn dec_op(&mut self, dest: AddressingMode) {
-        let value = match dest {
-            AddressingMode::Register(r) => self.get_register(r),
-            AddressingMode::RegisterIndirect(RegisterPair::HL) => {
-                let addr = self.get_register_pair(RegisterPair::HL);
-                self.memory.borrow().read(addr)
-            }
-            AddressingMode::Indexed(idx, disp) => {
-                let base = self.get_index_register(idx);
-                let addr = base.wrapping_add(disp as i16 as u16);
-                self.memory.borrow().read(addr)
-            }
-            AddressingMode::Special(r) => (self.get_special_register(r) & 0xFF) as u8,
-            _ => panic!("Invalid addressing mode for DEC"),
-        };
-
+        let value = self.read_8(dest);
         let (result, flags) = dec(value);
 
         // Preserve Carry flag
         let current_carry = self.main_set.F & flags::CARRY;
         self.main_set.F = flags | current_carry;
 
-        match dest {
-            AddressingMode::Register(r) => self.set_register(r, result),
-            AddressingMode::RegisterIndirect(RegisterPair::HL) => {
-                let addr = self.get_register_pair(RegisterPair::HL);
-                self.memory.borrow_mut().write(addr, result);
-            }
-            AddressingMode::Indexed(idx, disp) => {
-                let base = self.get_index_register(idx);
-                let addr = base.wrapping_add(disp as i16 as u16);
-                self.memory.borrow_mut().write(addr, result);
-            }
-            AddressingMode::Special(r) => {
-                self.set_special_register(r, result as u16);
-            }
-            _ => panic!("Invalid addressing mode for DEC writeback"),
-        }
+        self.write_8(dest, result);
     }
 
     fn inc_16_op(&mut self, dest: AddressingMode) {
-        let val = match dest {
-            AddressingMode::RegisterPair(rp) => self.get_register_pair(rp),
-            AddressingMode::Special(r) => self.get_special_register(r),
-            _ => panic!("Invalid addressing mode for INC 16"),
-        };
-
+        let val = self.read_16(dest);
         let result = val.wrapping_add(1);
-
-        match dest {
-            AddressingMode::RegisterPair(rp) => self.set_register_pair(rp, result),
-            AddressingMode::Special(r) => self.set_special_register(r, result),
-            _ => panic!("Invalid addressing mode for INC 16 writeback"),
-        }
+        self.write_16(dest, result);
     }
 
     fn dec_16_op(&mut self, dest: AddressingMode) {
-        let val = match dest {
-            AddressingMode::RegisterPair(rp) => self.get_register_pair(rp),
-            AddressingMode::Special(r) => self.get_special_register(r),
-            _ => panic!("Invalid addressing mode for DEC 16"),
-        };
-
+        let val = self.read_16(dest);
         let result = val.wrapping_sub(1);
-
-        match dest {
-            AddressingMode::RegisterPair(rp) => self.set_register_pair(rp, result),
-            AddressingMode::Special(r) => self.set_special_register(r, result),
-            _ => panic!("Invalid addressing mode for DEC 16 writeback"),
-        }
+        self.write_16(dest, result);
     }
 
     fn add_16_op(&mut self, dest: AddressingMode, src: AddressingMode) {
-        let val_dest = match dest {
-            AddressingMode::RegisterPair(rp) => self.get_register_pair(rp),
-            AddressingMode::Special(r) => self.get_special_register(r),
-            _ => panic!("Invalid addressing mode for ADD 16 dest"),
-        };
-
-        let val_src = match src {
-            AddressingMode::RegisterPair(rp) => self.get_register_pair(rp),
-            AddressingMode::Special(r) => self.get_special_register(r),
-            _ => panic!("Invalid addressing mode for ADD 16 src"),
-        };
+        let val_dest = self.read_16(dest);
+        let val_src = self.read_16(src);
 
         let (result, flags) = add_16(val_dest, val_src, self.main_set.F);
         self.main_set.F = flags;
 
-        match dest {
-            AddressingMode::RegisterPair(rp) => self.set_register_pair(rp, result),
-            AddressingMode::Special(r) => self.set_special_register(r, result),
-            _ => panic!("Invalid addressing mode for ADD 16 writeback"),
-        }
+        self.write_16(dest, result);
     }
 
     fn table_rp(&mut self, p: u8) -> AddressingMode {
@@ -813,11 +781,11 @@ impl Z80A {
             PrefixAddressing::IX => match reg {
                 AddressingMode::Register(GPR::H) => {
                     test_log!(self, "IXH");
-                    AddressingMode::Special(SpecialRegister::IXH)
+                    AddressingMode::IndexRegisterPart(IndexRegisterPart::IXH)
                 }
                 AddressingMode::Register(GPR::L) => {
                     test_log!(self, "IXL");
-                    AddressingMode::Special(SpecialRegister::IXL)
+                    AddressingMode::IndexRegisterPart(IndexRegisterPart::IXL)
                 }
                 AddressingMode::RegisterIndirect(RegisterPair::HL) => {
                     test_log!(self, "(IX + d)");
@@ -825,18 +793,18 @@ impl Z80A {
                 }
                 AddressingMode::RegisterPair(RegisterPair::HL) => {
                     test_log!(self, "IX");
-                    AddressingMode::Special(SpecialRegister::IX)
+                    AddressingMode::IndexRegister(IndexRegister::IX)
                 }
                 _ => reg,
             },
             PrefixAddressing::IY => match reg {
                 AddressingMode::Register(GPR::H) => {
                     test_log!(self, "IYH");
-                    AddressingMode::Special(SpecialRegister::IYH)
+                    AddressingMode::IndexRegisterPart(IndexRegisterPart::IYH)
                 }
                 AddressingMode::Register(GPR::L) => {
                     test_log!(self, "IYL");
-                    AddressingMode::Special(SpecialRegister::IYL)
+                    AddressingMode::IndexRegisterPart(IndexRegisterPart::IYL)
                 }
                 AddressingMode::RegisterIndirect(RegisterPair::HL) => {
                     test_log!(self, "(IY + d)");
@@ -844,7 +812,7 @@ impl Z80A {
                 }
                 AddressingMode::RegisterPair(RegisterPair::HL) => {
                     test_log!(self, "IY");
-                    AddressingMode::Special(SpecialRegister::IY)
+                    AddressingMode::IndexRegister(IndexRegister::IY)
                 }
                 _ => reg,
             },
@@ -1157,26 +1125,7 @@ impl Z80A {
                 let alu_op = self.table_alu(y);
                 let reg = self.table_r(z);
                 let src = self.transform_register(reg, addressing);
-                let value = match src {
-                    AddressingMode::Register(r) => self.get_register(r),
-                    AddressingMode::RegisterIndirect(RegisterPair::HL) => {
-                        let addr = self.get_register_pair(RegisterPair::HL);
-                        self.memory.borrow().read(addr)
-                    }
-                    AddressingMode::Special(sr) => match sr {
-                        SpecialRegister::IXH => self.get_special_register(sr) as u8,
-                        SpecialRegister::IXL => self.get_special_register(sr) as u8,
-                        SpecialRegister::IYH => self.get_special_register(sr) as u8,
-                        SpecialRegister::IYL => self.get_special_register(sr) as u8,
-                        _ => panic!("Invalid special register for ALU[y] r[z]"),
-                    },
-                    AddressingMode::Indexed(idx, disp) => {
-                        let base = self.get_index_register(idx);
-                        let addr = base.wrapping_add(disp as i16 as u16);
-                        self.memory.borrow().read(addr)
-                    }
-                    _ => unreachable!("Invalid addressing mode for ALU[y] r[z]"), // should never happen (for now)
-                };
+                let value = self.read_8(src);
                 self.alu_op(alu_op, value);
             }
             3 => match z {
@@ -1235,15 +1184,7 @@ impl Z80A {
                             AddressingMode::RegisterPair(RegisterPair::HL),
                             addressing,
                         );
-                        let addr = match src {
-                            AddressingMode::RegisterPair(rp) => self.get_register_pair(rp),
-                            AddressingMode::Special(sr) => match sr {
-                                SpecialRegister::IX => self.get_special_register(sr),
-                                SpecialRegister::IY => self.get_special_register(sr),
-                                _ => unreachable!("Invalid special register for JP HL/IX/IY"), // should never happen
-                            },
-                            _ => unreachable!("Invalid addressing mode for JP HL/IX/IY"), // should never happen
-                        };
+                        let addr = self.read_16(src);
                         self.PC = addr;
                     }
                     (true, 3) => {
@@ -1287,39 +1228,13 @@ impl Z80A {
                             addressing,
                         );
 
-                        let rp = match register_pair {
-                            AddressingMode::RegisterPair(rp) => self.main_set.get_pair(rp),
-                            AddressingMode::Special(SpecialRegister::IX) => {
-                                self.get_special_register(SpecialRegister::IX)
-                            }
-                            AddressingMode::Special(SpecialRegister::IY) => {
-                                self.get_special_register(SpecialRegister::IY)
-                            }
-                            _ => unreachable!("Invalid addressing mode for EX (SP), HL/IX/IY"), // should never happen
-                        };
+                        let rp = self.read_16(register_pair);
                         self.memory.borrow_mut().write(self.SP, (rp & 0xFF) as u8);
                         self.memory
                             .borrow_mut()
                             .write(self.SP.wrapping_add(1), (rp >> 8) as u8);
-                        if let AddressingMode::RegisterPair(rp) = register_pair {
-                            self.set_register_pair(rp, ((temp_h as u16) << 8) | (temp_l as u16));
-                        } else if let AddressingMode::Special(sr) = register_pair {
-                            match sr {
-                                SpecialRegister::IX => {
-                                    self.set_special_register(SpecialRegister::IXH, temp_h as u16);
-                                    self.set_special_register(SpecialRegister::IXL, temp_l as u16);
-                                }
-                                SpecialRegister::IY => {
-                                    self.set_special_register(SpecialRegister::IYH, temp_h as u16);
-                                    self.set_special_register(SpecialRegister::IYL, temp_l as u16);
-                                }
-                                _ => {
-                                    unreachable!("Invalid special register for EX (SP), HL/IX/IY.")
-                                } // should never happen
-                            }
-                        } else {
-                            unreachable!("Invalid addressing mode for EX (SP), HL/IX/IY."); // should never happen
-                        }
+
+                        self.write_16(register_pair, ((temp_h as u16) << 8) | (temp_l as u16));
                     }
                     5 => {
                         test_log!(self, "EX DE, HL");
@@ -1352,18 +1267,9 @@ impl Z80A {
                         test_log!(self, "PUSH rp2[p]");
                         let rp = self.table_rp2(p);
                         let src = self.transform_register(rp, addressing);
-                        let value = match src {
-                            AddressingMode::RegisterPair(rp) => self.get_register_pair(rp),
-                            AddressingMode::Special(SpecialRegister::IX) => {
-                                self.get_special_register(SpecialRegister::IX)
-                            },
-                            AddressingMode::Special(SpecialRegister::IY) => {
-                                self.get_special_register(SpecialRegister::IY)
-                            }
-                            _ => unreachable!("Invalid addressing mode for PUSH rp2[p]"), // should never happen
-                        };
+                        let value = self.read_16(src);
                         self.push(value);
-                    }, // TODO: PUSH rp2[p]
+                    } // TODO: PUSH rp2[p]
                     (true, 0) => {
                         // CALL nn
                         test_log!(self, "CALL nn");
@@ -1517,14 +1423,14 @@ impl Z80A {
                     0 => {
                         test_log!(self, "LD I, A");
                         self.ld(
-                            AddressingMode::Special(SpecialRegister::I),
+                            AddressingMode::System(SystemRegister::I),
                             AddressingMode::Register(GPR::A),
                         )
                     } //  LD I, A
                     1 => {
                         test_log!(self, "LD R, A");
                         self.ld(
-                            AddressingMode::Special(SpecialRegister::R),
+                            AddressingMode::System(SystemRegister::R),
                             AddressingMode::Register(GPR::A),
                         )
                     } //  LD R, A
@@ -1532,14 +1438,14 @@ impl Z80A {
                         test_log!(self, "LD A, I");
                         self.ld(
                             AddressingMode::Register(GPR::A),
-                            AddressingMode::Special(SpecialRegister::I),
+                            AddressingMode::System(SystemRegister::I),
                         )
                     } //  LD A, I
                     3 => {
                         test_log!(self, "LD A, R");
                         self.ld(
                             AddressingMode::Register(GPR::A),
-                            AddressingMode::Special(SpecialRegister::R),
+                            AddressingMode::System(SystemRegister::R),
                         )
                     } //  LD A, R
                     4 => test_log!(self, "RRD"),          // TODO: RRD
@@ -1669,66 +1575,13 @@ impl Z80A {
     // register ops
 
     fn ld(&mut self, dest: AddressingMode, src: AddressingMode) {
-        let value = match src {
-            AddressingMode::Register(r) => self.main_set.get_register(r),
-            AddressingMode::Immediate(n) => n,
-            AddressingMode::RegisterIndirect(rp) => {
-                let address = self.get_register_pair(rp);
-                self.memory.borrow().read(address)
-            }
-            AddressingMode::Absolute(address) => self.memory.borrow().read(address),
-            AddressingMode::Indexed(index, displacement) => {
-                let base = match index {
-                    IndexRegister::IX => self.IX,
-                    IndexRegister::IY => self.IY,
-                };
-                let address = base.wrapping_add_signed(displacement as i16);
-                self.memory.borrow().read(address)
-            }
-            AddressingMode::Special(reg) => self.get_special_register(reg) as u8,
-            _ => panic!("Unsupported source addressing mode for LD"),
-        };
-
-        match dest {
-            AddressingMode::Register(r) => self.main_set.set_register(r, value),
-            AddressingMode::RegisterIndirect(rp) => {
-                let address = self.get_register_pair(rp);
-                self.memory.borrow_mut().write(address, value)
-            }
-            AddressingMode::Absolute(address) => self.memory.borrow_mut().write(address, value),
-            AddressingMode::Indexed(index, displacement) => {
-                let base = match index {
-                    IndexRegister::IX => self.IX,
-                    IndexRegister::IY => self.IY,
-                };
-                let address = base.wrapping_add_signed(displacement as i16);
-                self.memory.borrow_mut().write(address, value)
-            }
-            AddressingMode::Special(reg) => self.set_special_register(reg, value as u16),
-            _ => panic!("Unsupported destination addressing mode for LD"),
-        }
+        let value = self.read_8(src);
+        self.write_8(dest, value);
     }
 
     fn ld_16(&mut self, dest: AddressingMode, src: AddressingMode) {
-        let value = match src {
-            AddressingMode::ImmediateExtended(nn) => nn,
-            AddressingMode::Absolute(nn) => self.memory.borrow().read_word(nn),
-            AddressingMode::RegisterPair(rp) => self.get_register_pair(rp),
-            AddressingMode::Special(SpecialRegister::IX) => self.IX,
-            AddressingMode::Special(SpecialRegister::IY) => self.IY,
-            _ => panic!("Unsupported source addressing mode for LD 16"),
-        };
-
-        match dest {
-            AddressingMode::RegisterPair(rp) => self.set_register_pair(rp, value),
-            AddressingMode::Absolute(addr) => {
-                self.memory.borrow_mut().write_word(addr, value);
-            }
-            AddressingMode::Special(SpecialRegister::IX) => self.IX = value,
-            AddressingMode::Special(SpecialRegister::IY) => self.IY = value,
-            AddressingMode::Special(SpecialRegister::SP) => self.SP = value,
-            _ => panic!("Unsupported destination addressing mode for LD 16"),
-        }
+        let value = self.read_16(src);
+        self.write_16(dest, value);
     }
 
     fn table_rot(&mut self, y: u8) -> RotOperation {
@@ -1772,14 +1625,7 @@ impl Z80A {
     fn rot(&mut self, y: u8, z: u8) {
         let operation = self.table_rot(y);
         let reg = self.table_r(z);
-        let value = match reg {
-            AddressingMode::Register(r) => self.main_set.get_register(r),
-            AddressingMode::RegisterIndirect(RegisterPair::HL) => {
-                let address = self.get_register_pair(RegisterPair::HL);
-                self.memory.borrow().read(address)
-            }
-            _ => panic!("Unsupported addressing mode for ROT"),
-        };
+        let value = self.read_8(reg);
 
         let (result, flags) = match operation {
             RotOperation::RLC => rot::rlc(value),
@@ -1792,25 +1638,11 @@ impl Z80A {
             RotOperation::SRL => rot::srl(value),
         };
         self.main_set.set_register(GPR::F, flags);
-        match reg {
-            AddressingMode::Register(r) => self.main_set.set_register(r, result),
-            AddressingMode::RegisterIndirect(RegisterPair::HL) => {
-                let address = self.get_register_pair(RegisterPair::HL);
-                self.memory.borrow_mut().write(address, result)
-            }
-            _ => panic!("Unsupported addressing mode for ROT"),
-        }
+        self.write_8(reg, result);
     }
 
     fn bit(&mut self, y: u8, reg: AddressingMode) {
-        let value = match reg {
-            AddressingMode::Register(r) => self.main_set.get_register(r),
-            AddressingMode::RegisterIndirect(RegisterPair::HL) => {
-                let address = self.get_register_pair(RegisterPair::HL);
-                self.memory.borrow().read(address)
-            }
-            _ => panic!("Unsupported addressing mode for BIT"),
-        };
+        let value = self.read_8(reg);
 
         let prev_c = self.main_set.get_flag(Flag::C);
         self.set_register(GPR::F, bit(value, y));
@@ -1819,47 +1651,15 @@ impl Z80A {
     }
 
     fn res(&mut self, y: u8, reg: AddressingMode) {
-        let value = match reg {
-            AddressingMode::Register(r) => self.main_set.get_register(r),
-            AddressingMode::RegisterIndirect(RegisterPair::HL) => {
-                let address = self.get_register_pair(RegisterPair::HL);
-                self.memory.borrow().read(address)
-            }
-            _ => panic!("Unsupported addressing mode for RES"),
-        };
-
+        let value = self.read_8(reg);
         let result = res(value, y);
-
-        match reg {
-            AddressingMode::Register(r) => self.main_set.set_register(r, result),
-            AddressingMode::RegisterIndirect(RegisterPair::HL) => {
-                let address = self.get_register_pair(RegisterPair::HL);
-                self.memory.borrow_mut().write(address, result)
-            }
-            _ => panic!("Unsupported addressing mode for RES"),
-        }
+        self.write_8(reg, result);
     }
 
     fn set(&mut self, y: u8, reg: AddressingMode) {
-        let value = match reg {
-            AddressingMode::Register(r) => self.main_set.get_register(r),
-            AddressingMode::RegisterIndirect(RegisterPair::HL) => {
-                let address = self.get_register_pair(RegisterPair::HL);
-                self.memory.borrow().read(address)
-            }
-            _ => panic!("Unsupported addressing mode for SET"),
-        };
-
+        let value = self.read_8(reg);
         let result = set(value, y);
-
-        match reg {
-            AddressingMode::Register(r) => self.main_set.set_register(r, result),
-            AddressingMode::RegisterIndirect(RegisterPair::HL) => {
-                let address = self.get_register_pair(RegisterPair::HL);
-                self.memory.borrow_mut().write(address, result)
-            }
-            _ => panic!("Unsupported addressing mode for SET"),
-        }
+        self.write_8(reg, result);
     }
 
     fn daa(&mut self) {
@@ -1907,7 +1707,8 @@ impl Z80A {
 
         self.set_register(GPR::A, a);
 
-        self.main_set.set_flag((a & flags::SIGN) == flags::SIGN, Flag::S);
+        self.main_set
+            .set_flag((a & flags::SIGN) == flags::SIGN, Flag::S);
         self.main_set.set_flag(a == 0, Flag::Z);
         self.main_set.set_flag(a.count_ones() % 2 == 0, Flag::PV);
         self.main_set.set_flag((a & flags::X) == flags::X, Flag::X);

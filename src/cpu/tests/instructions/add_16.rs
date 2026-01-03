@@ -1,5 +1,5 @@
 use crate::cpu::tests::setup_cpu;
-use crate::cpu::{AddressingMode, RegisterPair, SpecialRegister, SyncronousComponent};
+use crate::cpu::{AddressingMode, IndexRegister, RegisterPair, SyncronousComponent};
 use rstest::rstest;
 
 #[rstest]
@@ -57,7 +57,7 @@ use rstest::rstest;
 // ADD IX, BC
 #[case::add_ix_bc(
     0x09,
-    AddressingMode::Special(SpecialRegister::IX),
+    AddressingMode::IndexRegister(IndexRegister::IX),
     0x1000,
     AddressingMode::RegisterPair(RegisterPair::BC),
     0x2000,
@@ -89,24 +89,24 @@ fn test_add_16(
     // Setup registers
     match dest {
         AddressingMode::RegisterPair(rp) => cpu.set_register_pair(rp, initial_dest_val),
-        AddressingMode::Special(r) => cpu.set_special_register(r, initial_dest_val),
+        AddressingMode::IndexRegister(r) => cpu.set_index_register(r, initial_dest_val),
         _ => panic!("Invalid dest setup"),
     }
 
     match src {
         AddressingMode::RegisterPair(rp) => cpu.set_register_pair(rp, initial_src_val),
-        AddressingMode::Special(r) => cpu.set_special_register(r, initial_src_val),
+        AddressingMode::IndexRegister(r) => cpu.set_index_register(r, initial_src_val),
         _ => panic!("Invalid src setup"),
     }
 
     // Handle prefixes for IX/IY
     let mut pc_offset = 0;
     match dest {
-        AddressingMode::Special(SpecialRegister::IX) => {
+        AddressingMode::IndexRegister(IndexRegister::IX) => {
             cpu.memory.borrow_mut().write(0x0000, 0xDD);
             pc_offset = 1;
         }
-        AddressingMode::Special(SpecialRegister::IY) => {
+        AddressingMode::IndexRegister(IndexRegister::IY) => {
             cpu.memory.borrow_mut().write(0x0000, 0xFD);
             pc_offset = 1;
         }
@@ -125,7 +125,7 @@ fn test_add_16(
 
     let result_val = match dest {
         AddressingMode::RegisterPair(rp) => cpu.get_register_pair(rp),
-        AddressingMode::Special(r) => cpu.get_special_register(r),
+        AddressingMode::IndexRegister(r) => cpu.get_index_register(r),
         _ => panic!("Invalid dest check"),
     };
 

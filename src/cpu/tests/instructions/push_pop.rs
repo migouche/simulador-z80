@@ -107,7 +107,6 @@ fn test_pop(
     0x1FFE,           // expected_sp
     &[(0x1FFF, 0x12), (0x1FFE, 0x34)] // expected_mem (Addr, Val)
 )]
-
 // Case 2: PUSH HL with Address Wrapping (The "Zero Boundary")
 // SP starts at 0x0001.
 // 1. SP -> 0x0000: Writes High Byte (0xAA)
@@ -120,7 +119,6 @@ fn test_pop(
     0xFFFF,
     &[(0x0000, 0xAA), (0xFFFF, 0xBB)]
 )]
-
 // Case 3: PUSH AF (Verifying Flags)
 // AF = 0x55FF.
 // A = 0x55, F = 0xFF.
@@ -132,7 +130,6 @@ fn test_pop(
     0x3FFE,
     &[(0x3FFF, 0x55), (0x3FFE, 0xFF)]
 )]
-
 // Case 4: PUSH DE at the very top of memory
 // SP starts at 0x0000.
 // 1. SP -> 0xFFFF: Writes High Byte (0xDE)

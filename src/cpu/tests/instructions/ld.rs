@@ -232,42 +232,64 @@ fn test_absolute_register_pair(#[case] addr: u16, #[case] value: u16) {
 
 #[rstest]
 // ED TABLE
-#[case::ld_i_a(SpecialRegister::I, SpecialRegister::A)] // ld I, A
-#[case::ld_a_i(SpecialRegister::A, SpecialRegister::I)] // ld A, I
-#[case::ld_r_a(SpecialRegister::R, SpecialRegister::A)] // ld R, A
-#[case::ld_a_r(SpecialRegister::A, SpecialRegister::R)] // ld A, R
-fn test_special_register_special_register(
-    #[case] dest: SpecialRegister,
-    #[case] src: SpecialRegister,
-) {
+#[case::ld_i_a(
+    AddressingMode::System(SystemRegister::I),
+    AddressingMode::Register(GPR::A)
+)] // ld I, A
+#[case::ld_a_i(
+    AddressingMode::Register(GPR::A),
+    AddressingMode::System(SystemRegister::I)
+)] // ld A, I
+#[case::ld_r_a(
+    AddressingMode::System(SystemRegister::R),
+    AddressingMode::Register(GPR::A)
+)] // ld R, A
+#[case::ld_a_r(
+    AddressingMode::Register(GPR::A),
+    AddressingMode::System(SystemRegister::R)
+)] // ld A, R
+fn test_ld_system_gpr(#[case] dest: AddressingMode, #[case] src: AddressingMode) {
     let mut cpu = setup_cpu();
-    cpu.set_special_register(src, 0x42);
-    cpu.ld(AddressingMode::Special(dest), AddressingMode::Special(src));
-    assert_eq!(cpu.get_special_register(dest), 0x42);
-}
-#[rstest]
-// DD TABLE
-#[case::ld_ixh_n(SpecialRegister::IXH, 0x34)] // ld IXH, n
-#[case::ld_ixl_n(SpecialRegister::IXL, 0x12)] // ld IXL, n
-fn test_special_register_immediate(#[case] dest: SpecialRegister, #[case] value: u8) {
-    let mut cpu = setup_cpu();
-    cpu.ld(
-        AddressingMode::Special(dest),
-        AddressingMode::Immediate(value),
-    );
-    assert_eq!(cpu.get_special_register(dest) as u8, value);
+    // Set src value
+    match src {
+        AddressingMode::Register(r) => cpu.set_register(r, 0x42),
+        AddressingMode::System(r) => cpu.set_system_register(r, 0x42),
+        _ => panic!("Invalid src"),
+    }
+
+    cpu.ld(dest, src);
+
+    // Check dest value
+    match dest {
+        AddressingMode::Register(r) => assert_eq!(cpu.get_register(r), 0x42),
+        AddressingMode::System(r) => assert_eq!(cpu.get_system_register(r), 0x42),
+        _ => panic!("Invalid dest"),
+    }
 }
 
 #[rstest]
 // DD TABLE
-#[case::ld_ix_nn(SpecialRegister::IX, 0x3412)] // ld IX, (nn)
-fn test_special_register_immediate_extended(#[case] dest: SpecialRegister, #[case] value: u16) {
+#[case::ld_ixh_n(IndexRegisterPart::IXH, 0x34)] // ld IXH, n
+#[case::ld_ixl_n(IndexRegisterPart::IXL, 0x12)] // ld IXL, n
+fn test_index_part_immediate(#[case] dest: IndexRegisterPart, #[case] value: u8) {
+    let mut cpu = setup_cpu();
+    cpu.ld(
+        AddressingMode::IndexRegisterPart(dest),
+        AddressingMode::Immediate(value),
+    );
+    assert_eq!(cpu.get_index_register_part(dest), value);
+}
+
+#[rstest]
+// DD TABLE
+#[case::ld_ix_nn(IndexRegister::IX, 0x3412)] // ld IX, (nn)
+fn test_index_register_immediate_extended(#[case] dest: IndexRegister, #[case] value: u16) {
     let mut cpu = setup_cpu();
     cpu.ld_16(
-        AddressingMode::Special(dest),
+        AddressingMode::IndexRegister(dest),
         AddressingMode::ImmediateExtended(value),
     );
-    assert_eq!(cpu.get_special_register(dest), value);
+    assert_eq!(cpu.get_index_register(dest), value);
 }
 
 #[rstest]
@@ -285,34 +307,32 @@ fn test_indexed_immediate(#[case] base: IndexRegister, #[case] addr: u16, #[case
 
 #[rstest]
 // DD TABLE
-#[case::ld_b_ixh(GPR::B, SpecialRegister::IXH, 0x12)] // ld B, IXH
-#[case::ld_b_ixl(GPR::B, SpecialRegister::IXL, 0x34)] // ld B, IXL
-#[case::ld_c_ixh(GPR::C, SpecialRegister::IXH, 0x12)] // ld C, IXH
-#[case::ld_c_ixl(GPR::C, SpecialRegister::IXL, 0x34)] // ld C, IXL
+#[case::ld_b_ixh(GPR::B, IndexRegisterPart::IXH, 0x12)] // ld B, IXH
+#[case::ld_b_ixl(GPR::B, IndexRegisterPart::IXL, 0x34)] // ld B, IXL
+#[case::ld_c_ixh(GPR::C, IndexRegisterPart::IXH, 0x12)] // ld C, IXH
+#[case::ld_c_ixl(GPR::C, IndexRegisterPart::IXL, 0x34)] // ld C, IXL
 
-fn test_register_special_register(
-    #[case] dest: GPR,
-    #[case] src: SpecialRegister,
-    #[case] value: u8,
-) {
+fn test_register_index_part(#[case] dest: GPR, #[case] src: IndexRegisterPart, #[case] value: u8) {
     let mut cpu = setup_cpu();
-    cpu.set_special_register(src, value as u16);
-    cpu.ld(AddressingMode::Register(dest), AddressingMode::Special(src));
+    cpu.set_index_register_part(src, value);
+    cpu.ld(
+        AddressingMode::Register(dest),
+        AddressingMode::IndexRegisterPart(src),
+    );
     assert_eq!(cpu.get_register(dest), value);
 }
 
 #[rstest]
 // DD TABLE
-#[case::ld_ixh_b(SpecialRegister::IXH, GPR::B, 0x34)] // ld IXH, B
-fn test_special_register_register(
-    #[case] dest: SpecialRegister,
-    #[case] src: GPR,
-    #[case] value: u8,
-) {
+#[case::ld_ixh_b(IndexRegisterPart::IXH, GPR::B, 0x34)] // ld IXH, B
+fn test_index_part_register(#[case] dest: IndexRegisterPart, #[case] src: GPR, #[case] value: u8) {
     let mut cpu = setup_cpu();
     cpu.set_register(src, value);
-    cpu.ld(AddressingMode::Special(dest), AddressingMode::Register(src));
-    assert_eq!(cpu.get_special_register(dest) as u8, value);
+    cpu.ld(
+        AddressingMode::IndexRegisterPart(dest),
+        AddressingMode::Register(src),
+    );
+    assert_eq!(cpu.get_index_register_part(dest), value);
 }
 
 #[rstest]
