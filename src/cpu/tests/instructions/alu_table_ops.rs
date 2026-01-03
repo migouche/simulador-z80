@@ -754,7 +754,7 @@ fn test_alu_op(
     let mut cpu = setup_cpu();
     cpu.PC = pc;
     cpu.set_register(crate::cpu::GPR::A, initial_a);
-    cpu.main_set.set_flag(initial_carry, crate::cpu::Flag::C);
+    cpu.set_flag(initial_carry, crate::cpu::Flag::C);
 
     match initial_b_src {
         AddressingMode::Immediate(_) => {
@@ -775,7 +775,7 @@ fn test_alu_op(
     cpu.tick();
 
     let result_a = cpu.get_register(crate::cpu::GPR::A);
-    let result_flags = cpu.main_set.F;
+    let result_flags = cpu.get_register(GPR::F);
 
     assert_eq!(
         result_a, expected_a,

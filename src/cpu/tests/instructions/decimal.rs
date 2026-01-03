@@ -97,9 +97,9 @@ fn test_daa_instruction(
 
     // Setup initial state
     cpu.set_register(GPR::A, initial_a);
-    cpu.main_set.set_flag(n_flag, Flag::N);
-    cpu.main_set.set_flag(h_flag, Flag::H);
-    cpu.main_set.set_flag(c_flag, Flag::C);
+    cpu.set_flag(n_flag, Flag::N);
+    cpu.set_flag(h_flag, Flag::H);
+    cpu.set_flag(c_flag, Flag::C);
 
     // Execute DAA
     cpu.tick();
@@ -126,30 +126,14 @@ fn test_daa_instruction(
         n_flag, expected_n
     );
 
-    assert_eq!(
-        cpu.main_set.get_flag(Flag::C),
-        expected_c,
-        "C flag mismatch"
-    );
-    assert_eq!(
-        cpu.main_set.get_flag(Flag::H),
-        expected_h,
-        "H flag mismatch"
-    );
-    assert_eq!(
-        cpu.main_set.get_flag(Flag::N),
-        expected_n,
-        "N flag mismatch"
-    );
+    assert_eq!(cpu.get_flag(Flag::C), expected_c, "C flag mismatch");
+    assert_eq!(cpu.get_flag(Flag::H), expected_h, "H flag mismatch");
+    assert_eq!(cpu.get_flag(Flag::N), expected_n, "N flag mismatch");
 
     // Check standard flags
+    assert_eq!(cpu.get_flag(Flag::Z), result_a == 0, "Z flag mismatch");
     assert_eq!(
-        cpu.main_set.get_flag(Flag::Z),
-        result_a == 0,
-        "Z flag mismatch"
-    );
-    assert_eq!(
-        cpu.main_set.get_flag(Flag::S),
+        cpu.get_flag(Flag::S),
         (result_a & 0x80) != 0,
         "S flag mismatch"
     );

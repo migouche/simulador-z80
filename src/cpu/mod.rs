@@ -40,8 +40,7 @@ mod flags {
     pub const SIGN: u8 = 0b10000000;
 }
 
-#[derive(PartialEq, Clone, Copy)]
-#[cfg_attr(test, derive(Debug))]
+#[derive(PartialEq, Clone, Copy, Debug)]
 enum GPR {
     A,
     F,
@@ -53,8 +52,7 @@ enum GPR {
     L,
 }
 
-#[derive(PartialEq, Clone, Copy)]
-#[cfg_attr(test, derive(Debug))]
+#[derive(PartialEq, Clone, Copy, Debug)]
 enum RegisterPair {
     BC,
     DE,
@@ -63,51 +61,8 @@ enum RegisterPair {
     SP,
 }
 
-#[derive(PartialEq, Clone, Copy)]
-enum RegSet {
-    Main,
-    Alt,
-}
-
-#[derive(PartialEq, Clone, Copy)]
-#[cfg_attr(test, derive(Debug))]
-enum IndexRegister {
-    IX,
-    IY,
-}
-
 #[derive(PartialEq, Clone, Copy, Debug)]
-enum SystemRegister {
-    I,
-    R,
-    PC,
-}
-
-#[derive(PartialEq, Clone, Copy, Debug)]
-enum IndexRegisterPart {
-    IXH,
-    IXL,
-    IYH,
-    IYL,
-}
-
-#[derive(PartialEq, Clone, Copy)]
-#[cfg_attr(test, derive(Debug))] // For easier debugging in tests
-enum AddressingMode {
-    Immediate(u8),
-    ImmediateExtended(u16),
-    Absolute(u16),
-    Indexed(IndexRegister, i8),
-    Register(GPR),
-    RegisterPair(RegisterPair),
-    RegisterIndirect(RegisterPair),
-    IndexRegister(IndexRegister),
-    System(SystemRegister),
-    IndexRegisterPart(IndexRegisterPart),
-}
-
-#[derive(PartialEq, Clone, Copy)]
-enum Flag {
+pub enum Flag {
     C,
     N,
     PV,
@@ -118,25 +73,42 @@ enum Flag {
     S,
 }
 
-#[derive(Clone, Copy)]
-#[cfg_attr(test, derive(Debug))]
-enum PrefixAddressing {
-    HL, // HL, H, L
-    IX, // IX, IXH, IXL
-    IY, // IY, IYH, IYL
+#[derive(PartialEq, Clone, Copy, Debug)]
+enum SystemRegister {
+    PC,
+    I,
+    R,
 }
 
-enum ALUOperation {
-    ADD,
-    ADC,
-    SUB,
-    SBC,
-    AND,
-    OR,
-    XOR,
-    CP,
+#[derive(PartialEq, Clone, Copy, Debug)]
+enum IndexRegister {
+    IX,
+    IY,
 }
 
+#[derive(PartialEq, Clone, Copy, Debug)]
+enum IndexRegisterPart {
+    IXH,
+    IXL,
+    IYH,
+    IYL,
+}
+
+#[derive(PartialEq, Clone, Copy, Debug)]
+enum AddressingMode {
+    Register(GPR),
+    RegisterIndirect(RegisterPair),
+    Indexed(IndexRegister, i8),
+    Immediate(u8),
+    Absolute(u16),
+    System(SystemRegister),
+    IndexRegisterPart(IndexRegisterPart),
+    RegisterPair(RegisterPair),
+    IndexRegister(IndexRegister),
+    ImmediateExtended(u16),
+}
+
+#[derive(PartialEq, Clone, Copy, Debug)]
 enum Condition {
     NZ,
     Z,
@@ -148,121 +120,39 @@ enum Condition {
     M,
 }
 
-struct RegisterSet {
-    // z80 has two register sets, so doing this for easier access
-    pub A: u8,
-    pub F: u8,
-    pub B: u8,
-    pub C: u8,
-    pub D: u8,
-    pub E: u8,
-    pub H: u8,
-    pub L: u8,
+#[derive(PartialEq, Clone, Copy, Debug)]
+enum PrefixAddressing {
+    HL,
+    IX,
+    IY,
 }
 
-impl RegisterSet {
-    pub fn get_register(&self, reg: GPR) -> u8 {
-        match reg {
-            GPR::A => self.A,
-            GPR::F => self.F,
-            GPR::B => self.B,
-            GPR::C => self.C,
-            GPR::D => self.D,
-            GPR::E => self.E,
-            GPR::H => self.H,
-            GPR::L => self.L,
-        }
-    }
+#[derive(PartialEq, Clone, Copy, Debug)]
+enum ALUOperation {
+    ADD,
+    ADC,
+    SUB,
+    SBC,
+    AND,
+    XOR,
+    OR,
+    CP,
+}
 
-    pub fn set_register(&mut self, reg: GPR, value: u8) {
-        match reg {
-            GPR::A => self.A = value,
-            GPR::F => self.F = value,
-            GPR::B => self.B = value,
-            GPR::C => self.C = value,
-            GPR::D => self.D = value,
-            GPR::E => self.E = value,
-            GPR::H => self.H = value,
-            GPR::L => self.L = value,
-        }
-    }
+#[derive(Default, Clone, Copy, Debug)]
+struct AFSet {
+    a: u8,
+    f: u8,
+}
 
-    pub fn get_pair(&self, pair: RegisterPair) -> u16 {
-        match pair {
-            RegisterPair::AF => ((self.A as u16) << 8) | (self.F as u16),
-            RegisterPair::BC => ((self.B as u16) << 8) | (self.C as u16),
-            RegisterPair::DE => ((self.D as u16) << 8) | (self.E as u16),
-            RegisterPair::HL => ((self.H as u16) << 8) | (self.L as u16),
-            RegisterPair::SP => panic!("SP is not part of RegisterSet"),
-        }
-    }
-
-    pub fn set_pair(&mut self, pair: RegisterPair, value: u16) {
-        match pair {
-            RegisterPair::AF => {
-                self.A = (value >> 8) as u8;
-                self.F = (value & 0xFF) as u8;
-            }
-            RegisterPair::BC => {
-                self.B = (value >> 8) as u8;
-                self.C = (value & 0xFF) as u8;
-            }
-            RegisterPair::DE => {
-                self.D = (value >> 8) as u8;
-                self.E = (value & 0xFF) as u8;
-            }
-            RegisterPair::HL => {
-                self.H = (value >> 8) as u8;
-                self.L = (value & 0xFF) as u8;
-            }
-            RegisterPair::SP => panic!("SP is not part of RegisterSet"),
-        }
-    }
-
-    pub fn get_flag(&self, flag: Flag) -> bool {
-        let f = self.F;
-        match flag {
-            Flag::C => f & flags::CARRY != 0,
-            Flag::N => f & flags::ADD_SUB != 0,
-            Flag::PV => f & flags::PARITY_OVERFLOW != 0,
-            Flag::Y => f & flags::X != 0,
-            Flag::H => f & flags::HALF_CARRY != 0,
-            Flag::X => f & flags::Y != 0,
-            Flag::Z => f & flags::ZERO != 0,
-            Flag::S => f & flags::SIGN != 0,
-        }
-    }
-
-    pub fn set_flag(&mut self, value: bool, flag: Flag) {
-        let f = &mut self.F;
-        if value {
-            match flag {
-                Flag::C => *f |= flags::CARRY,
-                Flag::N => *f |= flags::ADD_SUB,
-                Flag::PV => *f |= flags::PARITY_OVERFLOW,
-                Flag::Y => *f |= flags::X,
-                Flag::H => *f |= flags::HALF_CARRY,
-                Flag::X => *f |= flags::Y,
-                Flag::Z => *f |= flags::ZERO,
-                Flag::S => *f |= flags::SIGN,
-            }
-        } else {
-            match flag {
-                Flag::C => *f &= !flags::CARRY,
-                Flag::N => *f &= !flags::ADD_SUB,
-                Flag::PV => *f &= !flags::PARITY_OVERFLOW,
-                Flag::Y => *f &= !flags::X,
-                Flag::H => *f &= !flags::HALF_CARRY,
-                Flag::X => *f &= !flags::Y,
-                Flag::Z => *f &= !flags::ZERO,
-                Flag::S => *f &= !flags::SIGN,
-            }
-        }
-    }
-
-    pub fn get_flag_i(&self, usize: usize) -> bool {
-        self.F & (1 << usize) != 0
-    }
+#[derive(Default, Clone, Copy, Debug)]
+struct GeneralSet {
+    b: u8,
+    c: u8,
+    d: u8,
+    e: u8,
+    h: u8,
+    l: u8,
 }
 
 fn decode_opcode(opcode: u8) -> (u8, u8, u8, u8, bool) // x, y, z, p, q
@@ -283,8 +173,11 @@ fn decode_opcode(opcode: u8) -> (u8, u8, u8, u8, bool) // x, y, z, p, q
 
 pub struct Z80A {
     // registers
-    main_set: RegisterSet,
-    alt_set: RegisterSet,
+    af_registers: [AFSet; 2],
+    active_af: usize,
+
+    general_registers: [GeneralSet; 2],
+    active_general: usize,
 
     // special registers
     PC: u16,
@@ -308,26 +201,10 @@ pub struct Z80A {
 impl Z80A {
     pub fn new(memory: Rc<RefCell<dyn MemoryMapper>>) -> Self {
         Z80A {
-            main_set: RegisterSet {
-                A: 0,
-                F: 0,
-                B: 0,
-                C: 0,
-                D: 0,
-                E: 0,
-                H: 0,
-                L: 0,
-            },
-            alt_set: RegisterSet {
-                A: 0,
-                F: 0,
-                B: 0,
-                C: 0,
-                D: 0,
-                E: 0,
-                H: 0,
-                L: 0,
-            },
+            af_registers: [AFSet::default(); 2],
+            active_af: 0,
+            general_registers: [GeneralSet::default(); 2],
+            active_general: 0,
             PC: 0,
             SP: 0,
             IX: 0,
@@ -361,37 +238,131 @@ impl Z80A {
         self.fetch() as i8
     }
 
-    fn swap_registers(
-        &mut self,
-        origin: RegisterPair,
-        origin_set: RegSet,
-        dest: RegisterPair,
-        dest_set: RegSet,
-    ) {
-        let origin_value = match origin_set {
-            RegSet::Main => self.main_set.get_pair(origin),
-            RegSet::Alt => self.alt_set.get_pair(origin),
-        };
+    fn ex_af_af_prime(&mut self) {
+        self.active_af = 1 - self.active_af;
+    }
 
-        match dest_set {
-            RegSet::Main => self.main_set.set_pair(dest, origin_value),
-            RegSet::Alt => self.alt_set.set_pair(dest, origin_value),
-        }
+    fn exx(&mut self) {
+        self.active_general = 1 - self.active_general;
     }
 
     fn set_register(&mut self, reg: GPR, value: u8) {
-        self.main_set.set_register(reg, value);
+        match reg {
+            GPR::A => self.af_registers[self.active_af].a = value,
+            GPR::F => self.af_registers[self.active_af].f = value,
+            GPR::B => self.general_registers[self.active_general].b = value,
+            GPR::C => self.general_registers[self.active_general].c = value,
+            GPR::D => self.general_registers[self.active_general].d = value,
+            GPR::E => self.general_registers[self.active_general].e = value,
+            GPR::H => self.general_registers[self.active_general].h = value,
+            GPR::L => self.general_registers[self.active_general].l = value,
+        }
     }
 
     fn get_register(&self, reg: GPR) -> u8 {
-        self.main_set.get_register(reg)
+        match reg {
+            GPR::A => self.af_registers[self.active_af].a,
+            GPR::F => self.af_registers[self.active_af].f,
+            GPR::B => self.general_registers[self.active_general].b,
+            GPR::C => self.general_registers[self.active_general].c,
+            GPR::D => self.general_registers[self.active_general].d,
+            GPR::E => self.general_registers[self.active_general].e,
+            GPR::H => self.general_registers[self.active_general].h,
+            GPR::L => self.general_registers[self.active_general].l,
+        }
     }
 
     fn get_register_pair(&self, pair: RegisterPair) -> u16 {
         match pair {
+            RegisterPair::AF => {
+                let regs = &self.af_registers[self.active_af];
+                ((regs.a as u16) << 8) | (regs.f as u16)
+            }
+            RegisterPair::BC => {
+                let regs = &self.general_registers[self.active_general];
+                ((regs.b as u16) << 8) | (regs.c as u16)
+            }
+            RegisterPair::DE => {
+                let regs = &self.general_registers[self.active_general];
+                ((regs.d as u16) << 8) | (regs.e as u16)
+            }
+            RegisterPair::HL => {
+                let regs = &self.general_registers[self.active_general];
+                ((regs.h as u16) << 8) | (regs.l as u16)
+            }
             RegisterPair::SP => self.SP,
-            _ => self.main_set.get_pair(pair),
         }
+    }
+
+    fn set_register_pair(&mut self, pair: RegisterPair, value: u16) {
+        match pair {
+            RegisterPair::AF => {
+                let regs = &mut self.af_registers[self.active_af];
+                regs.a = (value >> 8) as u8;
+                regs.f = (value & 0xFF) as u8;
+            }
+            RegisterPair::BC => {
+                let regs = &mut self.general_registers[self.active_general];
+                regs.b = (value >> 8) as u8;
+                regs.c = (value & 0xFF) as u8;
+            }
+            RegisterPair::DE => {
+                let regs = &mut self.general_registers[self.active_general];
+                regs.d = (value >> 8) as u8;
+                regs.e = (value & 0xFF) as u8;
+            }
+            RegisterPair::HL => {
+                let regs = &mut self.general_registers[self.active_general];
+                regs.h = (value >> 8) as u8;
+                regs.l = (value & 0xFF) as u8;
+            }
+            RegisterPair::SP => self.SP = value,
+        }
+    }
+
+    pub fn get_flag(&self, flag: Flag) -> bool {
+        let f = self.af_registers[self.active_af].f;
+        match flag {
+            Flag::C => f & flags::CARRY != 0,
+            Flag::N => f & flags::ADD_SUB != 0,
+            Flag::PV => f & flags::PARITY_OVERFLOW != 0,
+            Flag::Y => f & flags::X != 0,
+            Flag::H => f & flags::HALF_CARRY != 0,
+            Flag::X => f & flags::Y != 0,
+            Flag::Z => f & flags::ZERO != 0,
+            Flag::S => f & flags::SIGN != 0,
+        }
+    }
+
+    pub fn set_flag(&mut self, value: bool, flag: Flag) {
+        let f = &mut self.af_registers[self.active_af].f;
+        if value {
+            match flag {
+                Flag::C => *f |= flags::CARRY,
+                Flag::N => *f |= flags::ADD_SUB,
+                Flag::PV => *f |= flags::PARITY_OVERFLOW,
+                Flag::Y => *f |= flags::X,
+                Flag::H => *f |= flags::HALF_CARRY,
+                Flag::X => *f |= flags::Y,
+                Flag::Z => *f |= flags::ZERO,
+                Flag::S => *f |= flags::SIGN,
+            }
+        } else {
+            match flag {
+                Flag::C => *f &= !flags::CARRY,
+                Flag::N => *f &= !flags::ADD_SUB,
+                Flag::PV => *f &= !flags::PARITY_OVERFLOW,
+                Flag::Y => *f &= !flags::X,
+                Flag::H => *f &= !flags::HALF_CARRY,
+                Flag::X => *f &= !flags::Y,
+                Flag::Z => *f &= !flags::ZERO,
+                Flag::S => *f &= !flags::SIGN,
+            }
+        }
+    }
+
+    pub fn get_flag_i(&self, usize: usize) -> bool {
+        self.af_registers[self.active_af].f & (1 << usize) != 0
     }
 
     fn set_system_register(&mut self, reg: SystemRegister, value: u16) {
@@ -485,13 +456,6 @@ impl Z80A {
             AddressingMode::System(r) => self.set_system_register(r, value),
             AddressingMode::Absolute(addr) => self.memory.borrow_mut().write_word(addr, value),
             _ => panic!("Invalid addressing mode for write_16."),
-        }
-    }
-
-    fn set_register_pair(&mut self, pair: RegisterPair, value: u16) {
-        match pair {
-            RegisterPair::SP => self.SP = value,
-            _ => self.main_set.set_pair(pair, value),
         }
     }
 
@@ -603,44 +567,44 @@ impl Z80A {
             ALUOperation::ADD => {
                 let (result, flags) = alu_op::add(self.get_register(GPR::A), value, false);
                 self.set_register(GPR::A, result);
-                self.main_set.F = flags;
+                self.af_registers[self.active_af].f = flags;
             }
             ALUOperation::ADC => {
-                let carry = self.main_set.get_flag(Flag::C);
+                let carry = self.get_flag(Flag::C);
                 let (result, flags) = alu_op::add(self.get_register(GPR::A), value, carry);
                 self.set_register(GPR::A, result);
-                self.main_set.F = flags;
+                self.af_registers[self.active_af].f = flags;
             }
             ALUOperation::SUB => {
                 let (result, flags) = alu_op::sub(self.get_register(GPR::A), value, false);
                 self.set_register(GPR::A, result);
-                self.main_set.F = flags;
+                self.af_registers[self.active_af].f = flags;
             }
             ALUOperation::SBC => {
-                let carry = self.main_set.get_flag(Flag::C);
+                let carry = self.get_flag(Flag::C);
                 let (result, flags) = alu_op::sub(self.get_register(GPR::A), value, carry);
                 self.set_register(GPR::A, result);
-                self.main_set.F = flags;
+                self.af_registers[self.active_af].f = flags;
             }
             ALUOperation::AND => {
                 let (result, flags) = alu_op::and(self.get_register(GPR::A), value);
                 self.set_register(GPR::A, result);
-                self.main_set.F = flags;
+                self.af_registers[self.active_af].f = flags;
             }
             ALUOperation::OR => {
                 let (result, flags) = alu_op::or(self.get_register(GPR::A), value);
                 self.set_register(GPR::A, result);
-                self.main_set.F = flags;
+                self.af_registers[self.active_af].f = flags;
             }
             ALUOperation::XOR => {
                 let (result, flags) = alu_op::xor(self.get_register(GPR::A), value);
                 self.set_register(GPR::A, result);
-                self.main_set.F = flags;
+                self.af_registers[self.active_af].f = flags;
             }
             ALUOperation::CP => {
                 let (_, flags) = alu_op::sub(self.get_register(GPR::A), value, false);
                 // result is ignored for CP
-                self.main_set.F = flags;
+                self.af_registers[self.active_af].f = flags;
             }
         }
     }
@@ -650,8 +614,8 @@ impl Z80A {
         let (result, flags) = inc(value);
 
         // Preserve Carry flag
-        let current_carry = self.main_set.get_flag(Flag::C) as u8;
-        self.main_set.F = flags | current_carry;
+        let current_carry = self.get_flag(Flag::C) as u8;
+        self.af_registers[self.active_af].f = flags | current_carry;
 
         self.write_8(dest, result);
     }
@@ -661,8 +625,8 @@ impl Z80A {
         let (result, flags) = dec(value);
 
         // Preserve Carry flag
-        let current_carry = self.main_set.F & flags::CARRY;
-        self.main_set.F = flags | current_carry;
+        let current_carry = self.af_registers[self.active_af].f & flags::CARRY;
+        self.af_registers[self.active_af].f = flags | current_carry;
 
         self.write_8(dest, result);
     }
@@ -683,8 +647,8 @@ impl Z80A {
         let val_dest = self.read_16(dest);
         let val_src = self.read_16(src);
 
-        let (result, flags) = add_16(val_dest, val_src, self.main_set.F);
-        self.main_set.F = flags;
+        let (result, flags) = add_16(val_dest, val_src, self.af_registers[self.active_af].f);
+        self.af_registers[self.active_af].f = flags;
 
         self.write_16(dest, result);
     }
@@ -821,14 +785,14 @@ impl Z80A {
 
     fn evaluate_condition(&mut self, condition: Condition) -> bool {
         match condition {
-            Condition::NZ => !self.main_set.get_flag(Flag::Z),
-            Condition::Z => self.main_set.get_flag(Flag::Z),
-            Condition::NC => !self.main_set.get_flag(Flag::C),
-            Condition::C => self.main_set.get_flag(Flag::C),
-            Condition::PO => !self.main_set.get_flag(Flag::PV),
-            Condition::PE => self.main_set.get_flag(Flag::PV),
-            Condition::P => !self.main_set.get_flag(Flag::S),
-            Condition::M => self.main_set.get_flag(Flag::S),
+            Condition::NZ => !self.get_flag(Flag::Z),
+            Condition::Z => self.get_flag(Flag::Z),
+            Condition::NC => !self.get_flag(Flag::C),
+            Condition::C => self.get_flag(Flag::C),
+            Condition::PO => !self.get_flag(Flag::PV),
+            Condition::PE => self.get_flag(Flag::PV),
+            Condition::P => !self.get_flag(Flag::S),
+            Condition::M => self.get_flag(Flag::S),
         }
     }
 
@@ -849,12 +813,7 @@ impl Z80A {
 
                     1 => {
                         test_log!(self, "EX AF, AF'");
-                        self.swap_registers(
-                            RegisterPair::AF,
-                            RegSet::Main,
-                            RegisterPair::AF,
-                            RegSet::Alt,
-                        ); // EX AF, AF'
+                        self.ex_af_af_prime();
                     }
                     2 => {
                         // DJNZ d
@@ -1016,9 +975,9 @@ impl Z80A {
                             let (res, f) = rot::rlc(a);
                             self.set_register(GPR::A, res);
 
-                            self.main_set.set_flag((f & flags::CARRY) != 0, Flag::C);
-                            self.main_set.set_flag(false, Flag::N);
-                            self.main_set.set_flag(false, Flag::H);
+                            self.set_flag((f & flags::CARRY) != 0, Flag::C);
+                            self.set_flag(false, Flag::N);
+                            self.set_flag(false, Flag::H);
                         }
                         1 => {
                             // RRCA
@@ -1027,33 +986,33 @@ impl Z80A {
                             let (res, f) = rot::rrc(a);
                             self.set_register(GPR::A, res);
 
-                            self.main_set.set_flag((f & flags::CARRY) != 0, Flag::C);
-                            self.main_set.set_flag(false, Flag::N);
-                            self.main_set.set_flag(false, Flag::H);
+                            self.set_flag((f & flags::CARRY) != 0, Flag::C);
+                            self.set_flag(false, Flag::N);
+                            self.set_flag(false, Flag::H);
                         }
                         2 => {
                             // RLA
                             test_log!(self, "RLA");
                             let a = self.get_register(GPR::A);
-                            let carry = self.main_set.get_flag(Flag::C);
+                            let carry = self.get_flag(Flag::C);
                             let (res, f) = rot::rl(a, carry);
                             self.set_register(GPR::A, res);
 
-                            self.main_set.set_flag((f & flags::CARRY) != 0, Flag::C);
-                            self.main_set.set_flag(false, Flag::N);
-                            self.main_set.set_flag(false, Flag::H);
+                            self.set_flag((f & flags::CARRY) != 0, Flag::C);
+                            self.set_flag(false, Flag::N);
+                            self.set_flag(false, Flag::H);
                         }
                         3 => {
                             // RRA
                             test_log!(self, "RRA");
                             let a = self.get_register(GPR::A);
-                            let carry = self.main_set.get_flag(Flag::C);
+                            let carry = self.get_flag(Flag::C);
                             let (res, f) = rot::rr(a, carry);
                             self.set_register(GPR::A, res);
 
-                            self.main_set.set_flag((f & flags::CARRY) != 0, Flag::C);
-                            self.main_set.set_flag(false, Flag::N);
-                            self.main_set.set_flag(false, Flag::H);
+                            self.set_flag((f & flags::CARRY) != 0, Flag::C);
+                            self.set_flag(false, Flag::N);
+                            self.set_flag(false, Flag::H);
                         }
                         4 => {
                             // DAA
@@ -1067,39 +1026,39 @@ impl Z80A {
                             let a = self.get_register(GPR::A);
                             let result = a ^ 0xFF;
                             self.set_register(GPR::A, result);
-                            self.main_set.set_flag(true, Flag::N);
-                            self.main_set.set_flag(true, Flag::H);
+                            self.set_flag(true, Flag::N);
+                            self.set_flag(true, Flag::H);
                             // undocummented x and y flags
                             // set bit 3 and 5 according to result
-                            self.main_set.set_flag((result & flags::X) != 0, Flag::X);
-                            self.main_set.set_flag((result & flags::Y) != 0, Flag::Y);
+                            self.set_flag((result & flags::X) != 0, Flag::X);
+                            self.set_flag((result & flags::Y) != 0, Flag::Y);
                         }
                         6 => {
                             //  SCF
                             test_log!(self, "SCF");
 
-                            self.main_set.set_flag(true, Flag::C);
-                            self.main_set.set_flag(false, Flag::N);
-                            self.main_set.set_flag(false, Flag::H);
+                            self.set_flag(true, Flag::C);
+                            self.set_flag(false, Flag::N);
+                            self.set_flag(false, Flag::H);
                             // undocummented x and y flags
                             let a = self.get_register(GPR::A);
-                            self.main_set.set_flag((a & flags::X) != 0, Flag::X);
-                            self.main_set.set_flag((a & flags::Y) != 0, Flag::Y);
+                            self.set_flag((a & flags::X) != 0, Flag::X);
+                            self.set_flag((a & flags::Y) != 0, Flag::Y);
                         }
                         7 => {
                             // CCF
                             test_log!(self, "CCF");
 
-                            let current_carry = self.main_set.get_flag(Flag::C);
-                            self.main_set.set_flag(!current_carry, Flag::C);
-                            self.main_set.set_flag(false, Flag::N);
+                            let current_carry = self.get_flag(Flag::C);
+                            self.set_flag(!current_carry, Flag::C);
+                            self.set_flag(false, Flag::N);
                             // NOTE: H flag is set to previous C flag
-                            self.main_set.set_flag(current_carry, Flag::H);
+                            self.set_flag(current_carry, Flag::H);
 
                             // undocummented x and y flags
                             let a = self.get_register(GPR::A);
-                            self.main_set.set_flag((a & flags::X) != 0, Flag::X);
-                            self.main_set.set_flag((a & flags::Y) != 0, Flag::Y);
+                            self.set_flag((a & flags::X) != 0, Flag::X);
+                            self.set_flag((a & flags::Y) != 0, Flag::Y);
                         }
                         _ => unreachable!("Invalid y value"), // should never happen
                     }
@@ -1157,25 +1116,7 @@ impl Z80A {
                     }
                     (true, 1) => {
                         test_log!(self, "EXX");
-                        // EXX
-                        self.swap_registers(
-                            RegisterPair::BC,
-                            RegSet::Main,
-                            RegisterPair::BC,
-                            RegSet::Alt,
-                        );
-                        self.swap_registers(
-                            RegisterPair::DE,
-                            RegSet::Main,
-                            RegisterPair::DE,
-                            RegSet::Alt,
-                        );
-                        self.swap_registers(
-                            RegisterPair::HL,
-                            RegSet::Main,
-                            RegisterPair::HL,
-                            RegSet::Alt,
-                        );
+                        self.exx();
                     }
                     (true, 2) => {
                         // JP HL/IX/IY
@@ -1238,13 +1179,11 @@ impl Z80A {
                     }
                     5 => {
                         test_log!(self, "EX DE, HL");
-                        self.swap_registers(
-                            RegisterPair::DE,
-                            RegSet::Main,
-                            RegisterPair::HL,
-                            RegSet::Main,
-                        )
-                    } // EX DE, HL (NOTE: REMAINS UNCHANGED)
+                        let de = self.get_register_pair(RegisterPair::DE);
+                        let hl = self.get_register_pair(RegisterPair::HL);
+                        self.set_register_pair(RegisterPair::DE, hl);
+                        self.set_register_pair(RegisterPair::HL, de);
+                    }
                     // TODO: will do interrupts later
                     6 => test_log!(self, "DI"),           // TODO: DI
                     7 => test_log!(self, "EI"),           // TODO: EI
@@ -1630,24 +1569,24 @@ impl Z80A {
         let (result, flags) = match operation {
             RotOperation::RLC => rot::rlc(value),
             RotOperation::RRC => rot::rrc(value),
-            RotOperation::RL => rot::rl(value, self.main_set.get_flag(Flag::C)),
-            RotOperation::RR => rot::rr(value, self.main_set.get_flag(Flag::C)),
+            RotOperation::RL => rot::rl(value, self.get_flag(Flag::C)),
+            RotOperation::RR => rot::rr(value, self.get_flag(Flag::C)),
             RotOperation::SLA => rot::sla(value),
             RotOperation::SRA => rot::sra(value),
             RotOperation::SLL => rot::sll(value),
             RotOperation::SRL => rot::srl(value),
         };
-        self.main_set.set_register(GPR::F, flags);
+        self.set_register(GPR::F, flags);
         self.write_8(reg, result);
     }
 
     fn bit(&mut self, y: u8, reg: AddressingMode) {
         let value = self.read_8(reg);
 
-        let prev_c = self.main_set.get_flag(Flag::C);
+        let prev_c = self.get_flag(Flag::C);
         self.set_register(GPR::F, bit(value, y));
 
-        self.main_set.set_flag(prev_c, Flag::C); // C flag is not affected
+        self.set_flag(prev_c, Flag::C); // C flag is not affected
     }
 
     fn res(&mut self, y: u8, reg: AddressingMode) {
@@ -1666,53 +1605,40 @@ impl Z80A {
         let mut t: u8 = 0;
         let mut a = self.get_register(GPR::A);
 
-        if self.main_set.get_flag(Flag::H) || ((a & 0xf) > 9) {
+        if self.get_flag(Flag::H) || ((a & 0xf) > 9) {
             t = t.wrapping_add(1);
         }
 
-        if self.main_set.get_flag(Flag::C) || (a > 0x99) {
+        if self.get_flag(Flag::C) || (a > 0x99) {
             t = t.wrapping_add(2);
-            self.main_set.set_flag(true, Flag::C);
+            self.set_flag(true, Flag::C);
         }
 
-        if self.main_set.get_flag(Flag::N) && !self.main_set.get_flag(Flag::H) {
-            self.main_set.set_flag(false, Flag::H);
+        if self.get_flag(Flag::N) && !self.get_flag(Flag::H) {
+            self.set_flag(false, Flag::H);
         } else {
-            if self.main_set.get_flag(Flag::N) && self.main_set.get_flag(Flag::H) {
-                self.main_set.set_flag((a & 0x0f) < 6, Flag::H);
+            if self.get_flag(Flag::N) && self.get_flag(Flag::H) {
+                self.set_flag((a & 0x0f) < 6, Flag::H);
             } else {
-                self.main_set.set_flag((a & 0x0f) >= 0x0a, Flag::H);
+                self.set_flag((a & 0x0f) >= 0x0a, Flag::H);
             }
         }
 
         if t == 1 {
-            a = a.wrapping_add(if self.main_set.get_flag(Flag::N) {
-                0xFA
-            } else {
-                0x06
-            })
+            a = a.wrapping_add(if self.get_flag(Flag::N) { 0xFA } else { 0x06 })
         } else if t == 2 {
-            a = a.wrapping_add(if self.main_set.get_flag(Flag::N) {
-                0xA0
-            } else {
-                0x60
-            })
+            a = a.wrapping_add(if self.get_flag(Flag::N) { 0xA0 } else { 0x60 })
         } else if t == 3 {
-            a = a.wrapping_add(if self.main_set.get_flag(Flag::N) {
-                0x9A
-            } else {
-                0x66
-            })
+            a = a.wrapping_add(if self.get_flag(Flag::N) { 0x9A } else { 0x66 })
         }
 
         self.set_register(GPR::A, a);
 
-        self.main_set
-            .set_flag((a & flags::SIGN) == flags::SIGN, Flag::S);
-        self.main_set.set_flag(a == 0, Flag::Z);
-        self.main_set.set_flag(a.count_ones() % 2 == 0, Flag::PV);
-        self.main_set.set_flag((a & flags::X) == flags::X, Flag::X);
-        self.main_set.set_flag((a & flags::Y) == flags::Y, Flag::Y);
+        self.set_flag((a & flags::SIGN) == flags::SIGN, Flag::S);
+        self.set_flag(a == 0, Flag::Z);
+        self.set_flag(a.count_ones() % 2 == 0, Flag::PV);
+        self.set_flag((a & flags::X) == flags::X, Flag::X);
+        self.set_flag((a & flags::Y) == flags::Y, Flag::Y);
     }
 
     fn jmp(&mut self, addr: u16) {

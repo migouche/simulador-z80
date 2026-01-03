@@ -1,7 +1,7 @@
 use rstest::rstest;
 
 use crate::cpu::tests::setup_cpu;
-use crate::cpu::{RegisterPair, flags};
+use crate::cpu::{GPR, RegisterPair, flags};
 use crate::traits::SyncronousComponent;
 
 const DJNZ_OPCODE: u8 = 0x10;
@@ -102,7 +102,7 @@ fn test_jr_cc_d(
     let mut cpu = setup_cpu();
 
     cpu.PC = starting_pc;
-    cpu.main_set.F = flags;
+    cpu.set_register(GPR::F, flags);
     cpu.memory.borrow_mut().write(cpu.PC, opcode); // JR cc[y-4], d opcode
     cpu.memory
         .borrow_mut()
@@ -180,7 +180,7 @@ fn test_jp_cc(
     let mut cpu = setup_cpu();
 
     cpu.PC = starting_pc;
-    cpu.main_set.F = flags;
+    cpu.set_register(GPR::F, flags);
     cpu.memory.borrow_mut().write(cpu.PC, opcode);
 
     // Write Little-Endian Address (Target)

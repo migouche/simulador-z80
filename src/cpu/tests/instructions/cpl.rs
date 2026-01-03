@@ -21,7 +21,7 @@ fn test_cpl_instruction(
     let mut cpu = setup_cpu();
 
     cpu.set_register(GPR::A, initial_a);
-    cpu.main_set.F = initial_f;
+    cpu.set_register(GPR::F, initial_f);
 
     cpu.PC = 0x1000;
     cpu.memory.borrow_mut().write(cpu.PC, CPL_OPCODE);
@@ -36,8 +36,10 @@ fn test_cpl_instruction(
     );
 
     assert_eq!(
-        cpu.main_set.F, expected_f,
+        cpu.get_register(GPR::F),
+        expected_f,
         "F mismatch: expected {:08b}, got {:08b}",
-        expected_f, cpu.main_set.F
+        expected_f,
+        cpu.get_register(GPR::F)
     );
 }

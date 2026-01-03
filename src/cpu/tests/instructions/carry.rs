@@ -1,3 +1,4 @@
+use crate::cpu::GPR;
 use crate::{cpu::tests::setup_cpu, traits::SyncronousComponent};
 use rstest::rstest;
 
@@ -12,16 +13,18 @@ const CCF_OPCODE: u8 = 0x3F;
 fn test_scf(#[case] initial_f: u8, #[case] expected_f: u8) {
     let mut cpu = setup_cpu();
 
-    cpu.main_set.F = initial_f;
+    cpu.set_register(GPR::F, initial_f);
 
     cpu.PC = 0x1000;
     cpu.memory.borrow_mut().write(cpu.PC, SCF_OPCODE);
     cpu.tick();
 
     assert_eq!(
-        cpu.main_set.F, expected_f,
+        cpu.get_register(GPR::F),
+        expected_f,
         "F mismatch: expected {:08b}, got {:08b}",
-        expected_f, cpu.main_set.F
+        expected_f,
+        cpu.get_register(GPR::F)
     );
 }
 
@@ -34,15 +37,17 @@ fn test_scf(#[case] initial_f: u8, #[case] expected_f: u8) {
 fn test_ccf(#[case] initial_f: u8, #[case] expected_f: u8) {
     let mut cpu = setup_cpu();
 
-    cpu.main_set.F = initial_f;
+    cpu.set_register(GPR::F, initial_f);
 
     cpu.PC = 0x1000;
     cpu.memory.borrow_mut().write(cpu.PC, CCF_OPCODE);
     cpu.tick();
 
     assert_eq!(
-        cpu.main_set.F, expected_f,
+        cpu.get_register(GPR::F),
+        expected_f,
         "F mismatch: expected {:08b}, got {:08b}",
-        expected_f, cpu.main_set.F
+        expected_f,
+        cpu.get_register(GPR::F)
     );
 }

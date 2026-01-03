@@ -1,5 +1,5 @@
 use crate::cpu::tests::setup_cpu;
-use crate::cpu::{AddressingMode, IndexRegister, RegisterPair, SyncronousComponent};
+use crate::cpu::{AddressingMode, GPR, IndexRegister, RegisterPair, SyncronousComponent};
 use rstest::rstest;
 
 #[rstest]
@@ -84,7 +84,7 @@ fn test_add_16(
     #[case] expected_flags: u8,
 ) {
     let mut cpu = setup_cpu();
-    cpu.main_set.F = initial_flags;
+    cpu.set_register(GPR::F, initial_flags);
 
     // Setup registers
     match dest {
@@ -138,9 +138,11 @@ fn test_add_16(
     // Let's add a case with non-zero initial flags.
 
     assert_eq!(
-        cpu.main_set.F, expected_flags,
+        cpu.get_register(GPR::F),
+        expected_flags,
         "Flags mismatch. Expected {:08b}, Got {:08b}",
-        expected_flags, cpu.main_set.F
+        expected_flags,
+        cpu.get_register(GPR::F)
     );
 }
 

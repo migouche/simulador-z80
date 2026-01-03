@@ -74,14 +74,14 @@ fn test_rot_register(
     let mut cpu = setup_cpu();
     cpu.PC = pc;
     cpu.set_register(reg, src.0);
-    cpu.main_set.set_flag(src.1, Flag::C);
+    cpu.set_flag(src.1, Flag::C);
 
     cpu.memory.borrow_mut().write(pc, 0xCB); // CB Prefix
     cpu.memory.borrow_mut().write(pc + 1, opcode); // Opcode
 
     cpu.tick();
 
-    let result = (cpu.get_register(reg), cpu.main_set.get_flag(Flag::C));
+    let result = (cpu.get_register(reg), cpu.get_flag(Flag::C));
     assert_eq!(result, expected);
 }
 
@@ -105,13 +105,13 @@ fn test_rot_hl_indirect(
     cpu.PC = pc;
     cpu.set_register_pair(RegisterPair::HL, hl);
     cpu.memory.borrow_mut().write(hl, src.0);
-    cpu.main_set.set_flag(src.1, Flag::C);
+    cpu.set_flag(src.1, Flag::C);
 
     cpu.memory.borrow_mut().write(pc, 0xCB); // CB Prefix
     cpu.memory.borrow_mut().write(pc + 1, opcode); // Opcode
 
     cpu.tick();
 
-    let result = (cpu.memory.borrow().read(hl), cpu.main_set.get_flag(Flag::C));
+    let result = (cpu.memory.borrow().read(hl), cpu.get_flag(Flag::C));
     assert_eq!(result, expected);
 }

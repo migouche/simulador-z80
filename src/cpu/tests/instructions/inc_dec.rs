@@ -49,7 +49,7 @@ fn test_inc_dec_8(
     #[case] expected_flags: u8,
 ) {
     let mut cpu = setup_cpu();
-    cpu.main_set.F = initial_flags;
+    cpu.set_register(GPR::F, initial_flags);
 
     match target {
         AddressingMode::Register(r) => cpu.set_register(r, initial_val),
@@ -74,7 +74,7 @@ fn test_inc_dec_8(
     };
 
     assert_eq!(result_val, expected_val, "Value mismatch");
-    assert_eq!(cpu.main_set.F, expected_flags, "Flags mismatch");
+    assert_eq!(cpu.get_register(GPR::F), expected_flags, "Flags mismatch");
 }
 
 #[rstest]
@@ -170,7 +170,7 @@ fn test_inc_dec_16(
     #[case] expected_flags: u8,
 ) {
     let mut cpu = setup_cpu();
-    cpu.main_set.F = initial_flags;
+    cpu.set_register(GPR::F, initial_flags);
 
     match target {
         AddressingMode::RegisterPair(rp) => cpu.set_register_pair(rp, initial_val),
@@ -186,5 +186,5 @@ fn test_inc_dec_16(
     };
 
     assert_eq!(result_val, expected_val, "Value mismatch");
-    assert_eq!(cpu.main_set.F, expected_flags, "Flags mismatch");
+    assert_eq!(cpu.get_register(GPR::F), expected_flags, "Flags mismatch");
 }
