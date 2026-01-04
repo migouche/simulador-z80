@@ -1,6 +1,6 @@
 use rstest::rstest;
 
-use crate::cpu::alu::{alu_op::*, bit, dec, inc, res, rot::*, set};
+use crate::cpu::{alu::{alu_op::*, bit, dec, inc, res, add_16, sub_16, rot::*, set}, flags};
 
 #[rstest]
 #[case(0b1000_0001, 0b0000_0011, 0b0000_0101)] // result=0x03, flags: C=1, PV=1
@@ -332,4 +332,38 @@ fn test_dec(#[case] value: u8, #[case] expected_result: u8, #[case] expected_fla
     let (result, flags) = dec(value);
     assert_eq!(result, expected_result, "Result mismatch");
     assert_eq!(flags, expected_flags, "Flags mismatch");
+}
+
+#[rstest]
+// ADC Case 6 Fix: 0x7000 + 0x1000 = 0x8000. 
+// Bit 11 of 0x8000 is 0. So X (0x08) should be OFF.
+// Bit 15 is 1 (Sign), Result is not zero, Overflow is ON.
+#[case(0x7000, 0x1000, 0x00, true, 0x8000, flags::PARITY_OVERFLOW | flags::SIGN)]
+
+fn test_add_16_corrected(
+    #[case] a: u16, #[case] b: u16, #[case] current_flags: u8, 
+    #[case] use_carry: bool, #[case] expected_res: u16, #[case] expected_flags: u8
+) {
+    let (res, flags) = add_16(a, b, current_flags, use_carry);
+    assert_eq!(res, expected_res);
+    assert_eq!(flags, expected_flags, "Expected {:08b}, got {:08b}", expected_flags, flags);
+}
+
+#[rstest]
+// SUB Case 1 & 3 Fix: 0x2000 - 0x1000 = 0x1000. 
+// Bit 11 of 0x1000 is 0. So X flag should be OFF.
+#[case(0x2000, 0x1000, 0x00, false, 0x1000, flags::ADD_SUB)] 
+
+// SUB Case 6 Fix: 0x8000 - 0x0001 = 0x7FFF. 
+// 0x7FFF binary: 0111 1111 1111 1111. 
+// Bit 11 is 1 (X=on), Bit 13 is 1 (Y=on).
+#[case(0x8000, 0x0001, 0x00, true, 0x7FFF, flags::ADD_SUB | flags::PARITY_OVERFLOW | flags::HALF_CARRY | flags::X | flags::Y)]
+
+fn test_sub_16_corrected(
+    #[case] a: u16, #[case] b: u16, #[case] current_flags: u8, 
+    #[case] use_carry: bool, #[case] expected_res: u16, #[case] expected_flags: u8
+) {
+    let (res, flags) = sub_16(a, b, current_flags, use_carry);
+    assert_eq!(res, expected_res);
+    assert_eq!(flags, expected_flags, "Expected {:08b}, got {:08b}", expected_flags, flags);
 }

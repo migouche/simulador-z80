@@ -2,10 +2,15 @@ use crate::cpu::tests::setup_cpu;
 use crate::cpu::{AddressingMode, GPR, IndexRegister, RegisterPair, SyncronousComponent};
 use rstest::rstest;
 
+const ADD_HL_BC_OPCODE: u8 = 0x09;
+const ADD_HL_DE_OPCODE: u8 = 0x19;
+const ADD_HL_HL_OPCODE: u8 = 0x29;
+const ADD_HL_SP_OPCODE: u8 = 0x39;
+
 #[rstest]
 // ADD HL, BC
 #[case::add_hl_bc(
-    0x09,
+    ADD_HL_BC_OPCODE,
     AddressingMode::RegisterPair(RegisterPair::HL),
     0x1000,
     AddressingMode::RegisterPair(RegisterPair::BC),
@@ -18,7 +23,7 @@ use rstest::rstest;
 
 // ADD HL, HL (Double)
 #[case::add_hl_hl(
-    0x29,
+    ADD_HL_HL_OPCODE,
     AddressingMode::RegisterPair(RegisterPair::HL),
     0x1000,
     AddressingMode::RegisterPair(RegisterPair::HL),
@@ -30,7 +35,7 @@ use rstest::rstest;
 
 // ADD HL, DE (Overflow 16-bit)
 #[case::add_hl_de_carry(
-    0x19,
+    ADD_HL_DE_OPCODE,
     AddressingMode::RegisterPair(RegisterPair::HL),
     0xFFFF,
     AddressingMode::RegisterPair(RegisterPair::DE),
@@ -44,7 +49,7 @@ use rstest::rstest;
 // ADD HL, SP (Half Carry)
 // 0x0FFF + 0x0001 = 0x1000. Carry from bit 11.
 #[case::add_hl_sp_half_carry(
-    0x39,
+    ADD_HL_SP_OPCODE,
     AddressingMode::RegisterPair(RegisterPair::HL),
     0x0FFF,
     AddressingMode::RegisterPair(RegisterPair::SP),
@@ -56,7 +61,7 @@ use rstest::rstest;
 
 // ADD IX, BC
 #[case::add_ix_bc(
-    0x09,
+    ADD_HL_BC_OPCODE,
     AddressingMode::IndexRegister(IndexRegister::IX),
     0x1000,
     AddressingMode::RegisterPair(RegisterPair::BC),

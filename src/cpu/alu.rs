@@ -1,4 +1,8 @@
+use crate::cpu::flags;
+
 pub mod rot {
+    use crate::cpu::flags;
+
 
     pub enum RotOperation {
         RLC,
@@ -19,12 +23,12 @@ pub mod rot {
         let y = (result & 0x20) != 0;
         // Carry is passed as parameter
 
-        (if carry { 0x01 } else { 0x00 })
-            | (if pv { 0x04 } else { 0x00 })
-            | (if x { 0x08 } else { 0x00 })
-            | (if y { 0x20 } else { 0x00 })
-            | (if z { 0x40 } else { 0x00 })
-            | (if s { 0x80 } else { 0x00 })
+        (if carry { flags::CARRY } else { 0x00 })
+            | (if pv { flags::PARITY_OVERFLOW } else { 0x00 })
+            | (if x { flags::X } else { 0x00 })
+            | (if y { flags::Y } else { 0x00 })
+            | (if z { flags::ZERO } else { 0x00 })
+            | (if s { flags::SIGN } else { 0x00 })
     }
 
     pub fn rlc(value: u8) -> (u8, u8) {
@@ -97,14 +101,14 @@ pub fn bit(value: u8, bit_position: u8) -> u8 {
     let f3 = bit_position == 3 && bit;
     let f5 = bit_position == 5 && bit;
 
-    (if c { 0x01 } else { 0x00 })
-        | (if n { 0x02 } else { 0x00 })
-        | (if pv { 0x04 } else { 0x00 })
-        | (if f3 { 0x08 } else { 0x00 })
-        | (if h { 0x10 } else { 0x00 })
-        | (if f5 { 0x20 } else { 0x00 })
-        | (if z { 0x40 } else { 0x00 })
-        | (if s { 0x80 } else { 0x00 })
+    (if c { flags::CARRY } else { 0x00 })
+        | (if n { flags::ADD_SUB } else { 0x00 })
+        | (if pv { flags::PARITY_OVERFLOW } else { 0x00 })
+        | (if f3 { flags::X } else { 0x00 })
+        | (if h { flags::HALF_CARRY } else { 0x00 })
+        | (if f5 { flags::Y } else { 0x00 })
+        | (if z { flags::ZERO } else { 0x00 })
+        | (if s { flags::SIGN } else { 0x00 })
 }
 
 pub fn res(value: u8, bit_position: u8) -> u8 {
@@ -116,6 +120,8 @@ pub fn set(value: u8, bit_position: u8) -> u8 {
 }
 
 pub mod alu_op {
+    use crate::cpu::flags;
+
     pub fn add(a: u8, b: u8, carry_in: bool) -> (u8, u8) {
         let (intermediate_sum, carry1) = a.overflowing_add(b);
         let (final_sum, carry2) = intermediate_sum.overflowing_add(if carry_in { 1 } else { 0 });
@@ -128,13 +134,13 @@ pub mod alu_op {
         let x = (final_sum & 0x08) != 0;
         let y = (final_sum & 0x20) != 0;
 
-        let flags = (if carry_out { 0x01 } else { 0x00 })
-            | (if pv { 0x04 } else { 0x00 })
-            | (if x { 0x08 } else { 0x00 })
-            | (if y { 0x20 } else { 0x00 })
-            | (if h { 0x10 } else { 0x00 })
-            | (if z { 0x40 } else { 0x00 })
-            | (if s { 0x80 } else { 0x00 });
+        let flags = (if carry_out { flags::CARRY } else { 0x00 })
+            | (if pv { flags::PARITY_OVERFLOW } else { 0x00 })
+            | (if x { flags::X } else { 0x00 })
+            | (if y { flags::Y } else { 0x00 })
+            | (if h { flags::HALF_CARRY } else { 0x00 })
+            | (if z { flags::ZERO } else { 0x00 })
+            | (if s { flags::SIGN } else { 0x00 });
 
         (final_sum, flags)
     }
@@ -152,14 +158,14 @@ pub mod alu_op {
         let y = (final_diff & 0x20) != 0;
         let n = true;
 
-        let flags = (if carry_out { 0x01 } else { 0x00 })
-            | (if n { 0x02 } else { 0x00 })
-            | (if pv { 0x04 } else { 0x00 })
-            | (if x { 0x08 } else { 0x00 })
-            | (if h { 0x10 } else { 0x00 })
-            | (if y { 0x20 } else { 0x00 })
-            | (if z { 0x40 } else { 0x00 })
-            | (if s { 0x80 } else { 0x00 });
+        let flags = (if carry_out { flags::CARRY } else { 0x00 })
+            | (if n { flags::ADD_SUB } else { 0x00 })
+            | (if pv { flags::PARITY_OVERFLOW } else { 0x00 })
+            | (if x { flags::X } else { 0x00 })
+            | (if h { flags::HALF_CARRY } else { 0x00 })
+            | (if y { flags::Y } else { 0x00 })
+            | (if z { flags::ZERO} else { 0x00 })
+            | (if s { flags::SIGN } else { 0x00 });
 
         (final_diff, flags)
     }
@@ -175,14 +181,14 @@ pub mod alu_op {
         let x = (result & 0x08) != 0;
         let y = (result & 0x20) != 0;
 
-        let flags = (if c { 0x01 } else { 0x00 })
-            | (if n { 0x02 } else { 0x00 })
-            | (if pv { 0x04 } else { 0x00 })
-            | (if x { 0x08 } else { 0x00 })
-            | (if h { 0x10 } else { 0x00 })
-            | (if y { 0x20 } else { 0x00 })
-            | (if z { 0x40 } else { 0x00 })
-            | (if s { 0x80 } else { 0x00 });
+        let flags = (if c { flags::CARRY } else { 0x00 })
+            | (if n { flags::ADD_SUB } else { 0x00 })
+            | (if pv { flags::PARITY_OVERFLOW } else { 0x00 })
+            | (if x { flags::X } else { 0x00 })
+            | (if h { flags::HALF_CARRY } else { 0x00 })
+            | (if y { flags::Y } else { 0x00 })
+            | (if z { flags::ZERO } else { 0x00 })
+            | (if s { flags::SIGN } else { 0x00 });
         (result, flags)
     }
 
@@ -197,14 +203,14 @@ pub mod alu_op {
         let x = (result & 0x08) != 0;
         let y = (result & 0x20) != 0;
 
-        let flags = (if c { 0x01 } else { 0x00 })
-            | (if n { 0x02 } else { 0x00 })
-            | (if pv { 0x04 } else { 0x00 })
-            | (if x { 0x08 } else { 0x00 })
-            | (if h { 0x10 } else { 0x00 })
-            | (if y { 0x20 } else { 0x00 })
-            | (if z { 0x40 } else { 0x00 })
-            | (if s { 0x80 } else { 0x00 });
+        let flags = (if c { flags::CARRY } else { 0x00 })
+            | (if n { flags::ADD_SUB } else { 0x00 })
+            | (if pv { flags::PARITY_OVERFLOW } else { 0x00 })
+            | (if x { flags::X } else { 0x00 })
+            | (if h { flags::HALF_CARRY } else { 0x00 })
+            | (if y { flags::Y } else { 0x00 })
+            | (if z { flags::ZERO } else { 0x00 })
+            | (if s { flags::SIGN } else { 0x00 });
         (result, flags)
     }
 
@@ -219,14 +225,14 @@ pub mod alu_op {
         let x = (result & 0x08) != 0;
         let y = (result & 0x20) != 0;
 
-        let flags = (if c { 0x01 } else { 0x00 })
-            | (if n { 0x02 } else { 0x00 })
-            | (if pv { 0x04 } else { 0x00 })
-            | (if x { 0x08 } else { 0x00 })
-            | (if h { 0x10 } else { 0x00 })
-            | (if y { 0x20 } else { 0x00 })
-            | (if z { 0x40 } else { 0x00 })
-            | (if s { 0x80 } else { 0x00 });
+        let flags = (if c { flags::CARRY } else { 0x00 })
+            | (if n { flags::ADD_SUB } else { 0x00 })
+            | (if pv { flags::PARITY_OVERFLOW } else { 0x00 })
+            | (if x { flags::X } else { 0x00 })
+            | (if h { flags::HALF_CARRY } else { 0x00 })
+            | (if y { flags::Y } else { 0x00 })
+            | (if z { flags::ZERO } else { 0x00 })
+            | (if s { flags::SIGN } else { 0x00 });
         (result, flags)
     }
 
@@ -250,41 +256,90 @@ pub fn inc(value: u8) -> (u8, u8) {
     let y = (result & 0x20) != 0;
 
     // Note: C flag is not affected by INC, caller must preserve it.
-    let flags = (if n { 0x02 } else { 0x00 })
-        | (if pv { 0x04 } else { 0x00 })
-        | (if x { 0x08 } else { 0x00 })
-        | (if h { 0x10 } else { 0x00 })
-        | (if y { 0x20 } else { 0x00 })
-        | (if z { 0x40 } else { 0x00 })
-        | (if s { 0x80 } else { 0x00 });
+    let flags = (if n { flags::ADD_SUB } else { 0x00 })
+        | (if pv { flags::PARITY_OVERFLOW } else { 0x00 })
+        | (if x { flags::X } else { 0x00 })
+        | (if h { flags::HALF_CARRY } else { 0x00 })
+        | (if y { flags::Y } else { 0x00 })
+        | (if z { flags::ZERO } else { 0x00 })
+        | (if s { flags::SIGN } else { 0x00 });
 
     (result, flags)
 }
 
-pub fn add_16(a: u16, b: u16, current_flags: u8) -> (u16, u8) {
-    let (result, carry) = a.overflowing_add(b);
+pub fn add_16(a: u16, b: u16, current_flags: u8, use_carry: bool) -> (u16, u8) {
+    let carry_in = if use_carry && (current_flags & flags::CARRY) != 0 { 1 } else { 0 };
+    
+    let (res_1, c1) = a.overflowing_add(b);
+    let (result, c2) = res_1.overflowing_add(carry_in);
+    let c = c1 || c2;
 
-    let h = ((a & 0x0FFF) + (b & 0x0FFF)) > 0x0FFF;
+    // Half Carry is carry from bit 11 to 12
+    let h = ((a & 0x0FFF) + (b & 0x0FFF) + carry_in) > 0x0FFF;
+    
     let n = false;
-    let c = carry;
+    // X and Y are ALWAYS bits 11 and 13 of the result
+    let x = (result & 0x0800) != 0; 
+    let y = (result & 0x2000) != 0;
 
-    // Undocumented flags X (bit 3) and Y (bit 5) come from the high byte of the result
+    let (s, z, pv) = if use_carry {
+        let s = (result & 0x8000) != 0;
+        let z = result == 0;
+        // Overflow: operands same sign, result different sign
+        let pv = ((a ^ result) & (b ^ result) & 0x8000) != 0;
+        (s, z, pv)
+    } else {
+        ((current_flags & flags::SIGN) != 0, 
+         (current_flags & flags::ZERO) != 0, 
+         (current_flags & flags::PARITY_OVERFLOW) != 0)
+    };
+
+    let flags = (if c { flags::CARRY } else { 0x00 })
+        | (if n { flags::ADD_SUB } else { 0x00 })
+        | (if pv { flags::PARITY_OVERFLOW } else { 0x00 })
+        | (if x { flags::X } else { 0x00 })
+        | (if h { flags::HALF_CARRY } else { 0x00 })
+        | (if y { flags::Y } else { 0x00 })
+        | (if z { flags::ZERO } else { 0x00 })
+        | (if s { flags::SIGN } else { 0x00 });
+
+    (result, flags)
+}
+
+pub fn sub_16(a: u16, b: u16, current_flags: u8, use_carry: bool) -> (u16, u8) {
+    let carry_in = if use_carry && (current_flags & flags::CARRY) != 0 { 1 } else { 0 };
+    
+    let (res_1, b1) = a.overflowing_sub(b);
+    let (result, b2) = res_1.overflowing_sub(carry_in);
+    let c = b1 || b2;
+
+    // Half Borrow is borrow from bit 12
+    let h = (a & 0x0FFF) < ((b & 0x0FFF) + carry_in);
+    
+    let n = true;
     let x = (result & 0x0800) != 0;
     let y = (result & 0x2000) != 0;
 
-    // S, Z, P/V are preserved from current_flags
-    let s = (current_flags & 0x80) != 0;
-    let z = (current_flags & 0x40) != 0;
-    let pv = (current_flags & 0x04) != 0;
+    let (s, z, pv) = if use_carry {
+        let s = (result & 0x8000) != 0;
+        let z = result == 0;
+        // Overflow: operands different sign, result sign differs from 'a'
+        let pv = ((a ^ b) & (a ^ result) & 0x8000) != 0;
+        (s, z, pv)
+    } else {
+        ((current_flags & flags::SIGN) != 0, 
+         (current_flags & flags::ZERO) != 0, 
+         (current_flags & flags::PARITY_OVERFLOW) != 0)
+    };
 
-    let flags = (if c { 0x01 } else { 0x00 })
-        | (if n { 0x02 } else { 0x00 })
-        | (if pv { 0x04 } else { 0x00 })
-        | (if x { 0x08 } else { 0x00 })
-        | (if h { 0x10 } else { 0x00 })
-        | (if y { 0x20 } else { 0x00 })
-        | (if z { 0x40 } else { 0x00 })
-        | (if s { 0x80 } else { 0x00 });
+    let flags = (if c { flags::CARRY } else { 0x00 })
+        | (if n { flags::ADD_SUB } else { 0x00 })
+        | (if pv { flags::PARITY_OVERFLOW } else { 0x00 })
+        | (if x { flags::X } else { 0x00 })
+        | (if h { flags::HALF_CARRY } else { 0x00 })
+        | (if y { flags::Y } else { 0x00 })
+        | (if z { flags::ZERO } else { 0x00 })
+        | (if s { flags::SIGN } else { 0x00 });
 
     (result, flags)
 }
@@ -300,13 +355,13 @@ pub fn dec(value: u8) -> (u8, u8) {
     let y = (result & 0x20) != 0;
 
     // Note: C flag is not affected by DEC, caller must preserve it.
-    let flags = (if n { 0x02 } else { 0x00 })
-        | (if pv { 0x04 } else { 0x00 })
-        | (if x { 0x08 } else { 0x00 })
-        | (if h { 0x10 } else { 0x00 })
-        | (if y { 0x20 } else { 0x00 })
-        | (if z { 0x40 } else { 0x00 })
-        | (if s { 0x80 } else { 0x00 });
+    let flags = (if n { flags::ADD_SUB } else { 0x00 })
+        | (if pv { flags::PARITY_OVERFLOW } else { 0x00 })
+        | (if x { flags::X } else { 0x00 })
+        | (if h { flags::HALF_CARRY } else { 0x00 })
+        | (if y { flags::Y } else { 0x00 })
+        | (if z { flags::ZERO } else { 0x00 })
+        | (if s { flags::SIGN } else { 0x00 });
 
     (result, flags)
 }

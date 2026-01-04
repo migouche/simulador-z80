@@ -209,7 +209,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::call_nz_nn(0x29f9, &[0xc4, 0x34, 0x12], &["decode_unprefixed", "CALL cc[y], nn", "NZ"])] // CALL NZ, nn
 #[case::push_bc(0x29f9, &[0xc5], &["decode_unprefixed", "PUSH rp2[p]", "BC"])] // PUSH BC
 #[case::add_a_n(0x29f9, &[0xc6, 0x56], &["decode_unprefixed", "ALU[y] n", "ADD A"])] // ADD A, n
-#[case::rst_00h(0x29f9, &[0xc7], &["decode_unprefixed", "RST y*8"])] // RST 00h
+#[case::rst_00h(0x29f9, &[0xc7], &["decode_unprefixed", "RST y*8", "00h"])] // RST 00h
 #[case::ret_z(0x29f9, &[0xc8], &["decode_unprefixed", "RET cc[y]", "Z"])] // RET Z
 #[case::ret(0x29f9, &[0xc9], &["decode_unprefixed", "RET"])] // RET
 #[case::jp_z_nn(0x29f9, &[0xca, 0x34, 0x12], &["decode_unprefixed", "JP cc[y], nn", "Z"])] // JP Z, nn
@@ -217,7 +217,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::call_z_nn(0x29f9, &[0xcc, 0x34, 0x12], &["decode_unprefixed", "CALL cc[y], nn", "Z"])] // CALL Z, nn
 #[case::call_nn(0x29f9, &[0xcd, 0x34, 0x12], &["decode_unprefixed", "CALL nn"])] // CALL nn
 #[case::adc_a_n(0x29f9, &[0xce, 0x56], &["decode_unprefixed", "ALU[y] n", "ADC A"])] // ADC A, n
-#[case::rst_08h(0x29f9, &[0xcf], &["decode_unprefixed", "RST y*8"])] // RST 08h
+#[case::rst_08h(0x29f9, &[0xcf], &["decode_unprefixed", "RST y*8", "08h"])] // RST 08h
 #[case::ret_nc(0x29f9, &[0xd0], &["decode_unprefixed", "RET cc[y]", "NC"])] // RET NC
 #[case::pop_de(0x29f9, &[0xd1], &["decode_unprefixed", "POP rp2[p]", "DE"])] // POP DE
 #[case::jp_nc_nn(0x29f9, &[0xd2, 0x34, 0x12], &["decode_unprefixed", "JP cc[y], nn", "NC"])] // JP NC, nn
@@ -225,7 +225,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::call_nc_nn(0x29f9, &[0xd4, 0x34, 0x12], &["decode_unprefixed", "CALL cc[y], nn", "NC"])] // CALL NC, nn
 #[case::push_de(0x29f9, &[0xd5], &["decode_unprefixed", "PUSH rp2[p]", "DE"])] // PUSH DE
 #[case::sub_a_n(0x29f9, &[0xd6, 0x56], &["decode_unprefixed", "ALU[y] n", "SUB A"])] // SUB A, n
-#[case::rst_10h(0x29f9, &[0xd7], &["decode_unprefixed", "RST y*8"])] // RST 10h
+#[case::rst_10h(0x29f9, &[0xd7], &["decode_unprefixed", "RST y*8", "10h"])] // RST 10h
 #[case::ret_c(0x29f9, &[0xd8], &["decode_unprefixed", "RET cc[y]", "C"])] // RET C
 #[case::exx(0x29f9, &[0xd9], &["decode_unprefixed", "EXX"])] // EXX
 #[case::jp_c_nn(0x29f9, &[0xda, 0x34, 0x12], &["decode_unprefixed", "JP cc[y], nn", "C"])] // JP C, nn
@@ -233,7 +233,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::call_c_nn(0x29f9, &[0xdc, 0x34, 0x12], &["decode_unprefixed", "CALL cc[y], nn", "C"])] // CALL C, nn
 #[case::dd_prefix(0x29f9, &[0xdd, 0x00], &["decode_dd", "NOP"])] // DD Prefix (NOP)
 #[case::sbc_a_n(0x29f9, &[0xde, 0x56], &["decode_unprefixed", "ALU[y] n", "SBC A"])] // SBC A, n
-#[case::rst_18h(0x29f9, &[0xdf], &["decode_unprefixed", "RST y*8"])] // RST 18h
+#[case::rst_18h(0x29f9, &[0xdf], &["decode_unprefixed", "RST y*8", "18h"])] // RST 18h
 #[case::ret_po(0x29f9, &[0xe0], &["decode_unprefixed", "RET cc[y]", "PO"])] // RET PO
 #[case::pop_hl(0x29f9, &[0xe1], &["decode_unprefixed", "POP rp2[p]", "HL"])] // POP HL
 #[case::jp_po_nn(0x29f9, &[0xe2, 0x34, 0x12], &["decode_unprefixed", "JP cc[y], nn", "PO"])] // JP PO, nn
@@ -241,7 +241,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::call_po_nn(0x29f9, &[0xe4, 0x34, 0x12], &["decode_unprefixed", "CALL cc[y], nn", "PO"])] // CALL PO, nn
 #[case::push_hl(0x29f9, &[0xe5], &["decode_unprefixed", "PUSH rp2[p]", "HL"])] // PUSH HL
 #[case::and_a_n(0x29f9, &[0xe6, 0x56], &["decode_unprefixed", "ALU[y] n", "AND A"])] // AND A, n
-#[case::rst_20h(0x29f9, &[0xe7], &["decode_unprefixed", "RST y*8"])] // RST 20h
+#[case::rst_20h(0x29f9, &[0xe7], &["decode_unprefixed", "RST y*8", "20h"])] // RST 20h
 #[case::ret_pe(0x29f9, &[0xe8], &["decode_unprefixed", "RET cc[y]", "PE"])] // RET PE
 #[case::jp_hl(0x29f9, &[0xe9], &["decode_unprefixed", "JP HL"])] // JP HL
 #[case::jp_pe_nn(0x29f9, &[0xea, 0x34, 0x12], &["decode_unprefixed", "JP cc[y], nn", "PE"])] // JP PE, nn
@@ -249,7 +249,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::call_pe_nn(0x29f9, &[0xec, 0x34, 0x12], &["decode_unprefixed", "CALL cc[y], nn", "PE"])] // CALL PE, nn
 #[case::ed_prefix(0x29f9, &[0xed, 0x00], &["decode_ed", "NONI"])] // ED Prefix (NONI)
 #[case::xor_a_n(0x29f9, &[0xee, 0x56], &["decode_unprefixed", "ALU[y] n", "XOR A"])] // XOR A, n
-#[case::rst_28h(0x29f9, &[0xef], &["decode_unprefixed", "RST y*8"])] // RST 28h
+#[case::rst_28h(0x29f9, &[0xef], &["decode_unprefixed", "RST y*8", "28h"])] // RST 28h
 #[case::ret_p(0x29f9, &[0xf0], &["decode_unprefixed", "RET cc[y]", "P"])] // RET P
 #[case::pop_af(0x29f9, &[0xf1], &["decode_unprefixed", "POP rp2[p]", "AF"])] // POP AF
 #[case::jp_p_nn(0x29f9, &[0xf2, 0x34, 0x12], &["decode_unprefixed", "JP cc[y], nn", "P"])] // JP P, nn
@@ -257,7 +257,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::call_p_nn(0x29f9, &[0xf4, 0x34, 0x12], &["decode_unprefixed", "CALL cc[y], nn", "P"])] // CALL P, nn
 #[case::push_af(0x29f9, &[0xf5], &["decode_unprefixed", "PUSH rp2[p]", "AF"])] // PUSH AF
 #[case::or_a_n(0x29f9, &[0xf6, 0x56], &["decode_unprefixed", "ALU[y] n", "OR A"])] // OR A, n
-#[case::rst_30h(0x29f9, &[0xf7], &["decode_unprefixed", "RST y*8"])] // RST 30h
+#[case::rst_30h(0x29f9, &[0xf7], &["decode_unprefixed", "RST y*8", "30h"])] // RST 30h
 #[case::ret_m(0x29f9, &[0xf8], &["decode_unprefixed", "RET cc[y]", "M"])] // RET M
 #[case::ld_sp_hl(0x29f9, &[0xf9], &["decode_unprefixed", "LD SP, HL"])] // LD SP, HL
 #[case::jp_m_nn(0x29f9, &[0xfa, 0x34, 0x12], &["decode_unprefixed", "JP cc[y], nn", "M"])] // JP M, nn
@@ -265,7 +265,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::call_m_nn(0x29f9, &[0xfc, 0x34, 0x12], &["decode_unprefixed", "CALL cc[y], nn", "M"])] // CALL M, nn
 #[case::fd_prefix(0x29f9, &[0xfd, 0x00], &["decode_fd", "NOP"])] // DD Prefix (NOP)
 #[case::cp_a_n(0x29f9, &[0xfe, 0x56], &["decode_unprefixed", "ALU[y] n", "CP A"])] // CP A, n
-#[case::rst_38h(0x29f9, &[0xff], &["decode_unprefixed", "RST y*8"])]
+#[case::rst_38h(0x29f9, &[0xff], &["decode_unprefixed", "RST y*8", "38h"])]
 // RST 38h
 
 // ------------------------------------------------------------------------------
@@ -273,7 +273,7 @@ use crate::cpu::tests::setup_cpu;
 // ------------------------------------------------------------------------------
 #[case::in_b_c(0x29f9, &[0xed, 0x40], &["decode_ed", "IN r[y], (C)"])] // IN B, (C)
 #[case::out_c_b(0x29f9, &[0xed, 0x41], &["decode_ed", "OUT (C), r[y]"])] // OUT (C), B
-#[case::sbc_hl_bc(0x29f9, &[0xed, 0x42], &["decode_ed", "SBC HL, rp[p]"])] // SBC HL, BC
+#[case::sbc_hl_bc(0x29f9, &[0xed, 0x42], &["decode_ed", "SBC HL, rp[p]", "BC"])] // SBC HL, BC
 #[case::ld_nni_bc_a(0x29f9, &[0xed, 0x43], &["decode_ed", "LD (nn), rp[p]", "BC"])] // LD (nn), BC
 #[case::neg(0x29f9, &[0xed, 0x44], &["decode_ed", "NEG"])] // NEG
 #[case::retn(0x29f9, &[0xed, 0x45], &["decode_ed", "RETN"])] // RETN
@@ -281,7 +281,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::ld_i_a(0x29f9, &[0xed, 0x47], &["decode_ed", "LD I, A"])] // LD I, A
 #[case::in_c_c(0x29f9, &[0xed, 0x48], &["decode_ed", "IN r[y], (C)"])] // IN C, (C)
 #[case::out_c_c(0x29f9, &[0xed, 0x49], &["decode_ed", "OUT (C), r[y]"])] // OUT (C), C
-#[case::adc_hl_bc(0x29f9, &[0xed, 0x4a], &["decode_ed", "ADC HL, rp[p]"])] // ADC HL, BC
+#[case::adc_hl_bc(0x29f9, &[0xed, 0x4a], &["decode_ed", "ADC HL, rp[p]", "BC"])] // ADC HL, BC
 #[case::ld_bc_nni(0x29f9, &[0xed, 0x4b], &["decode_ed", "LD rp[p], (nn)", "BC"])] // LD BC, (nn)
 #[case::ed_4c(0x29f9, &[0xed, 0x4c], &["decode_ed", "NONI"])] // NONI
 #[case::reti(0x29f9, &[0xed, 0x4d], &["decode_ed", "RETI"])] // RETI
@@ -289,7 +289,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::ld_r_a(0x29f9, &[0xed, 0x4f], &["decode_ed", "LD R, A"])] // LD R, A
 #[case::in_d_c(0x29f9, &[0xed, 0x50], &["decode_ed", "IN r[y], (C)"])] // IN D, (C)
 #[case::out_c_d(0x29f9, &[0xed, 0x51], &["decode_ed", "OUT (C), r[y]"])] // OUT (C), D
-#[case::sbc_hl_de(0x29f9, &[0xed, 0x52], &["decode_ed", "SBC HL, rp[p]"])] // SBC HL, DE
+#[case::sbc_hl_de(0x29f9, &[0xed, 0x52], &["decode_ed", "SBC HL, rp[p]", "DE"])] // SBC HL, DE
 #[case::ld_nni_de_a(0x29f9, &[0xed, 0x53], &["decode_ed", "LD (nn), rp[p]", "DE"])] // LD (nn), DE
 #[case::ed_54(0x29f9, &[0xed, 0x54], &["decode_ed", "NONI"])] // NONI
 #[case::ed_55(0x29f9, &[0xed, 0x55], &["decode_ed", "NONI"])] // NONI
@@ -297,7 +297,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::ld_a_i(0x29f9, &[0xed, 0x57], &["decode_ed", "LD A, I"])] // LD A, I
 #[case::in_e_c(0x29f9, &[0xed, 0x58], &["decode_ed", "IN r[y], (C)"])] // IN E, (C)
 #[case::out_c_e(0x29f9, &[0xed, 0x59], &["decode_ed", "OUT (C), r[y]"])] // OUT (C), E
-#[case::adc_hl_de(0x29f9, &[0xed, 0x5a], &["decode_ed", "ADC HL, rp[p]"])] // ADC HL, DE
+#[case::adc_hl_de(0x29f9, &[0xed, 0x5a], &["decode_ed", "ADC HL, rp[p]", "DE"])] // ADC HL, DE
 #[case::ld_de_nni(0x29f9, &[0xed, 0x5b], &["decode_ed", "LD rp[p], (nn)", "DE"])] // LD DE, (nn)
 #[case::ed_5c(0x29f9, &[0xed, 0x5c], &["decode_ed", "NONI"])] // NONI
 #[case::ed_5d(0x29f9, &[0xed, 0x5d], &["decode_ed", "NONI"])] // NONI
@@ -305,7 +305,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::ld_a_r(0x29f9, &[0xed, 0x5f], &["decode_ed", "LD A, R"])] // LD A, R
 #[case::in_h_c(0x29f9, &[0xed, 0x60], &["decode_ed", "IN r[y], (C)"])] // IN H, (C)
 #[case::out_c_h(0x29f9, &[0xed, 0x61], &["decode_ed", "OUT (C), r[y]"])] // OUT (C), H
-#[case::sbc_hl_hl(0x29f9, &[0xed, 0x62], &["decode_ed", "SBC HL, rp[p]"])] // SBC HL, HL
+#[case::sbc_hl_hl(0x29f9, &[0xed, 0x62], &["decode_ed", "SBC HL, rp[p]", "HL"])] // SBC HL, HL
 #[case::ld_nni_hl_a(0x29f9, &[0xed, 0x63], &["decode_ed", "LD (nn), rp[p]", "HL"])] // LD (nn), HL
 #[case::ed_64(0x29f9, &[0xed, 0x64], &["decode_ed", "NONI"])] // NONI
 #[case::ed_65(0x29f9, &[0xed, 0x65], &["decode_ed", "NONI"])] // NONI
@@ -313,7 +313,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::rrd(0x29f9, &[0xed, 0x67], &["decode_ed", "RRD"])] // RRD
 #[case::in_l_c(0x29f9, &[0xed, 0x68], &["decode_ed", "IN r[y], (C)"])] // IN L, (C)
 #[case::out_c_l(0x29f9, &[0xed, 0x69], &["decode_ed", "OUT (C), r[y]"])] // OUT (C), L
-#[case::adc_hl_hl(0x29f9, &[0xed, 0x6a], &["decode_ed", "ADC HL, rp[p]"])] // ADC HL, HL
+#[case::adc_hl_hl(0x29f9, &[0xed, 0x6a], &["decode_ed", "ADC HL, rp[p]", "HL"])] // ADC HL, HL
 #[case::ld_hl_nni(0x29f9, &[0xed, 0x6b], &["decode_ed", "LD rp[p], (nn)", "HL"])] // LD HL, (nn)
 #[case::ed_6c(0x29f9, &[0xed, 0x6c], &["decode_ed", "NONI"])] // NONI
 #[case::ed_6d(0x29f9, &[0xed, 0x6d], &["decode_ed", "NONI"])] // NONI
@@ -321,7 +321,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::rld(0x29f9, &[0xed, 0x6f], &["decode_ed", "RLD"])] // RLD
 #[case::in_c(0x29f9, &[0xed, 0x70], &["decode_ed", "IN (C)"])] // IN (C)
 #[case::out_c_0(0x29f9, &[0xed, 0x71], &["decode_ed", "OUT (C), 0"])] // OUT (C), 0
-#[case::sbc_hl_sp(0x29f9, &[0xed, 0x72], &["decode_ed", "SBC HL, rp[p]"])] // SBC HL, SP
+#[case::sbc_hl_sp(0x29f9, &[0xed, 0x72], &["decode_ed", "SBC HL, rp[p]", "SP"])] // SBC HL, SP
 #[case::ld_nni_sp_a(0x29f9, &[0xed, 0x73], &["decode_ed", "LD (nn), rp[p]", "SP"])] // LD (nn), SP
 #[case::ed_74(0x29f9, &[0xed, 0x74], &["decode_ed", "NONI"])] // NONI
 #[case::ed_75(0x29f9, &[0xed, 0x75], &["decode_ed", "NONI"])] // NONI
@@ -329,7 +329,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::ed_77(0x29f9, &[0xed, 0x77], &["decode_ed", "NONI"])] // NONI
 #[case::in_a_c(0x29f9, &[0xed, 0x78], &["decode_ed", "IN r[y], (C)"])] // IN A, (C)
 #[case::out_c_a(0x29f9, &[0xed, 0x79], &["decode_ed", "OUT (C), r[y]"])] // OUT (C), A
-#[case::adc_hl_sp(0x29f9, &[0xed, 0x7a], &["decode_ed", "ADC HL, rp[p]"])] // ADC HL, SP
+#[case::adc_hl_sp(0x29f9, &[0xed, 0x7a], &["decode_ed", "ADC HL, rp[p]", "SP"])] // ADC HL, SP
 #[case::ld_sp_nni(0x29f9, &[0xed, 0x7b], &["decode_ed", "LD rp[p], (nn)", "SP"])] // LD SP, (nn)
 #[case::ldi(0x29f9, &[0xed, 0xa0], &["decode_ed", "bli[y, z]"])] // LDI
 #[case::cpi(0x29f9, &[0xed, 0xa1], &["decode_ed", "bli[y, z]"])] // CPI

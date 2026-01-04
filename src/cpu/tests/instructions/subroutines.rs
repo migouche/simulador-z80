@@ -7,7 +7,7 @@ use crate::{
 };
 use rstest::rstest;
 
-enum RetCC {
+enum CC {
     None,
     Condition(Condition),
 }
@@ -28,7 +28,7 @@ const RET_M_OPCODE: u8 = 0xF8;
     0x2000,
     0x00,
     &[(0x2000, 0x34), (0x2001, 0x12)],
-    RetCC::None,
+    CC::None,
     0x1234,
     0x2002
 )]
@@ -37,7 +37,7 @@ const RET_M_OPCODE: u8 = 0xF8;
     0x3000,
     0xFF ^ crate::cpu::flags::ZERO, // Z flag cleared
     &[(0x3000, 0x78), (0x3001, 0x56)],
-    RetCC::Condition(Condition::NZ),
+    CC::Condition(Condition::NZ),
     0x5678,
     0x3002
 )]
@@ -46,7 +46,7 @@ const RET_M_OPCODE: u8 = 0xF8;
     0x4000,
     crate::cpu::flags::ZERO, // Z flag set
     &[(0x4000, 0x9A), (0x4001, 0xBC)],
-    RetCC::Condition(Condition::NZ),
+    CC::Condition(Condition::NZ),
     0x1001, // PC should just advance
     0x4000  // SP should remain unchanged
 )]
@@ -55,7 +55,7 @@ const RET_M_OPCODE: u8 = 0xF8;
     0x5000,
     crate::cpu::flags::ZERO, // Z flag set
     &[(0x5000, 0xDE), (0x5001, 0xF0)],
-    RetCC::Condition(Condition::Z),
+    CC::Condition(Condition::Z),
     0xF0DE,
     0x5002
 )]
@@ -64,7 +64,7 @@ const RET_M_OPCODE: u8 = 0xF8;
     0x6000,
     0xff ^ crate::cpu::flags::ZERO, // Z flag cleared
     &[(0x6000, 0x11), (0x6001, 0x22)],
-    RetCC::Condition(Condition::Z),
+    CC::Condition(Condition::Z),
     0x1001, // PC should just advance
     0x6000  // SP should remain unchanged
 )]
@@ -73,7 +73,7 @@ const RET_M_OPCODE: u8 = 0xF8;
     0x7000,
     0xff ^ crate::cpu::flags::CARRY, // C flag cleared
     &[(0x7000, 0x33), (0x7001, 0x44)],
-    RetCC::Condition(Condition::NC),
+    CC::Condition(Condition::NC),
     0x4433,
     0x7002
 )]
@@ -82,7 +82,7 @@ const RET_M_OPCODE: u8 = 0xF8;
     0x8000,
     crate::cpu::flags::CARRY, // C flag set
     &[(0x8000, 0x55), (0x8001, 0x66)],
-    RetCC::Condition(Condition::NC),
+    CC::Condition(Condition::NC),
     0x1001, // PC should just advance
     0x8000  // SP should remain unchanged
 )]
@@ -91,7 +91,7 @@ const RET_M_OPCODE: u8 = 0xF8;
     0x9000,
     crate::cpu::flags::CARRY, // C flag set
     &[(0x9000, 0x77), (0x9001, 0x88)],
-    RetCC::Condition(Condition::C),
+    CC::Condition(Condition::C),
     0x8877,
     0x9002
 )]
@@ -100,7 +100,7 @@ const RET_M_OPCODE: u8 = 0xF8;
     0xA000,
     0xff ^ crate::cpu::flags::CARRY, // C flag cleared
     &[(0xA000, 0x99), (0xA001, 0xAA)],
-    RetCC::Condition(Condition::C),
+    CC::Condition(Condition::C),
     0x1001, // PC should just advance
     0xA000  // SP should remain unchanged
 )]
@@ -109,7 +109,7 @@ const RET_M_OPCODE: u8 = 0xF8;
     0xB000,
     0xff ^ crate::cpu::flags::PARITY_OVERFLOW, // P/V flag cleared
     &[(0xB000, 0xBB), (0xB001, 0xCC)],
-    RetCC::Condition(Condition::PO),
+    CC::Condition(Condition::PO),
     0xCCBB,
     0xB002
 )]
@@ -118,7 +118,7 @@ const RET_M_OPCODE: u8 = 0xF8;
     0xC000,
     crate::cpu::flags::PARITY_OVERFLOW, // P/V flag set
     &[(0xC000, 0xDD), (0xC001, 0xEE)],
-    RetCC::Condition(Condition::PO),
+    CC::Condition(Condition::PO),
     0x1001, // PC should just advance
     0xC000  // SP should remain unchanged
 )]
@@ -127,7 +127,7 @@ const RET_M_OPCODE: u8 = 0xF8;
     0xD000,
     crate::cpu::flags::PARITY_OVERFLOW, // P/V flag set
     &[(0xD000, 0xFF), (0xD001, 0x00)],
-    RetCC::Condition(Condition::PE),
+    CC::Condition(Condition::PE),
     0x00FF,
     0xD002
 )]
@@ -136,7 +136,7 @@ const RET_M_OPCODE: u8 = 0xF8;
     0xE000,
     0xff ^ crate::cpu::flags::PARITY_OVERFLOW, // P/V flag cleared
     &[(0xE000, 0x12), (0xE001, 0x34)],
-    RetCC::Condition(Condition::PE),
+    CC::Condition(Condition::PE),
     0x1001, // PC should just advance
     0xE000  // SP should remain unchanged
 )]
@@ -145,7 +145,7 @@ const RET_M_OPCODE: u8 = 0xF8;
     0xF000,
     0xff ^ crate::cpu::flags::SIGN, // S flag cleared
     &[(0xF000, 0x56), (0xF001, 0x78)],
-    RetCC::Condition(Condition::P),
+    CC::Condition(Condition::P),
     0x7856,
     0xF002
 )]
@@ -154,7 +154,7 @@ const RET_M_OPCODE: u8 = 0xF8;
     0x1100,
     crate::cpu::flags::SIGN, // S flag set
     &[(0x1100, 0x9A), (0x1101, 0xBC)],
-    RetCC::Condition(Condition::P),
+    CC::Condition(Condition::P),
     0x1001, // PC should just advance
     0x1100  // SP should remain unchanged
 )]
@@ -163,7 +163,7 @@ const RET_M_OPCODE: u8 = 0xF8;
     0x1200,
     crate::cpu::flags::SIGN, // S flag set
     &[(0x1200, 0xDE), (0x1201, 0xF0)],
-    RetCC::Condition(Condition::M),
+    CC::Condition(Condition::M),
     0xF0DE,
     0x1202
 )]
@@ -172,7 +172,7 @@ const RET_M_OPCODE: u8 = 0xF8;
     0x1300,
     0xff ^ crate::cpu::flags::SIGN, // S flag cleared
     &[(0x1300, 0x11), (0x1301, 0x22)],
-    RetCC::Condition(Condition::M),
+    CC::Condition(Condition::M),
     0x1001, // PC should just advance
     0x1300  // SP should remain unchanged
 )]
@@ -182,7 +182,7 @@ fn test_ret(
     #[case] initial_sp: u16,
     #[case] initial_flags: u8,
     #[case] stacked_values: &[(u16, u8)],
-    #[case] ret_cc: RetCC,
+    #[case] ret_cc: CC,
     #[case] expected_final_pc: u16,
     #[case] expected_final_sp: u16,
 ) {
@@ -195,15 +195,15 @@ fn test_ret(
     cpu.set_register(GPR::F, initial_flags);
 
     let opcode = match ret_cc {
-        RetCC::None => RET_OPCODE,
-        RetCC::Condition(Condition::NZ) => RET_NZ_OPCODE,
-        RetCC::Condition(Condition::Z) => RET_Z_OPCODE,
-        RetCC::Condition(Condition::NC) => RET_NC_OPCODE,
-        RetCC::Condition(Condition::C) => RET_C_OPCODE,
-        RetCC::Condition(Condition::PO) => RET_PO_OPCODE,
-        RetCC::Condition(Condition::PE) => RET_PE_OPCODE,
-        RetCC::Condition(Condition::P) => RET_P_OPCODE,
-        RetCC::Condition(Condition::M) => RET_M_OPCODE,
+        CC::None => RET_OPCODE,
+        CC::Condition(Condition::NZ) => RET_NZ_OPCODE,
+        CC::Condition(Condition::Z) => RET_Z_OPCODE,
+        CC::Condition(Condition::NC) => RET_NC_OPCODE,
+        CC::Condition(Condition::C) => RET_C_OPCODE,
+        CC::Condition(Condition::PO) => RET_PO_OPCODE,
+        CC::Condition(Condition::PE) => RET_PE_OPCODE,
+        CC::Condition(Condition::P) => RET_P_OPCODE,
+        CC::Condition(Condition::M) => RET_M_OPCODE,
     };
     cpu.memory.borrow_mut().write(cpu.PC, opcode);
     cpu.tick();
@@ -230,10 +230,6 @@ const CALL_PE_OPCODE: u8 = 0xEC;
 const CALL_P_OPCODE: u8 = 0xF4;
 const CALL_M_OPCODE: u8 = 0xFC;
 
-enum CallCC {
-    None,
-    Condition(Condition),
-}
 
 #[rstest]
 #[case::call(
@@ -241,7 +237,7 @@ enum CallCC {
     0x2000,
     0x00,
     0x55AA,
-    CallCC::None,
+    CC::None,
     0x55AA, // PC jumps to target
     0x1FFE  // SP decrements by 2
 )]
@@ -250,7 +246,7 @@ enum CallCC {
     0x3000,
     0xFF ^ crate::cpu::flags::ZERO, // Z flag cleared
     0x66BB,
-    CallCC::Condition(Condition::NZ),
+    CC::Condition(Condition::NZ),
     0x66BB,
     0x2FFE
 )]
@@ -259,7 +255,7 @@ enum CallCC {
     0x4000,
     crate::cpu::flags::ZERO, // Z flag set
     0x66BB,
-    CallCC::Condition(Condition::NZ),
+    CC::Condition(Condition::NZ),
     0x1003, // PC advances by 3 (opcode + 2 byte addr)
     0x4000  // SP remains unchanged
 )]
@@ -268,7 +264,7 @@ enum CallCC {
     0x5000,
     crate::cpu::flags::ZERO, // Z flag set
     0x77CC,
-    CallCC::Condition(Condition::Z),
+    CC::Condition(Condition::Z),
     0x77CC,
     0x4FFE
 )]
@@ -277,7 +273,7 @@ enum CallCC {
     0x6000,
     0xFF ^ crate::cpu::flags::ZERO, // Z flag cleared
     0x77CC,
-    CallCC::Condition(Condition::Z),
+    CC::Condition(Condition::Z),
     0x1003,
     0x6000
 )]
@@ -286,7 +282,7 @@ enum CallCC {
     0x7000,
     0xFF ^ crate::cpu::flags::CARRY, // C flag cleared
     0x88DD,
-    CallCC::Condition(Condition::NC),
+    CC::Condition(Condition::NC),
     0x88DD,
     0x6FFE
 )]
@@ -295,7 +291,7 @@ enum CallCC {
     0x8000,
     crate::cpu::flags::CARRY, // C flag set
     0x88DD,
-    CallCC::Condition(Condition::NC),
+    CC::Condition(Condition::NC),
     0x1003,
     0x8000
 )]
@@ -304,7 +300,7 @@ enum CallCC {
     0x9000,
     crate::cpu::flags::CARRY, // C flag set
     0x99EE,
-    CallCC::Condition(Condition::C),
+    CC::Condition(Condition::C),
     0x99EE,
     0x8FFE
 )]
@@ -313,7 +309,7 @@ enum CallCC {
     0xA000,
     0xFF ^ crate::cpu::flags::CARRY, // C flag cleared
     0x99EE,
-    CallCC::Condition(Condition::C),
+    CC::Condition(Condition::C),
     0x1003,
     0xA000
 )]
@@ -322,7 +318,7 @@ enum CallCC {
     0xB000,
     0xFF ^ crate::cpu::flags::PARITY_OVERFLOW,
     0xAA11,
-    CallCC::Condition(Condition::PO),
+    CC::Condition(Condition::PO),
     0xAA11,
     0xAFFE
 )]
@@ -331,7 +327,7 @@ enum CallCC {
     0xC000,
     crate::cpu::flags::PARITY_OVERFLOW,
     0xAA11,
-    CallCC::Condition(Condition::PO),
+    CC::Condition(Condition::PO),
     0x1003,
     0xC000
 )]
@@ -340,7 +336,7 @@ enum CallCC {
     0xD000,
     crate::cpu::flags::PARITY_OVERFLOW,
     0xBB22,
-    CallCC::Condition(Condition::PE),
+    CC::Condition(Condition::PE),
     0xBB22,
     0xCFFE
 )]
@@ -349,7 +345,7 @@ enum CallCC {
     0xE000,
     0xFF ^ crate::cpu::flags::PARITY_OVERFLOW,
     0xBB22,
-    CallCC::Condition(Condition::PE),
+    CC::Condition(Condition::PE),
     0x1003,
     0xE000
 )]
@@ -358,7 +354,7 @@ enum CallCC {
     0xF000,
     0xFF ^ crate::cpu::flags::SIGN,
     0xCC33,
-    CallCC::Condition(Condition::P),
+    CC::Condition(Condition::P),
     0xCC33,
     0xEFFE
 )]
@@ -367,7 +363,7 @@ enum CallCC {
     0x0100,
     crate::cpu::flags::SIGN,
     0xCC33,
-    CallCC::Condition(Condition::P),
+    CC::Condition(Condition::P),
     0x1003,
     0x0100
 )]
@@ -376,7 +372,7 @@ enum CallCC {
     0x0200,
     crate::cpu::flags::SIGN,
     0xDD44,
-    CallCC::Condition(Condition::M),
+    CC::Condition(Condition::M),
     0xDD44,
     0x01FE
 )]
@@ -385,7 +381,7 @@ enum CallCC {
     0x0300,
     0xFF ^ crate::cpu::flags::SIGN,
     0xDD44,
-    CallCC::Condition(Condition::M),
+    CC::Condition(Condition::M),
     0x1003,
     0x0300
 )]
@@ -394,7 +390,7 @@ fn test_call(
     #[case] initial_sp: u16,
     #[case] initial_flags: u8,
     #[case] target_addr: u16,
-    #[case] call_cc: CallCC,
+    #[case] call_cc: CC,
     #[case] expected_final_pc: u16,
     #[case] expected_final_sp: u16,
 ) {
@@ -405,15 +401,15 @@ fn test_call(
     cpu.set_register(GPR::F, initial_flags);
 
     let opcode = match call_cc {
-        CallCC::None => CALL_OPCODE,
-        CallCC::Condition(Condition::NZ) => CALL_NZ_OPCODE,
-        CallCC::Condition(Condition::Z) => CALL_Z_OPCODE,
-        CallCC::Condition(Condition::NC) => CALL_NC_OPCODE,
-        CallCC::Condition(Condition::C) => CALL_C_OPCODE,
-        CallCC::Condition(Condition::PO) => CALL_PO_OPCODE,
-        CallCC::Condition(Condition::PE) => CALL_PE_OPCODE,
-        CallCC::Condition(Condition::P) => CALL_P_OPCODE,
-        CallCC::Condition(Condition::M) => CALL_M_OPCODE,
+        CC::None => CALL_OPCODE,
+        CC::Condition(Condition::NZ) => CALL_NZ_OPCODE,
+        CC::Condition(Condition::Z) => CALL_Z_OPCODE,
+        CC::Condition(Condition::NC) => CALL_NC_OPCODE,
+        CC::Condition(Condition::C) => CALL_C_OPCODE,
+        CC::Condition(Condition::PO) => CALL_PO_OPCODE,
+        CC::Condition(Condition::PE) => CALL_PE_OPCODE,
+        CC::Condition(Condition::P) => CALL_P_OPCODE,
+        CC::Condition(Condition::M) => CALL_M_OPCODE,
     };
 
     // Write Opcode
@@ -460,4 +456,83 @@ fn test_call(
             "Stack High Byte (Return Addr) mismatch"
         );
     }
+}
+
+const RST_00H_OPCODE: u8 = 0xC7;
+const RST_08H_OPCODE: u8 = 0xCF;
+const RST_10H_OPCODE: u8 = 0xD7;
+const RST_18H_OPCODE: u8 = 0xDF;
+const RST_20H_OPCODE: u8 = 0xE7;
+const RST_28H_OPCODE: u8 = 0xEF;
+const RST_30H_OPCODE: u8 = 0xF7;
+const RST_38H_OPCODE: u8 = 0xFF;
+
+#[rstest]
+// Case 1: RST 00H (The "Soft Reset")
+// Jumps to 0x0000. Return addr (0x1001) pushed to stack.
+#[case(0x1000, 0x2000, RST_00H_OPCODE, 0x0000, 0x1FFE)]
+
+// Case 2: RST 08H
+// Jumps to 0x0008.
+#[case(0x1000, 0x2000, RST_08H_OPCODE, 0x0008, 0x1FFE)]
+
+// Case 3: RST 10H
+#[case(0x1000, 0x2000, RST_10H_OPCODE, 0x0010, 0x1FFE)]
+
+// Case 4: RST 18H
+#[case(0x1000, 0x2000, RST_18H_OPCODE, 0x0018, 0x1FFE)]
+
+// Case 5: RST 20H
+#[case(0x1000, 0x2000, RST_20H_OPCODE, 0x0020, 0x1FFE)]
+
+// Case 6: RST 28H
+#[case(0x1000, 0x2000, RST_28H_OPCODE, 0x0028, 0x1FFE)]
+
+// Case 7: RST 30H
+#[case(0x1000, 0x2000, RST_30H_OPCODE, 0x0030, 0x1FFE)]
+
+// Case 8: RST 38H (The common Interrupt Vector)
+// Jumps to 0x0038.
+#[case(0x1000, 0x2000, RST_38H_OPCODE, 0x0038, 0x1FFE)]
+
+// Case 9: Execution at End of Memory
+// RST at 0xFFFF. Return address wraps to 0x0000.
+#[case(0xFFFF, 0x2000, RST_00H_OPCODE, 0x0000, 0x1FFE)]
+
+// Case 10: Stack Wrapping
+// SP at 0x0000. Wraps to 0xFFFE.
+#[case(0x5000, 0x0000, RST_10H_OPCODE, 0x0010, 0xFFFE)]
+
+fn test_rst(
+    #[case] starting_pc: u16,
+    #[case] starting_sp: u16,
+    #[case] opcode: u8,
+    #[case] expected_target_pc: u16,
+    #[case] expected_final_sp: u16,
+) {
+    let mut cpu = setup_cpu();
+
+    cpu.PC = starting_pc;
+    cpu.SP = starting_sp;
+
+    cpu.memory.borrow_mut().write(cpu.PC, opcode);
+
+    cpu.tick();
+
+    assert_eq!(
+        cpu.PC, expected_target_pc,
+        "PC mismatch after RST: expected {:04X}, got {:04X}",
+        expected_target_pc, cpu.PC
+    );
+
+    assert_eq!(
+        cpu.SP, expected_final_sp,
+        "SP mismatch after RST: expected {:04X}, got {:04X}",
+        expected_final_sp, cpu.SP
+    );
+
+    let ret_addr = starting_pc.wrapping_add(1);
+    let stack = cpu.memory.borrow().read_word(cpu.SP);
+    
+    assert_eq!(stack, ret_addr, "Stack Word (Return Addr) mismatch");
 }

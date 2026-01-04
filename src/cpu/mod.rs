@@ -8,23 +8,23 @@ use std::usize;
 
 use crate::{
     cpu::alu::{
-        add_16, alu_op, bit, dec, inc, res,
+        add_16, alu_op::{self, add}, bit, dec, inc, res,
         rot::{self, RotOperation},
-        set,
+        set, sub_16,
     },
     traits::{MemoryMapper, SyncronousComponent},
 };
 
 #[cfg(test)]
 macro_rules! test_log {
-    ($self:expr, $msg:expr) => {
-        $self.test_callback.1($msg, &mut $self.test_callback.0)
+    ($self:expr, $fmt:expr $(, $($arg:tt)+)? ) => { 
+        $self.test_callback.1(&format!($fmt $(, $($arg)+)?), &mut $self.test_callback.0)
     };
 }
 
 #[cfg(not(test))]
 macro_rules! test_log {
-    ($self:expr, $msg:expr) => {
+    ($self:expr, $fmt:expr $(, $($arg:tt)+)? ) => {
         ()
     };
 }
@@ -643,12 +643,22 @@ impl Z80A {
         self.write_16(dest, result);
     }
 
-    fn add_16_op(&mut self, dest: AddressingMode, src: AddressingMode) {
+    fn add_16_op(&mut self, dest: AddressingMode, src: AddressingMode, use_carry: bool) {
         let val_dest = self.read_16(dest);
         let val_src = self.read_16(src);
 
-        let (result, flags) = add_16(val_dest, val_src, self.af_registers[self.active_af].f);
+        let (result, flags) = add_16(val_dest, val_src, self.af_registers[self.active_af].f, use_carry);
         self.af_registers[self.active_af].f = flags;
+
+        self.write_16(dest, result);
+    }
+
+    fn sub_16_op(&mut self, dest: AddressingMode, src: AddressingMode, use_carry: bool) {
+        let val_dest = self.read_16(dest);
+        let val_src = self.read_16(src);
+
+        let (result, flags) = sub_16(val_dest, val_src, self.af_registers[self.active_af].f, use_carry);
+        self.af_registers[self.active_af].f = flags | flags::ADD_SUB;
 
         self.write_16(dest, result);
     }
@@ -853,7 +863,7 @@ impl Z80A {
                         );
                         let rp = self.table_rp(p);
                         let src = self.transform_register(rp, addressing);
-                        self.add_16_op(dest, src);
+                        self.add_16_op(dest, src, false);
                     } else {
                         // 16-bit load immediate/add
                         // LD rp[p], nn
@@ -1208,7 +1218,7 @@ impl Z80A {
                         let src = self.transform_register(rp, addressing);
                         let value = self.read_16(src);
                         self.push(value);
-                    } // TODO: PUSH rp2[p]
+                    }
                     (true, 0) => {
                         // CALL nn
                         test_log!(self, "CALL nn");
@@ -1216,10 +1226,10 @@ impl Z80A {
                         self.push(self.PC);
                         self.PC = addr;
                     }
-                    (true, 1) => test_log!(self, "DD prefix"), // TODO: DD prefix
-                    (true, 2) => test_log!(self, "ED prefix"), // TODO: ED prefix
-                    (true, 3) => test_log!(self, "FD prefix"), // TODO: FD prefix
-                    _ => unreachable!("Invalid q, p values"),  // should never happen
+                    (true, 1) => unreachable!("Shouldn't reach ED prefix here"), // should never reach this
+                    (true, 2) => unreachable!("Shouldn't reach DD prefix here"), // should never reach this
+                    (true, 3) => unreachable!("Shouldn't reach FD prefix here"), // should never reach this
+                    _ => unreachable!("Invalid q, p values"), // should never happen
                 },
                 6 => {
                     // ALU[y] n
@@ -1228,7 +1238,14 @@ impl Z80A {
                     let n = self.fetch();
                     self.alu_op(alu_op, n);
                 }
-                7 => test_log!(self, "RST y*8"), // TODO: RST y*8
+                7 => {
+                    // RST y*8
+                    test_log!(self, "RST y*8");
+                    let rst_addr = (y as u16) * 8;
+                    test_log!(self, "{:02X}h", rst_addr);
+                    self.push(self.PC);
+                    self.PC = rst_addr;
+                }
                 _ => unreachable!("Invalid z value"), // should never happen
             },
             _ => unreachable!("Invalid x value"), // should never happen
@@ -1245,19 +1262,19 @@ impl Z80A {
             }
             1 => {
                 test_log!(self, "BIT y, r[z]");
-                test_log!(self, &format!("{}", y));
+                test_log!(self, "{}", y);
                 let reg = self.table_r(z);
                 self.bit(y, reg)
             } // NOTE: BIT y, r[z]
             2 => {
                 test_log!(self, "RES y, r[z]");
-                test_log!(self, &format!("{}", y));
+                test_log!(self, "{}", y);
                 let reg = self.table_r(z);
                 self.res(y, reg)
             } // NOTE: RES y, r[z]
             3 => {
                 test_log!(self, "SET y, r[z]");
-                test_log!(self, &format!("{}", y));
+                test_log!(self, "{}", y);
                 let reg = self.table_r(z);
                 self.set(y, reg)
             } // NOTE: SET y, r[z]
@@ -1296,10 +1313,17 @@ impl Z80A {
                     }
                 }
                 2 => {
-                    if !q {
-                        test_log!(self, "SBC HL, rp[p]"); // TODO: SBC HL, rp[p]
-                    } else {
-                        test_log!(self, "ADC HL, rp[p]"); // TODO: ADC HL, rp[p]
+                    if !q { // SBC HL, rp[p]
+                        test_log!(self, "SBC HL, rp[p]");
+                        let dest = AddressingMode::RegisterPair(RegisterPair::HL);
+                        let rp = self.table_rp(p);
+                        self.sub_16_op(dest, rp, true) // SBC HL, rp[p]
+
+                    } else { // ADC HL, rp[p]
+                        test_log!(self, "ADC HL, rp[p]"); 
+                        let dest = AddressingMode::RegisterPair(RegisterPair::HL);
+                        let rp = self.table_rp(p);
+                        self.add_16_op(dest, rp, true) // ADC HL, rp[p]
                     }
                 }
                 3 => {

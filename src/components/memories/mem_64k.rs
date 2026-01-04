@@ -22,7 +22,7 @@ impl MemoryMapper for Mem64k {
 
 #[test]
 fn test_mem_64k_read_write() {
-    let mut memory = Mem64k { data: [0; 0x10000] };
+    let mut memory = Mem64k::new();
     memory.write(0x1234, 0xAB);
     assert_eq!(memory.read(0x1234), 0xAB);
 

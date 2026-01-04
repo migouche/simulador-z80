@@ -10,3 +10,4 @@ pub mod ld;
 pub mod push_pop;
 pub mod rot;
 pub mod subroutines;
+pub mod ed;
