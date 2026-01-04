@@ -76,6 +76,33 @@ const SBC_HL_SP_OPCODE: u8 = 0x72;
     0x7FFF,             // -32768 - 1 = 32767 (Overflow)
     flags::ADD_SUB | flags::PARITY_OVERFLOW | flags::HALF_CARRY | flags::X | flags::Y
 )]
+#[case::adc_hl_sp(
+    ADD_HL_SP_OPCODE, 0x5000,
+    AddressingMode::RegisterPair(RegisterPair::HL), 0x1000,
+    AddressingMode::RegisterPair(RegisterPair::SP), 0xF000,
+    0x00,
+    0x0000,
+    flags::ZERO | flags::CARRY // H is 0 because no carry from bit 11->12
+)]
+// --- SBC HL, HL Tests ---
+#[case::sbc_hl_hl_no_carry(
+    SBC_HL_HL_OPCODE, 0x6000,
+    AddressingMode::RegisterPair(RegisterPair::HL), 0x1234,
+    AddressingMode::RegisterPair(RegisterPair::HL), 0x1234,
+    0x00,
+    0x0000,
+    flags::ADD_SUB | flags::ZERO // No borrow, so H and C are 0
+)]
+#[case::sbc_hl_hl_with_carry(
+    SBC_HL_HL_OPCODE, 0x7000,
+    AddressingMode::RegisterPair(RegisterPair::HL), 0x1234,
+    AddressingMode::RegisterPair(RegisterPair::HL), 0x1234,
+    flags::CARRY,
+    0xFFFF,
+    // 0x1234 - 0x1234 - 1 = 0xFFFF
+    // Requires borrow from every stage: C, H, X, Y, and S all set.
+    flags::ADD_SUB | flags::CARRY | flags::HALF_CARRY | flags::SIGN | flags::X | flags::Y
+)]
 
 fn test_alu16(
     #[case] opcode: u8,
