@@ -3,7 +3,6 @@ use crate::cpu::flags;
 pub mod rot {
     use crate::cpu::flags;
 
-
     pub enum RotOperation {
         RLC,
         RRC,
@@ -164,7 +163,7 @@ pub mod alu_op {
             | (if x { flags::X } else { 0x00 })
             | (if h { flags::HALF_CARRY } else { 0x00 })
             | (if y { flags::Y } else { 0x00 })
-            | (if z { flags::ZERO} else { 0x00 })
+            | (if z { flags::ZERO } else { 0x00 })
             | (if s { flags::SIGN } else { 0x00 });
 
         (final_diff, flags)
@@ -268,18 +267,22 @@ pub fn inc(value: u8) -> (u8, u8) {
 }
 
 pub fn add_16(a: u16, b: u16, current_flags: u8, use_carry: bool) -> (u16, u8) {
-    let carry_in = if use_carry && (current_flags & flags::CARRY) != 0 { 1 } else { 0 };
-    
+    let carry_in = if use_carry && (current_flags & flags::CARRY) != 0 {
+        1
+    } else {
+        0
+    };
+
     let (res_1, c1) = a.overflowing_add(b);
     let (result, c2) = res_1.overflowing_add(carry_in);
     let c = c1 || c2;
 
     // Half Carry is carry from bit 11 to 12
     let h = ((a & 0x0FFF) + (b & 0x0FFF) + carry_in) > 0x0FFF;
-    
+
     let n = false;
     // X and Y are ALWAYS bits 11 and 13 of the result
-    let x = (result & 0x0800) != 0; 
+    let x = (result & 0x0800) != 0;
     let y = (result & 0x2000) != 0;
 
     let (s, z, pv) = if use_carry {
@@ -289,9 +292,11 @@ pub fn add_16(a: u16, b: u16, current_flags: u8, use_carry: bool) -> (u16, u8) {
         let pv = ((a ^ result) & (b ^ result) & 0x8000) != 0;
         (s, z, pv)
     } else {
-        ((current_flags & flags::SIGN) != 0, 
-         (current_flags & flags::ZERO) != 0, 
-         (current_flags & flags::PARITY_OVERFLOW) != 0)
+        (
+            (current_flags & flags::SIGN) != 0,
+            (current_flags & flags::ZERO) != 0,
+            (current_flags & flags::PARITY_OVERFLOW) != 0,
+        )
     };
 
     let flags = (if c { flags::CARRY } else { 0x00 })
@@ -307,15 +312,19 @@ pub fn add_16(a: u16, b: u16, current_flags: u8, use_carry: bool) -> (u16, u8) {
 }
 
 pub fn sub_16(a: u16, b: u16, current_flags: u8, use_carry: bool) -> (u16, u8) {
-    let carry_in = if use_carry && (current_flags & flags::CARRY) != 0 { 1 } else { 0 };
-    
+    let carry_in = if use_carry && (current_flags & flags::CARRY) != 0 {
+        1
+    } else {
+        0
+    };
+
     let (res_1, b1) = a.overflowing_sub(b);
     let (result, b2) = res_1.overflowing_sub(carry_in);
     let c = b1 || b2;
 
     // Half Borrow is borrow from bit 12
     let h = (a & 0x0FFF) < ((b & 0x0FFF) + carry_in);
-    
+
     let n = true;
     let x = (result & 0x0800) != 0;
     let y = (result & 0x2000) != 0;
@@ -327,9 +336,11 @@ pub fn sub_16(a: u16, b: u16, current_flags: u8, use_carry: bool) -> (u16, u8) {
         let pv = ((a ^ b) & (a ^ result) & 0x8000) != 0;
         (s, z, pv)
     } else {
-        ((current_flags & flags::SIGN) != 0, 
-         (current_flags & flags::ZERO) != 0, 
-         (current_flags & flags::PARITY_OVERFLOW) != 0)
+        (
+            (current_flags & flags::SIGN) != 0,
+            (current_flags & flags::ZERO) != 0,
+            (current_flags & flags::PARITY_OVERFLOW) != 0,
+        )
     };
 
     let flags = (if c { flags::CARRY } else { 0x00 })

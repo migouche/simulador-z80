@@ -230,7 +230,6 @@ const CALL_PE_OPCODE: u8 = 0xEC;
 const CALL_P_OPCODE: u8 = 0xF4;
 const CALL_M_OPCODE: u8 = 0xFC;
 
-
 #[rstest]
 #[case::call(
     0x1000,
@@ -471,34 +470,25 @@ const RST_38H_OPCODE: u8 = 0xFF;
 // Case 1: RST 00H (The "Soft Reset")
 // Jumps to 0x0000. Return addr (0x1001) pushed to stack.
 #[case(0x1000, 0x2000, RST_00H_OPCODE, 0x0000, 0x1FFE)]
-
 // Case 2: RST 08H
 // Jumps to 0x0008.
 #[case(0x1000, 0x2000, RST_08H_OPCODE, 0x0008, 0x1FFE)]
-
 // Case 3: RST 10H
 #[case(0x1000, 0x2000, RST_10H_OPCODE, 0x0010, 0x1FFE)]
-
 // Case 4: RST 18H
 #[case(0x1000, 0x2000, RST_18H_OPCODE, 0x0018, 0x1FFE)]
-
 // Case 5: RST 20H
 #[case(0x1000, 0x2000, RST_20H_OPCODE, 0x0020, 0x1FFE)]
-
 // Case 6: RST 28H
 #[case(0x1000, 0x2000, RST_28H_OPCODE, 0x0028, 0x1FFE)]
-
 // Case 7: RST 30H
 #[case(0x1000, 0x2000, RST_30H_OPCODE, 0x0030, 0x1FFE)]
-
 // Case 8: RST 38H (The common Interrupt Vector)
 // Jumps to 0x0038.
 #[case(0x1000, 0x2000, RST_38H_OPCODE, 0x0038, 0x1FFE)]
-
 // Case 9: Execution at End of Memory
 // RST at 0xFFFF. Return address wraps to 0x0000.
 #[case(0xFFFF, 0x2000, RST_00H_OPCODE, 0x0000, 0x1FFE)]
-
 // Case 10: Stack Wrapping
 // SP at 0x0000. Wraps to 0xFFFE.
 #[case(0x5000, 0x0000, RST_10H_OPCODE, 0x0010, 0xFFFE)]
@@ -533,6 +523,6 @@ fn test_rst(
 
     let ret_addr = starting_pc.wrapping_add(1);
     let stack = cpu.memory.borrow().read_word(cpu.SP);
-    
+
     assert_eq!(stack, ret_addr, "Stack Word (Return Addr) mismatch");
 }

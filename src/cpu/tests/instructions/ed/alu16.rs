@@ -1,6 +1,11 @@
+use crate::{
+    cpu::{
+        AddressingMode, GPR, RegisterPair, flags,
+        tests::{instructions::ed::PREFIX, setup_cpu},
+    },
+    traits::SyncronousComponent,
+};
 use rstest::rstest;
-use crate::{cpu::{AddressingMode, GPR, RegisterPair, flags, tests::{instructions::ed::PREFIX, setup_cpu}}, traits::SyncronousComponent};
-
 
 const ADD_HL_BC_OPCODE: u8 = 0x4A;
 const ADD_HL_DE_OPCODE: u8 = 0x5A;
@@ -38,7 +43,6 @@ const SBC_HL_SP_OPCODE: u8 = 0x72;
     0x0000,             // 0x8000 + 0x8000 = 0x0000 (carry out)
     flags::ZERO | flags::CARRY | flags::PARITY_OVERFLOW // PV set (overflow from 2 negs to pos)
 )]
-
 // --- SBC HL, rp Tests ---
 #[case::sbc_simple(
     SBC_HL_BC_OPCODE, 0x3000,
@@ -82,13 +86,15 @@ fn test_alu16(
     #[case] initial_src_val: u16,
     #[case] initial_flags: u8,
     #[case] expected_val: u16,
-    #[case] expected_flags: u8
+    #[case] expected_flags: u8,
 ) {
     let mut cpu = setup_cpu();
     cpu.set_register(GPR::F, initial_flags);
     cpu.PC = initial_pc;
     cpu.memory.borrow_mut().write(initial_pc, PREFIX);
-    cpu.memory.borrow_mut().write(initial_pc.overflowing_add(1).0, opcode);
+    cpu.memory
+        .borrow_mut()
+        .write(initial_pc.overflowing_add(1).0, opcode);
 
     // Set initial values
     match dest {
@@ -111,9 +117,17 @@ fn test_alu16(
         AddressingMode::RegisterPair(rp) => cpu.get_register_pair(rp),
         AddressingMode::IndexRegister(r) => cpu.get_index_register(r),
         _ => panic!("Invalid dest check"),
-    }; 
+    };
     let result_flags = cpu.get_register(GPR::F);
 
-    assert_eq!(result_val, expected_val, "Value mismatch: expected 0x{:04X}, got 0x{:04X}", expected_val, result_val);
-    assert_eq!(result_flags, expected_flags, "Flags mismatch: expected {:08b}, got {:08b}", expected_flags, result_flags);
+    assert_eq!(
+        result_val, expected_val,
+        "Value mismatch: expected 0x{:04X}, got 0x{:04X}",
+        expected_val, result_val
+    );
+    assert_eq!(
+        result_flags, expected_flags,
+        "Flags mismatch: expected {:08b}, got {:08b}",
+        expected_flags, result_flags
+    );
 }

@@ -8,7 +8,9 @@ use std::usize;
 
 use crate::{
     cpu::alu::{
-        add_16, alu_op::{self, add}, bit, dec, inc, res,
+        add_16,
+        alu_op::{self, add},
+        bit, dec, inc, res,
         rot::{self, RotOperation},
         set, sub_16,
     },
@@ -17,7 +19,7 @@ use crate::{
 
 #[cfg(test)]
 macro_rules! test_log {
-    ($self:expr, $fmt:expr $(, $($arg:tt)+)? ) => { 
+    ($self:expr, $fmt:expr $(, $($arg:tt)+)? ) => {
         $self.test_callback.1(&format!($fmt $(, $($arg)+)?), &mut $self.test_callback.0)
     };
 }
@@ -647,7 +649,12 @@ impl Z80A {
         let val_dest = self.read_16(dest);
         let val_src = self.read_16(src);
 
-        let (result, flags) = add_16(val_dest, val_src, self.af_registers[self.active_af].f, use_carry);
+        let (result, flags) = add_16(
+            val_dest,
+            val_src,
+            self.af_registers[self.active_af].f,
+            use_carry,
+        );
         self.af_registers[self.active_af].f = flags;
 
         self.write_16(dest, result);
@@ -657,7 +664,12 @@ impl Z80A {
         let val_dest = self.read_16(dest);
         let val_src = self.read_16(src);
 
-        let (result, flags) = sub_16(val_dest, val_src, self.af_registers[self.active_af].f, use_carry);
+        let (result, flags) = sub_16(
+            val_dest,
+            val_src,
+            self.af_registers[self.active_af].f,
+            use_carry,
+        );
         self.af_registers[self.active_af].f = flags | flags::ADD_SUB;
 
         self.write_16(dest, result);
@@ -1313,14 +1325,15 @@ impl Z80A {
                     }
                 }
                 2 => {
-                    if !q { // SBC HL, rp[p]
+                    if !q {
+                        // SBC HL, rp[p]
                         test_log!(self, "SBC HL, rp[p]");
                         let dest = AddressingMode::RegisterPair(RegisterPair::HL);
                         let rp = self.table_rp(p);
                         self.sub_16_op(dest, rp, true) // SBC HL, rp[p]
-
-                    } else { // ADC HL, rp[p]
-                        test_log!(self, "ADC HL, rp[p]"); 
+                    } else {
+                        // ADC HL, rp[p]
+                        test_log!(self, "ADC HL, rp[p]");
                         let dest = AddressingMode::RegisterPair(RegisterPair::HL);
                         let rp = self.table_rp(p);
                         self.add_16_op(dest, rp, true) // ADC HL, rp[p]
