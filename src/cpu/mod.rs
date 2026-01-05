@@ -1358,7 +1358,12 @@ impl Z80A {
                  */
                 4 => {
                     if y == 0 {
-                        test_log!(self, "NEG"); // TODO: NEG
+                        // NEG
+                        test_log!(self, "NEG");
+                        let a = self.get_register(GPR::A);
+                        let (result, flags) = alu::alu_op::sub(0, a, false);
+                        self.set_register(GPR::A, result);
+                        self.af_registers[self.active_af].f = flags | flags::ADD_SUB;
                     } else {
                         test_log!(self, "NONI"); // NOTE: NONI
                     }
@@ -1424,8 +1429,67 @@ impl Z80A {
                             AddressingMode::System(SystemRegister::R),
                         )
                     } //  LD A, R
-                    4 => test_log!(self, "RRD"),          // TODO: RRD
-                    5 => test_log!(self, "RLD"),          // TODO: RLD
+                    4 => {
+                        // RRD
+                        test_log!(self, "RRD");
+                        let a = self.get_register(GPR::A);
+                        let ah = a & 0xF0;
+                        let al = a & 0x0F;
+                        let hl_addr = self.get_register_pair(RegisterPair::HL);
+                        let value = self.memory.borrow().read(hl_addr);
+                        let mh = value & 0xF0;
+                        let ml = value & 0x0F;
+
+                        let new_a = ah | ml;
+                        let new_hl = (al << 4) | (mh >> 4);
+
+                        let s = (new_a & flags::SIGN) != 0;
+                        let z = new_a == 0;
+                        let p = new_a.count_ones() % 2 == 0;
+                        let x = (new_a & flags::X) != 0;
+                        let y = (new_a & flags::Y) != 0;
+
+                        self.set_register(GPR::A, new_a);
+                        self.memory.borrow_mut().write(hl_addr, new_hl);
+
+                        self.set_flag(s, Flag::S);
+                        self.set_flag(z, Flag::Z);
+                        self.set_flag(p, Flag::PV);
+                        self.set_flag(false, Flag::H);
+                        self.set_flag(false, Flag::N);
+                        self.set_flag(x, Flag::X);
+                        self.set_flag(y, Flag::Y);
+                    }
+                    5 => {
+                        test_log!(self, "RLD");
+                        let a = self.get_register(GPR::A);
+                        let ah = a & 0xF0;
+                        let al = a & 0x0F;
+                        let hl_addr = self.get_register_pair(RegisterPair::HL);
+                        let value = self.memory.borrow().read(hl_addr);
+                        let mh = value & 0xF0;
+                        let ml = value & 0x0F;
+
+                        let new_a = ah | (mh >> 4);
+                        let new_hl = (ml << 4) | al;
+
+                        let s = (new_a & flags::SIGN) != 0;
+                        let z = new_a == 0;
+                        let p = new_a.count_ones() % 2 == 0;
+                        let x = (new_a & flags::X) != 0;
+                        let y = (new_a & flags::Y) != 0;
+
+                        self.set_register(GPR::A, new_a);
+                        self.memory.borrow_mut().write(hl_addr, new_hl);
+
+                        self.set_flag(s, Flag::S);
+                        self.set_flag(z, Flag::Z);
+                        self.set_flag(p, Flag::PV);
+                        self.set_flag(false, Flag::H);
+                        self.set_flag(false, Flag::N);
+                        self.set_flag(x, Flag::X);
+                        self.set_flag(y, Flag::Y);
+                    }
                     6 => test_log!(self, "NONI"),         // NOTE: NONI
                     7 => test_log!(self, "NONI"),         // NOTE: NONI
                     _ => unreachable!("Invalid y value"), // should never happen

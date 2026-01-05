@@ -1,3 +1,4 @@
 const PREFIX: u8 = 0xED;
 
-pub mod alu16;
+pub mod alu;
+pub mod decimal;

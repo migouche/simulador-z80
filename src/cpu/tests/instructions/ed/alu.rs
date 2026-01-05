@@ -158,3 +158,67 @@ fn test_alu16(
         expected_flags, result_flags
     );
 }
+
+const NEG_OPCODE: u8 = 0x44;
+
+#[rstest]
+#[rstest]
+// Case 1: NEG 1 => -1 (0xFF)
+// 0x00 - 0x01. Borrow occurs (C=1). Half-borrow occurs (H=1).
+// Result 0xFF (1111 1111) sets S, X, Y. N is always 1.
+#[case(0x1000, 0x01, 0x00, 0xFF, flags::SIGN | flags::ADD_SUB | flags::HALF_CARRY | flags::CARRY | flags::X | flags::Y)]
+// Case 2: NEG 0 => 0
+// Special case: Z80 manual states Carry is cleared if A was 0 before NEG.
+// 0x00 - 0x00 = 0. No borrows.
+#[case(0x1000, 0x00, 0x00, 0x00, flags::ZERO | flags::ADD_SUB)]
+// Case 3: NEG 0x80 (-128) => 0x80 (-128)
+// This is the Overflow case. Two's complement of -128 is still -128 in 8 bits.
+// Since we "tried" to negate the minimum value, PV (Overflow) is set.
+// 0x00 - 0x80 requires borrow (C=1).
+#[case(0x1000, 0x80, 0x00, 0x80, flags::SIGN | flags::PARITY_OVERFLOW | flags::ADD_SUB | flags::CARRY)]
+// Case 4: NEG 0x40 (64) => 0xC0 (-64)
+// 0x00 - 0x40. Borrow from bit 7 (C=1). No half-borrow.
+// Result 0xC0 (1100 0000). Bit 13 (Y) is 0, Bit 11 (X) is 0.
+#[case(0x1000, 0x40, 0x00, 0xC0, flags::SIGN | flags::ADD_SUB | flags::CARRY)]
+// Case 5: NEG 0x0F => 0xF1
+// 0x00 - 0x0F. Borrow from bit 4 (H=1) and bit 8 (C=1).
+// Result 0xF1 (1111 0001). Bit 13 (Y) is 1. Bit 11 (X) is 0.
+#[case(0x1000, 0x0F, 0x00, 0xF1, flags::SIGN | flags::ADD_SUB | flags::HALF_CARRY | flags::CARRY | flags::Y)]
+// Case 6: Verify flag preservation is NOT happening
+// NEG should overwrite S, Z, H, PV, C based on result.
+#[case(0x2000, 0x01, flags::ZERO, 0xFF, flags::SIGN | flags::ADD_SUB | flags::HALF_CARRY | flags::CARRY | flags::X | flags::Y)]
+
+fn test_neg(
+    #[case] initial_pc: u16,
+    #[case] initial_a: u8,
+    #[case] initial_flags: u8,
+    #[case] expected_a: u8,
+    #[case] expected_flags: u8,
+) {
+    let mut cpu = setup_cpu();
+    cpu.set_register(GPR::F, initial_flags);
+    cpu.set_register(GPR::A, initial_a);
+    cpu.PC = initial_pc;
+    cpu.memory.borrow_mut().write(initial_pc, PREFIX);
+    cpu.memory
+        .borrow_mut()
+        .write(initial_pc.overflowing_add(1).0, NEG_OPCODE);
+
+    // Execute instruction
+    cpu.tick();
+
+    // Check results
+    let result_a = cpu.get_register(GPR::A);
+    let result_flags = cpu.get_register(GPR::F);
+
+    assert_eq!(
+        result_a, expected_a,
+        "A register mismatch: expected 0x{:02X}, got 0x{:02X}",
+        expected_a, result_a
+    );
+    assert_eq!(
+        result_flags, expected_flags,
+        "Flags mismatch: expected {:08b}, got {:08b}",
+        expected_flags, result_flags
+    );
+}
