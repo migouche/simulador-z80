@@ -1,0 +1,106 @@
+name: Auto Release on Push
+
+permissions:
+  contents: write # Required to create releases
+
+on:
+  push:
+    branches:
+      - master
+
+env:
+  # TODO: Change this to your actual binary name from Cargo.toml
+  BINARY_NAME: simulador-z80
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  # JOB 1: Build the Rust binaries on 3 different OSs
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: linux
+            asset_name: linux-amd64
+          - os: windows-latest
+            artifact_name: windows
+            asset_name: windows-amd64
+          - os: macos-latest
+            artifact_name: macos
+            asset_name: macos-amd64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build project
+        run: cargo build --release --verbose
+
+      - name: Prepare binary for upload (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          mv target/release/${{ env.BINARY_NAME }} ${{ env.BINARY_NAME }}-${{ matrix.asset_name }}
+
+      - name: Prepare binary for upload (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          mv target/release/${{ env.BINARY_NAME }}.exe ${{ env.BINARY_NAME }}-${{ matrix.asset_name }}.exe
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BINARY_NAME }}-${{ matrix.asset_name }}
+          path: ${{ env.BINARY_NAME }}-${{ matrix.asset_name }}* # The * handles the .exe extension on Windows
+
+  # JOB 2: Create the Release and upload assets
+  create-release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Needed to read git logs
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Generate Release Vars
+        id: vars
+        run: |
+          # Create a unique tag based on the short commit SHA
+          echo "tag=release-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          
+          # Get the commit subject (Title)
+          COMMIT_SUBJECT=$(git log -1 --pretty=format:"%s")
+          echo "subject=$COMMIT_SUBJECT" >> $GITHUB_OUTPUT
+          
+          # Get the commit body (Description)
+          # We use a delimiter to handle multi-line commit messages safely
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "body<<$EOF" >> $GITHUB_OUTPUT
+          git log -1 --pretty=format:"%b" >> $GITHUB_OUTPUT
+          echo "$EOF" >> $GITHUB_OUTPUT
+
+      - name: Display Downloaded Files (Debug)
+        run: ls -R artifacts/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.vars.outputs.tag }}
+          name: ${{ steps.vars.outputs.subject }}
+          body: ${{ steps.vars.outputs.body }}
+          draft: false
+          prerelease: false
+          files: |
+            artifacts/**/*.exe
+            artifacts/**/simulador-z80-linux-amd64
+            artifacts/**/simulador-z80-macos-amd64

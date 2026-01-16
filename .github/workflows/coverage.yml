@@ -1,0 +1,89 @@
+name: Update Coverage Badge
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install cargo-llvm-cov
+        run: |
+          if ! command -v cargo-llvm-cov &> /dev/null; then
+            cargo install cargo-llvm-cov
+          else
+            echo "cargo-llvm-cov is already installed"
+          fi
+
+      - name: Run llvm-cov (JSON)
+        run: |
+          cargo llvm-cov clean
+          cargo llvm-cov --json --output-path coverage.json
+
+      - name: Parse coverage and update gist
+        env:
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+        run: |
+          set -e
+
+          # Extract total branch coverage percentage
+          COVERAGE=$(jq '.data[0].totals.lines.percent' coverage.json)
+
+          # cap to 2 decimal places
+          COVERAGE=$(printf "%.2f" "$COVERAGE")
+          echo "Coverage: $COVERAGE"
+
+          # Pick color based on coverage %
+          COLOR="red"
+          if (( $(echo "$COVERAGE > 80" | bc -l) )); then COLOR="green"
+          elif (( $(echo "$COVERAGE > 50" | bc -l) )); then COLOR="yellow"
+          fi
+
+          # Create JSON for badge
+          cat <<EOJ > badge.json
+          {
+            "schemaVersion": 1,
+            "label": "coverage",
+            "message": "${COVERAGE}%",
+            "color": "$COLOR"
+          }
+          EOJ
+
+          CONTENT=$(jq -Rs . badge.json)
+
+          # Upload to Gist
+          curl -X PATCH \
+            -H "Authorization: token $GIST_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d @- \
+            https://api.github.com/gists/49a8384882f617ed2ce5fb36bb2fa343 <<EOF
+          {
+            "files": {
+              "coverage.json": {
+                "content": $CONTENT
+              }
+            }
+          }
+          EOF

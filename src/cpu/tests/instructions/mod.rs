@@ -1,0 +1,13 @@
+pub mod add_16;
+pub mod alu_table_ops;
+pub mod carry;
+pub mod cb;
+pub mod cpl;
+pub mod decimal;
+pub mod ed;
+pub mod inc_dec;
+pub mod jumps;
+pub mod ld;
+pub mod push_pop;
+pub mod rot;
+pub mod subroutines;

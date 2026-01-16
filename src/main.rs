@@ -1,14 +1,12 @@
+mod components;
+mod cpu;
+mod traits;
+mod gui;
+mod assembler;
 
-mod alu;
 
-use alu::types::Byte;
+#[cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-fn main() {
-    println!("Hello, world!");
-    
-    let mut byte = Byte::new(42);
-    println!("Byte value: {}", byte.get());
-    
-    byte.set(100);
-    println!("New byte value: {}", byte.get());
+fn main() -> eframe::Result<()> {
+    gui::run()
 }

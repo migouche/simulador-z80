@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Z80 Opcode Decoder Visualizer</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .input-section {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        .bit-inputs {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin: 15px 0;
+        }
+        .bit-input {
+            width: 40px;
+            height: 40px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            border: 2px solid #4CAF50;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: white;
+        }
+        .bit-input.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .byte-input {
+            width: 100%;
+            padding: 10px;
+            font-size: 18px;
+            text-align: center;
+            margin: 10px 0;
+            border: 2px solid #2196F3;
+            border-radius: 4px;
+        }
+        .results {
+            margin-top: 30px;
+        }
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin: 10px 0;
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            border-radius: 4px;
+        }
+        .result-label {
+            font-weight: bold;
+            color: #1976D2;
+        }
+        .result-value {
+            font-size: 24px;
+            color: #333;
+        }
+        .binary-display {
+            font-size: 14px;
+            color: #666;
+            margin-left: 10px;
+        }
+        .description {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #fff3e0;
+            border-left: 4px solid #ff9800;
+            border-radius: 4px;
+        }
+        .description h3 {
+            margin-top: 0;
+            color: #e65100;
+        }
+        .bit-label {
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .bit-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .input-hint {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Z80 Opcode Decoder</h1>
+        
+        <div class="input-section">
+            <h3>Input Opcode (click bits to toggle or type value)</h3>
+            
+            <div class="bit-labels" style="display: flex; justify-content: center; gap: 5px;">
+                <div class="bit-container">
+                    <div class="bit-label">Bit 7</div>
+                </div>
+                <div class="bit-container">
+                    <div class="bit-label">Bit 6</div>
+                </div>
+                <div class="bit-container">
+                    <div class="bit-label">Bit 5</div>
+                </div>
+                <div class="bit-container">
+                    <div class="bit-label">Bit 4</div>
+                </div>
+                <div class="bit-container">
+                    <div class="bit-label">Bit 3</div>
+                </div>
+                <div class="bit-container">
+                    <div class="bit-label">Bit 2</div>
+                </div>
+                <div class="bit-container">
+                    <div class="bit-label">Bit 1</div>
+                </div>
+                <div class="bit-container">
+                    <div class="bit-label">Bit 0</div>
+                </div>
+            </div>
+            
+            <div class="bit-inputs" id="bitInputs"></div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <div style="flex: 1;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #1976D2;">Decimal (0-255):</label>
+                    <input type="number" class="byte-input" id="decInput" placeholder="0-255" min="0" max="255">
+                    <div class="input-hint">Updates on change</div>
+                </div>
+                <div style="flex: 1;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #1976D2;">Hexadecimal (0x00-0xFF):</label>
+                    <input type="text" class="byte-input" id="hexInput" placeholder="0x00-0xFF">
+                    <div class="input-hint">Press Enter to update</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="results">
+            <div class="result-item">
+                <span class="result-label">x (bits 7-6):</span>
+                <span>
+                    <span class="result-value" id="xValue">0</span>
+                    <span class="binary-display" id="xBinary">(0b00)</span>
+                </span>
+            </div>
+            <div class="result-item">
+                <span class="result-label">y (bits 5-3):</span>
+                <span>
+                    <span class="result-value" id="yValue">0</span>
+                    <span class="binary-display" id="yBinary">(0b000)</span>
+                </span>
+            </div>
+            <div class="result-item">
+                <span class="result-label">z (bits 2-0):</span>
+                <span>
+                    <span class="result-value" id="zValue">0</span>
+                    <span class="binary-display" id="zBinary">(0b000)</span>
+                </span>
+            </div>
+            <div class="result-item">
+                <span class="result-label">p (y >> 1, bits 5-4):</span>
+                <span>
+                    <span class="result-value" id="pValue">0</span>
+                    <span class="binary-display" id="pBinary">(0b00)</span>
+                </span>
+            </div>
+            <div class="result-item">
+                <span class="result-label">q (y & 1, bit 3):</span>
+                <span>
+                    <span class="result-value" id="qValue">false</span>
+                    <span class="binary-display" id="qBinary">(0)</span>
+                </span>
+            </div>
+        </div>
+
+        <div class="description">
+            <h3>About Z80 Opcode Decoding</h3>
+            <p><strong>x</strong> = 1st octal digit (bits 7-6)</p>
+            <p><strong>y</strong> = 2nd octal digit (bits 5-3)</p>
+            <p><strong>z</strong> = 3rd octal digit (bits 2-0)</p>
+            <p><strong>p</strong> = y right-shifted by 1 (bits 5-4)</p>
+            <p><strong>q</strong> = y modulo 2 (bit 3)</p>
+            <p style="margin-top: 15px; font-size: 12px; color: #666;">
+                Reference: <a href="http://www.z80.info/decoding.htm" target="_blank">http://www.z80.info/decoding.htm</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Create bit input buttons
+        const bitInputsContainer = document.getElementById('bitInputs');
+        const decInput = document.getElementById('decInput');
+        const hexInput = document.getElementById('hexInput');
+        let currentOpcode = 0;
+        let updatingFromCode = false;
+
+        // Create 8 bit buttons (MSB to LSB)
+        for (let i = 7; i >= 0; i--) {
+            const bitButton = document.createElement('div');
+            bitButton.className = 'bit-input';
+            bitButton.textContent = '0';
+            bitButton.dataset.bit = i;
+            bitButton.addEventListener('click', toggleBit);
+            bitInputsContainer.appendChild(bitButton);
+        }
+
+        function toggleBit(event) {
+            const bitPosition = parseInt(event.target.dataset.bit);
+            currentOpcode ^= (1 << bitPosition); // XOR to toggle bit
+            updateDisplay();
+        }
+
+        function decodeOpcode(opcode) {
+            const x = (opcode >> 6) & 0b11;
+            const y = (opcode >> 3) & 0b111;
+            const z = opcode & 0b111;
+            const p = (y >> 1) & 0b11;
+            const q = (y & 0b1) === 1;
+            
+            return { x, y, z, p, q };
+        }
+
+        function updateDisplay() {
+            updatingFromCode = true;
+
+            // Update bit buttons
+            const bitButtons = document.querySelectorAll('.bit-input');
+            bitButtons.forEach((button, index) => {
+                const bitPosition = 7 - index;
+                const bitValue = (currentOpcode >> bitPosition) & 1;
+                button.textContent = bitValue;
+                button.classList.toggle('active', bitValue === 1);
+            });
+
+            // Update both input fields
+            decInput.value = currentOpcode;
+            hexInput.value = '0x' + currentOpcode.toString(16).toUpperCase().padStart(2, '0');
+
+            // Decode and update results
+            const decoded = decodeOpcode(currentOpcode);
+            
+            document.getElementById('xValue').textContent = decoded.x;
+            document.getElementById('xBinary').textContent = `(0b${decoded.x.toString(2).padStart(2, '0')})`;
+            
+            document.getElementById('yValue').textContent = decoded.y;
+            document.getElementById('yBinary').textContent = `(0b${decoded.y.toString(2).padStart(3, '0')})`;
+            
+            document.getElementById('zValue').textContent = decoded.z;
+            document.getElementById('zBinary').textContent = `(0b${decoded.z.toString(2).padStart(3, '0')})`;
+            
+            document.getElementById('pValue').textContent = decoded.p;
+            document.getElementById('pBinary').textContent = `(0b${decoded.p.toString(2).padStart(2, '0')})`;
+            
+            document.getElementById('qValue').textContent = decoded.q;
+            document.getElementById('qBinary').textContent = `(${decoded.q ? 1 : 0})`;
+
+            updatingFromCode = false;
+        }
+
+        // Handle decimal input - updates on input
+        decInput.addEventListener('input', (event) => {
+            if (updatingFromCode) return;
+            
+            const value = parseInt(event.target.value, 10);
+            if (!isNaN(value) && value >= 0 && value <= 255) {
+                currentOpcode = value;
+                updateDisplay();
+            }
+        });
+
+        // Handle hex input - only updates on Enter key
+        hexInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                if (updatingFromCode) return;
+                
+                let value = event.target.value.trim();
+                // Remove 0x prefix if present for parsing
+                if (value.toLowerCase().startsWith('0x')) {
+                    value = value.slice(2);
+                }
+                
+                const parsedValue = parseInt(value, 16);
+                if (!isNaN(parsedValue) && parsedValue >= 0 && parsedValue <= 255) {
+                    currentOpcode = parsedValue;
+                    updateDisplay();
+                } else {
+                    // Reset to current value if invalid
+                    updateDisplay();
+                }
+            }
+        });
+
+        // Also update on blur (when focus leaves the field)
+        hexInput.addEventListener('blur', (event) => {
+            if (updatingFromCode) return;
+            
+            let value = event.target.value.trim();
+            // Remove 0x prefix if present for parsing
+            if (value.toLowerCase().startsWith('0x')) {
+                value = value.slice(2);
+            }
+            
+            const parsedValue = parseInt(value, 16);
+            if (!isNaN(parsedValue) && parsedValue >= 0 && parsedValue <= 255) {
+                currentOpcode = parsedValue;
+                updateDisplay();
+            } else {
+                // Reset to current value if invalid
+                updateDisplay();
+            }
+        });
+
+        // Initialize display
+        updateDisplay();
+    </script>
+</body>
+</html>
