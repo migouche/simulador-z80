@@ -6,7 +6,7 @@ permissions:
 on:
   push:
     branches:
-      - main
+      - master
 
 env:
   # TODO: Change this to your actual binary name from Cargo.toml
