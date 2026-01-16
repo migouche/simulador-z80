@@ -1,20 +1,12 @@
-use std::{cell::RefCell, rc::Rc};
-
 mod components;
 mod cpu;
 mod traits;
+mod gui;
+mod assembler;
 
-use components::memories::mem_64k::Mem64k;
 
-use crate::traits::SyncronousComponent;
-fn main() {
-    println!("Hello, world!");
+#[cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-    let mut cpu = cpu::Z80A::new(
-        Rc::new(RefCell::new(Mem64k::new())) as Rc<RefCell<dyn traits::MemoryMapper>>
-    );
-
-    loop {
-        cpu.tick();
-    }
+fn main() -> eframe::Result<()> {
+    gui::run()
 }

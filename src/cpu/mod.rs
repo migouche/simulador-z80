@@ -43,7 +43,7 @@ mod flags {
 }
 
 #[derive(PartialEq, Clone, Copy, Debug)]
-enum GPR {
+pub enum GPR {
     A,
     F,
     B,
@@ -55,7 +55,7 @@ enum GPR {
 }
 
 #[derive(PartialEq, Clone, Copy, Debug)]
-enum RegisterPair {
+pub enum RegisterPair {
     BC,
     DE,
     HL,
@@ -220,6 +220,22 @@ pub struct Z80A {
 }
 
 impl Z80A {
+    pub fn get_pc(&self) -> u16 {
+        self.PC
+    }
+    
+    pub fn get_sp(&self) -> u16 {
+        self.SP
+    }
+
+    pub fn get_ix(&self) -> u16 {
+        self.IX
+    }
+
+    pub fn get_iy(&self) -> u16 {
+        self.IY
+    }
+    
     pub fn new(memory: Rc<RefCell<dyn MemoryMapper>>) -> Self {
         Z80A {
             af_registers: [AFSet::default(); 2],
@@ -280,7 +296,7 @@ impl Z80A {
         }
     }
 
-    fn get_register(&self, reg: GPR) -> u8 {
+    pub fn get_register(&self, reg: GPR) -> u8 {
         match reg {
             GPR::A => self.af_registers[self.active_af].a,
             GPR::F => self.af_registers[self.active_af].f,
@@ -293,7 +309,7 @@ impl Z80A {
         }
     }
 
-    fn get_register_pair(&self, pair: RegisterPair) -> u16 {
+    pub fn get_register_pair(&self, pair: RegisterPair) -> u16 {
         match pair {
             RegisterPair::AF => {
                 let regs = &self.af_registers[self.active_af];
