@@ -74,20 +74,31 @@ jobs:
 
       - name: Generate Release Vars
         id: vars
+        shell: bash
         run: |
-          # Create a unique tag based on the short commit SHA
-          echo "tag=release-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          # 1. Create a tag
+          TAG_NAME="release-$(git rev-parse --short HEAD)"
+          echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
           
-          # Get the commit subject (Title)
-          COMMIT_SUBJECT=$(git log -1 --pretty=format:"%s")
-          echo "subject=$COMMIT_SUBJECT" >> $GITHUB_OUTPUT
+          # 2. Get the subject (Title)
+          # We use env vars to prevent shell injection/delimiter issues
+          SUBJECT=$(git log -1 --pretty=format:"%s")
+          echo "subject=$SUBJECT" >> $GITHUB_OUTPUT
           
-          # Get the commit body (Description)
-          # We use a delimiter to handle multi-line commit messages safely
-          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
-          echo "body<<$EOF" >> $GITHUB_OUTPUT
-          git log -1 --pretty=format:"%b" >> $GITHUB_OUTPUT
-          echo "$EOF" >> $GITHUB_OUTPUT
+          # 3. Get the body (Description) and handle multi-line safely
+          {
+            echo "body<<EOF"
+            git log -1 --pretty=format:"%b"
+            echo ""
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          # 4. Prerelease detection (starts with v0. or 0.)
+          if [[ "$SUBJECT" =~ ^v?0\. ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Display Downloaded Files (Debug)
         run: ls -R artifacts/
