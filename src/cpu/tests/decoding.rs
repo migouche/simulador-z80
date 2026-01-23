@@ -625,7 +625,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::dd_inc_e(0x29f9, &[0xdd, 0x1C], &["decode_dd", "INC r[y]", "E"])] // INC E
 #[case::dd_dec_e(0x29f9, &[0xdd, 0x1D], &["decode_dd", "DEC r[y]", "E"])] // DEC E
 #[case::dd_ld_e_n(0x29f9, &[0xdd, 0x1E, 0x42], &["decode_dd", "LD r[y], n", "E"])] // LD E, n
-#[case::dd_ld_ix_nn(0x29f9, &[0xdd, 0x21, 0x34, 0x12], &["decode_dd", "LD rp[p], nn", "HL"])] // LD IX, nn
+#[case::dd_ld_ix_nn(0x29f9, &[0xdd, 0x21, 0x34, 0x12], &["decode_dd", "LD rp[p], nn", "HL", "IX"])] // LD IX, nn
 #[case::dd_ld_nni_ix(0x29f9, &[0xdd, 0x22, 0x34, 0x12], &["decode_dd", "LD (nn), HL/IX/IY", "IX"])] // LD (nn), IX
 #[case::dd_inc_ix(0x29f9, &[0xdd, 0x23], &["decode_dd", "INC rp[p]", "HL", "IX"])] // INC IX
 #[case::dd_inc_ixh(0x29f9, &[0xdd, 0x24], &["decode_dd", "INC r[y]", "H", "IXH"])] // INC IXH
@@ -798,7 +798,7 @@ use crate::cpu::tests::setup_cpu;
 #[case::fd_inc_e(0x29f9, &[0xfd, 0x1C], &["decode_fd", "INC r[y]", "E"])] // INC E
 #[case::fd_dec_e(0x29f9, &[0xfd, 0x1D], &["decode_fd", "DEC r[y]", "E"])] // DEC E
 #[case::fd_ld_e_n(0x29f9, &[0xfd, 0x1E, 0x42], &["decode_fd", "LD r[y], n", "E"])] // LD E, n
-#[case::fd_ld_iy_nn(0x29f9, &[0xfd, 0x21, 0x34, 0x12], &["decode_fd", "LD rp[p], nn", "HL"])] // LD IY, nn
+#[case::fd_ld_iy_nn(0x29f9, &[0xfd, 0x21, 0x34, 0x12], &["decode_fd", "LD rp[p], nn", "HL", "IY"])] // LD IY, nn
 #[case::fd_ld_nni_iy(0x29f9, &[0xfd, 0x22, 0x34, 0x12], &["decode_fd", "LD (nn), HL/IX/IY", "IY"])] // LD (nn), IY
 #[case::fd_inc_iy(0x29f9, &[0xfd, 0x23], &["decode_fd", "INC rp[p]", "HL", "IY"])] // INC IY
 #[case::fd_inc_iyh(0x29f9, &[0xfd, 0x24], &["decode_fd", "INC r[y]", "H", "IYH"])] // INC IYH

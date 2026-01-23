@@ -362,3 +362,392 @@ fn test_register_indexed(
     );
     assert_eq!(cpu.get_register(dest), value);
 }
+
+// testing with hard-coded bytes
+#[rstest]
+// LD B, r
+#[case::ld_b_b(0, [(GPR::B, 0x42), (GPR::C, 0)], &[0x40], [(GPR::B, 0x42), (GPR::C, 0)])]
+#[case::ld_b_c(0, [(GPR::B, 0), (GPR::C, 0x42)], &[0x41], [(GPR::B, 0x42), (GPR::C, 0x42)])]
+#[case::ld_b_d(0, [(GPR::B, 0), (GPR::D, 0x42)], &[0x42], [(GPR::B, 0x42), (GPR::D, 0x42)])]
+#[case::ld_b_e(0, [(GPR::B, 0), (GPR::E, 0x42)], &[0x43], [(GPR::B, 0x42), (GPR::E, 0x42)])]
+#[case::ld_b_h(0, [(GPR::B, 0), (GPR::H, 0x42)], &[0x44], [(GPR::B, 0x42), (GPR::H, 0x42)])]
+#[case::ld_b_l(0, [(GPR::B, 0), (GPR::L, 0x42)], &[0x45], [(GPR::B, 0x42), (GPR::L, 0x42)])]
+#[case::ld_b_a(0, [(GPR::B, 0), (GPR::A, 0x42)], &[0x47], [(GPR::B, 0x42), (GPR::A, 0x42)])]
+// LD C, r
+#[case::ld_c_b(0, [(GPR::C, 0), (GPR::B, 0x42)], &[0x48], [(GPR::C, 0x42), (GPR::B, 0x42)])]
+#[case::ld_c_c(0, [(GPR::C, 0x42), (GPR::B, 0)], &[0x49], [(GPR::C, 0x42), (GPR::B, 0)])]
+#[case::ld_c_d(0, [(GPR::C, 0), (GPR::D, 0x42)], &[0x4A], [(GPR::C, 0x42), (GPR::D, 0x42)])]
+#[case::ld_c_e(0, [(GPR::C, 0), (GPR::E, 0x42)], &[0x4B], [(GPR::C, 0x42), (GPR::E, 0x42)])]
+#[case::ld_c_h(0, [(GPR::C, 0), (GPR::H, 0x42)], &[0x4C], [(GPR::C, 0x42), (GPR::H, 0x42)])]
+#[case::ld_c_l(0, [(GPR::C, 0), (GPR::L, 0x42)], &[0x4D], [(GPR::C, 0x42), (GPR::L, 0x42)])]
+#[case::ld_c_a(0, [(GPR::C, 0), (GPR::A, 0x42)], &[0x4F], [(GPR::C, 0x42), (GPR::A, 0x42)])]
+// LD D, r
+#[case::ld_d_b(0, [(GPR::D, 0), (GPR::B, 0x42)], &[0x50], [(GPR::D, 0x42), (GPR::B, 0x42)])]
+#[case::ld_d_c(0, [(GPR::D, 0), (GPR::C, 0x42)], &[0x51], [(GPR::D, 0x42), (GPR::C, 0x42)])]
+#[case::ld_d_d(0, [(GPR::D, 0x42), (GPR::B, 0)], &[0x52], [(GPR::D, 0x42), (GPR::B, 0)])]
+#[case::ld_d_e(0, [(GPR::D, 0), (GPR::E, 0x42)], &[0x53], [(GPR::D, 0x42), (GPR::E, 0x42)])]
+#[case::ld_d_h(0, [(GPR::D, 0), (GPR::H, 0x42)], &[0x54], [(GPR::D, 0x42), (GPR::H, 0x42)])]
+#[case::ld_d_l(0, [(GPR::D, 0), (GPR::L, 0x42)], &[0x55], [(GPR::D, 0x42), (GPR::L, 0x42)])]
+#[case::ld_d_a(0, [(GPR::D, 0), (GPR::A, 0x42)], &[0x57], [(GPR::D, 0x42), (GPR::A, 0x42)])]
+// LD E, r
+#[case::ld_e_b(0, [(GPR::E, 0), (GPR::B, 0x42)], &[0x58], [(GPR::E, 0x42), (GPR::B, 0x42)])]
+#[case::ld_e_c(0, [(GPR::E, 0), (GPR::C, 0x42)], &[0x59], [(GPR::E, 0x42), (GPR::C, 0x42)])]
+#[case::ld_e_d(0, [(GPR::E, 0), (GPR::D, 0x42)], &[0x5A], [(GPR::E, 0x42), (GPR::D, 0x42)])]
+#[case::ld_e_e(0, [(GPR::E, 0x42), (GPR::B, 0)], &[0x5B], [(GPR::E, 0x42), (GPR::B, 0)])]
+#[case::ld_e_h(0, [(GPR::E, 0), (GPR::H, 0x42)], &[0x5C], [(GPR::E, 0x42), (GPR::H, 0x42)])]
+#[case::ld_e_l(0, [(GPR::E, 0), (GPR::L, 0x42)], &[0x5D], [(GPR::E, 0x42), (GPR::L, 0x42)])]
+#[case::ld_e_a(0, [(GPR::E, 0), (GPR::A, 0x42)], &[0x5F], [(GPR::E, 0x42), (GPR::A, 0x42)])]
+// LD H, r
+#[case::ld_h_b(0, [(GPR::H, 0), (GPR::B, 0x42)], &[0x60], [(GPR::H, 0x42), (GPR::B, 0x42)])]
+#[case::ld_h_c(0, [(GPR::H, 0), (GPR::C, 0x42)], &[0x61], [(GPR::H, 0x42), (GPR::C, 0x42)])]
+#[case::ld_h_d(0, [(GPR::H, 0), (GPR::D, 0x42)], &[0x62], [(GPR::H, 0x42), (GPR::D, 0x42)])]
+#[case::ld_h_e(0, [(GPR::H, 0), (GPR::E, 0x42)], &[0x63], [(GPR::H, 0x42), (GPR::E, 0x42)])]
+#[case::ld_h_h(0, [(GPR::H, 0x42), (GPR::B, 0)], &[0x64], [(GPR::H, 0x42), (GPR::B, 0)])]
+#[case::ld_h_l(0, [(GPR::H, 0), (GPR::L, 0x42)], &[0x65], [(GPR::H, 0x42), (GPR::L, 0x42)])]
+#[case::ld_h_a(0, [(GPR::H, 0), (GPR::A, 0x42)], &[0x67], [(GPR::H, 0x42), (GPR::A, 0x42)])]
+// LD L, r
+#[case::ld_l_b(0, [(GPR::L, 0), (GPR::B, 0x42)], &[0x68], [(GPR::L, 0x42), (GPR::B, 0x42)])]
+#[case::ld_l_c(0, [(GPR::L, 0), (GPR::C, 0x42)], &[0x69], [(GPR::L, 0x42), (GPR::C, 0x42)])]
+#[case::ld_l_d(0, [(GPR::L, 0), (GPR::D, 0x42)], &[0x6A], [(GPR::L, 0x42), (GPR::D, 0x42)])]
+#[case::ld_l_e(0, [(GPR::L, 0), (GPR::E, 0x42)], &[0x6B], [(GPR::L, 0x42), (GPR::E, 0x42)])]
+#[case::ld_l_h(0, [(GPR::L, 0), (GPR::H, 0x42)], &[0x6C], [(GPR::L, 0x42), (GPR::H, 0x42)])]
+#[case::ld_l_l(0, [(GPR::L, 0x42), (GPR::B, 0)], &[0x6D], [(GPR::L, 0x42), (GPR::B, 0)])]
+#[case::ld_l_a(0, [(GPR::L, 0), (GPR::A, 0x42)], &[0x6F], [(GPR::L, 0x42), (GPR::A, 0x42)])]
+// LD A, r
+#[case::ld_a_b(0, [(GPR::A, 0), (GPR::B, 0x42)], &[0x78], [(GPR::A, 0x42), (GPR::B, 0x42)])]
+#[case::ld_a_c(0, [(GPR::A, 0), (GPR::C, 0x42)], &[0x79], [(GPR::A, 0x42), (GPR::C, 0x42)])]
+#[case::ld_a_d(0, [(GPR::A, 0), (GPR::D, 0x42)], &[0x7A], [(GPR::A, 0x42), (GPR::D, 0x42)])]
+#[case::ld_a_e(0, [(GPR::A, 0), (GPR::E, 0x42)], &[0x7B], [(GPR::A, 0x42), (GPR::E, 0x42)])]
+#[case::ld_a_h(0, [(GPR::A, 0), (GPR::H, 0x42)], &[0x7C], [(GPR::A, 0x42), (GPR::H, 0x42)])]
+#[case::ld_a_l(0, [(GPR::A, 0), (GPR::L, 0x42)], &[0x7D], [(GPR::A, 0x42), (GPR::L, 0x42)])]
+#[case::ld_a_a(0, [(GPR::A, 0x42), (GPR::B, 0)], &[0x7F], [(GPR::A, 0x42), (GPR::B, 0)])]
+fn test_ld_gpr(
+    #[case] initial_pc: u16,
+    #[case] initial_regs: [(GPR, u8); 2],
+    #[case] memory_bytes:&[u8],
+    #[case] expected_regs: [(GPR, u8); 2],
+){
+    let mut cpu = setup_cpu();
+    cpu.PC = initial_pc;
+    for (reg, val) in initial_regs.iter() {
+        cpu.set_register(*reg, *val);
+    }
+    for (i, byte) in memory_bytes.iter().enumerate() {
+        cpu.memory.borrow_mut().write(initial_pc.wrapping_add(i as u16), *byte);
+    }
+
+    cpu.tick();
+
+    // Check expected register values
+    for (reg, expected_val) in expected_regs.iter() {
+        assert_eq!(cpu.get_register(*reg), *expected_val, "Register {:?} mismatch, expected {:02X}, got {:02X}", reg, expected_val, cpu.get_register(*reg));
+    }
+}
+
+#[rstest]
+#[case::ld_b_n(0, GPR::B, 0x06, 0x42)]
+#[case::ld_c_n(0, GPR::C, 0x0E, 0x42)]
+#[case::ld_d_n(0, GPR::D, 0x16, 0x42)]
+#[case::ld_e_n(0, GPR::E, 0x1E, 0x42)]
+#[case::ld_h_n(0, GPR::H, 0x26, 0x42)]
+#[case::ld_l_n(0, GPR::L, 0x2E, 0x42)]
+#[case::ld_a_n(0, GPR::A, 0x3E, 0x42)]
+fn test_ld_immediate(
+    #[case] initial_pc: u16,
+    #[case] dest_reg: GPR,
+    #[case] opcode: u8,
+    #[case] value: u8,
+) {
+    let mut cpu = setup_cpu();
+    cpu.PC = initial_pc;
+    cpu.memory.borrow_mut().write(initial_pc, opcode);
+    cpu.memory.borrow_mut().write(initial_pc + 1, value);
+
+    cpu.tick();
+
+    assert_eq!(cpu.get_register(dest_reg), value);
+}
+
+#[rstest]
+#[case::ld_b_hl(0, GPR::B, 0x46, 0x42, 0x1000)]
+#[case::ld_c_hl(0, GPR::C, 0x4E, 0x42, 0x1000)]
+#[case::ld_d_hl(0, GPR::D, 0x56, 0x42, 0x1000)]
+#[case::ld_e_hl(0, GPR::E, 0x5E, 0x42, 0x1000)]
+#[case::ld_h_hl(0, GPR::H, 0x66, 0x42, 0x1000)]
+#[case::ld_l_hl(0, GPR::L, 0x6E, 0x42, 0x1000)]
+#[case::ld_a_hl(0, GPR::A, 0x7E, 0x42, 0x1000)]
+fn test_ld_indirect_hl(
+    #[case] initial_pc: u16,
+    #[case] dest_reg: GPR,
+    #[case] opcode: u8,
+    #[case] value: u8,
+    #[case] addr: u16,
+) {
+    let mut cpu = setup_cpu();
+    cpu.PC = initial_pc;
+    cpu.memory.borrow_mut().write(initial_pc, opcode);
+    cpu.set_register_pair(RegisterPair::HL, addr);
+    cpu.memory.borrow_mut().write(addr, value);
+
+    cpu.tick();
+
+    assert_eq!(cpu.get_register(dest_reg), value);
+}
+
+#[rstest]
+#[case::ld_hl_b(0, GPR::B, 0x70, 0x42, 0x1000)]
+#[case::ld_hl_c(0, GPR::C, 0x71, 0x42, 0x1000)]
+#[case::ld_hl_d(0, GPR::D, 0x72, 0x42, 0x1000)]
+#[case::ld_hl_e(0, GPR::E, 0x73, 0x42, 0x1000)]
+#[case::ld_hl_h(0, GPR::H, 0x74, 0x10, 0x1000)]
+#[case::ld_hl_l(0, GPR::L, 0x75, 0x00, 0x1000)]
+#[case::ld_hl_a(0, GPR::A, 0x77, 0x42, 0x1000)]
+fn test_ld_store_hl(
+    #[case] initial_pc: u16,
+    #[case] src_reg: GPR,
+    #[case] opcode: u8,
+    #[case] value: u8,
+    #[case] addr: u16,
+) {
+    let mut cpu = setup_cpu();
+    cpu.PC = initial_pc;
+    cpu.memory.borrow_mut().write(initial_pc, opcode);
+    cpu.set_register(src_reg, value);
+    cpu.set_register_pair(RegisterPair::HL, addr);
+
+    cpu.tick();
+
+    assert_eq!(cpu.memory.borrow().read(addr), value);
+}
+
+#[rstest]
+#[case::ld_hl_n(0, 0x36, 0x42, 0x1000)]
+fn test_ld_store_immediate_hl(
+    #[case] initial_pc: u16,
+    #[case] opcode: u8,
+    #[case] value: u8,
+    #[case] addr: u16,
+) {
+    let mut cpu = setup_cpu();
+    cpu.PC = initial_pc;
+    cpu.memory.borrow_mut().write(initial_pc, opcode);
+    cpu.memory.borrow_mut().write(initial_pc + 1, value);
+    cpu.set_register_pair(RegisterPair::HL, addr);
+
+    cpu.tick();
+
+    assert_eq!(cpu.memory.borrow().read(addr), value);
+}
+
+#[rstest]
+#[case::ld_ix_nn(0, IndexRegister::IX, 0xDD, 0x21, 0x1234)]
+#[case::ld_iy_nn(0, IndexRegister::IY, 0xFD, 0x21, 0x1234)]
+fn test_ld_index_immediate_extended(
+    #[case] initial_pc: u16,
+    #[case] reg: IndexRegister,
+    #[case] prefix: u8,
+    #[case] opcode: u8,
+    #[case] value: u16,
+) {
+    let mut cpu = setup_cpu();
+    cpu.PC = initial_pc;
+    cpu.memory.borrow_mut().write(initial_pc, prefix);
+    cpu.memory.borrow_mut().write(initial_pc + 1, opcode);
+    cpu.memory.borrow_mut().write(initial_pc + 2, (value & 0xFF) as u8);
+    cpu.memory.borrow_mut().write(initial_pc + 3, (value >> 8) as u8);
+
+    cpu.tick(); 
+
+    assert_eq!(cpu.get_index_register(reg), value);
+}
+
+#[rstest]
+#[case::ld_b_ix_d(0, GPR::B, 0xDD, 0x46, 0x42, 0x1000, 5)]   // ld b, (ix + 5)
+#[case::ld_c_ix_d(0, GPR::C, 0xDD, 0x4E, 0x42, 0x1000, -5)]  // ld c, (ix - 5)
+#[case::ld_a_iy_d(0, GPR::A, 0xFD, 0x7E, 0x42, 0x1000, 0)]   // ld a, (iy + 0)
+fn test_ld_indexed_load(
+    #[case] initial_pc: u16,
+    #[case] dest_reg: GPR,
+    #[case] prefix: u8,
+    #[case] opcode: u8,
+    #[case] value: u8,
+    #[case] base_addr: u16,
+    #[case] offset: i8,
+) {
+    let mut cpu = setup_cpu();
+    cpu.PC = initial_pc;
+    cpu.memory.borrow_mut().write(initial_pc, prefix);
+    cpu.memory.borrow_mut().write(initial_pc + 1, opcode);
+    cpu.memory.borrow_mut().write(initial_pc + 2, offset as u8);
+
+    let target_addr = base_addr.wrapping_add_signed(offset as i16);
+    cpu.memory.borrow_mut().write(target_addr, value);
+
+    if prefix == 0xDD {
+        cpu.set_index_register(IndexRegister::IX, base_addr);
+    } else {
+        cpu.set_index_register(IndexRegister::IY, base_addr);
+    }
+
+    cpu.tick();
+
+    assert_eq!(cpu.get_register(dest_reg), value);
+}
+
+#[rstest]
+#[case::ld_a_bc(0, 0x0A, 0x42, 0x1000)] // LD A, (BC)
+#[case::ld_a_de(0, 0x1A, 0x42, 0x1000)] // LD A, (DE)
+fn test_ld_a_indirect_pair(
+    #[case] initial_pc: u16,
+    #[case] opcode: u8,
+    #[case] value: u8,
+    #[case] addr: u16,
+) {
+    let mut cpu = setup_cpu();
+    cpu.PC = initial_pc;
+    cpu.memory.borrow_mut().write(initial_pc, opcode);
+    if opcode == 0x0A {
+        cpu.set_register_pair(RegisterPair::BC, addr);
+    } else {
+        cpu.set_register_pair(RegisterPair::DE, addr);
+    }
+    cpu.memory.borrow_mut().write(addr, value);
+
+    cpu.tick();
+
+    assert_eq!(cpu.get_register(GPR::A), value);
+}
+
+#[rstest]
+#[case::ld_bc_a(0, 0x02, 0x42, 0x1000)] // LD (BC), A
+#[case::ld_de_a(0, 0x12, 0x42, 0x1000)] // LD (DE), A
+fn test_ld_indirect_pair_a(
+    #[case] initial_pc: u16,
+    #[case] opcode: u8,
+    #[case] value: u8,
+    #[case] addr: u16,
+) {
+    let mut cpu = setup_cpu();
+    cpu.PC = initial_pc;
+    cpu.memory.borrow_mut().write(initial_pc, opcode);
+    cpu.set_register(GPR::A, value);
+    if opcode == 0x02 {
+        cpu.set_register_pair(RegisterPair::BC, addr);
+    } else {
+        cpu.set_register_pair(RegisterPair::DE, addr);
+    }
+
+    cpu.tick();
+
+    assert_eq!(cpu.memory.borrow().read(addr), value);
+}
+
+#[rstest]
+#[case::ld_a_nn(0, 0x3A, 0x42, 0x1000)] // LD A, (nn)
+fn test_ld_a_absolute(
+    #[case] initial_pc: u16,
+    #[case] opcode: u8,
+    #[case] value: u8,
+    #[case] addr: u16,
+) {
+    let mut cpu = setup_cpu();
+    cpu.PC = initial_pc;
+    cpu.memory.borrow_mut().write(initial_pc, opcode);
+    cpu.memory.borrow_mut().write(initial_pc + 1, (addr & 0xFF) as u8);
+    cpu.memory.borrow_mut().write(initial_pc + 2, (addr >> 8) as u8);
+    cpu.memory.borrow_mut().write(addr, value);
+
+    cpu.tick();
+
+    assert_eq!(cpu.get_register(GPR::A), value);
+}
+
+#[rstest]
+#[case::ld_nn_a(0, 0x32, 0x42, 0x1000)] // LD (nn), A
+fn test_ld_absolute_a(
+    #[case] initial_pc: u16,
+    #[case] opcode: u8,
+    #[case] value: u8,
+    #[case] addr: u16,
+) {
+    let mut cpu = setup_cpu();
+    cpu.PC = initial_pc;
+    cpu.memory.borrow_mut().write(initial_pc, opcode);
+    cpu.memory.borrow_mut().write(initial_pc + 1, (addr & 0xFF) as u8);
+    cpu.memory.borrow_mut().write(initial_pc + 2, (addr >> 8) as u8);
+    cpu.set_register(GPR::A, value);
+
+    cpu.tick();
+
+    assert_eq!(cpu.memory.borrow().read(addr), value);
+}
+
+#[rstest]
+#[case::ld_ixh_n(0, IndexRegisterPart::IXH, 0xDD, 0x26, 0x42)]
+#[case::ld_ixl_n(0, IndexRegisterPart::IXL, 0xDD, 0x2E, 0x42)]
+#[case::ld_iyh_n(0, IndexRegisterPart::IYH, 0xFD, 0x26, 0x42)]
+#[case::ld_iyl_n(0, IndexRegisterPart::IYL, 0xFD, 0x2E, 0x42)]
+fn test_ld_index_parts_immediate(
+    #[case] initial_pc: u16,
+    #[case] dest: IndexRegisterPart,
+    #[case] prefix: u8,
+    #[case] opcode: u8,
+    #[case] value: u8,
+) {
+    let mut cpu = setup_cpu();
+    cpu.PC = initial_pc;
+    cpu.memory.borrow_mut().write(initial_pc, prefix);
+    cpu.memory.borrow_mut().write(initial_pc + 1, opcode);
+    cpu.memory.borrow_mut().write(initial_pc + 2, value);
+
+    cpu.tick();
+
+    assert_eq!(cpu.get_index_register_part(dest), value);
+}
+
+#[rstest]
+#[case::ld_b_ixh(0, GPR::B, IndexRegisterPart::IXH, 0xDD, 0x44, 0x42)]
+#[case::ld_c_ixl(0, GPR::C, IndexRegisterPart::IXL, 0xDD, 0x4D, 0x42)]
+fn test_ld_from_index_part(
+    #[case] initial_pc: u16,
+    #[case] dest: GPR,
+    #[case] src: IndexRegisterPart,
+    #[case] prefix: u8,
+    #[case] opcode: u8,
+    #[case] value: u8,
+) {
+    let mut cpu = setup_cpu();
+    cpu.PC = initial_pc;
+    cpu.memory.borrow_mut().write(initial_pc, prefix);
+    cpu.memory.borrow_mut().write(initial_pc + 1, opcode);
+
+    cpu.set_index_register_part(src, value);
+
+    cpu.tick();
+
+    assert_eq!(cpu.get_register(dest), value);
+}
+
+#[rstest]
+#[case::ld_ixh_b(0, IndexRegisterPart::IXH, GPR::B, 0xDD, 0x60, 0x42)]
+#[case::ld_ixl_c(0, IndexRegisterPart::IXL, GPR::C, 0xDD, 0x69, 0x42)]
+fn test_ld_to_index_part(
+    #[case] initial_pc: u16,
+    #[case] dest: IndexRegisterPart,
+    #[case] src: GPR,
+    #[case] prefix: u8,
+    #[case] opcode: u8,
+    #[case] value: u8,
+) {
+    let mut cpu = setup_cpu();
+    cpu.PC = initial_pc;
+    cpu.memory.borrow_mut().write(initial_pc, prefix);
+    cpu.memory.borrow_mut().write(initial_pc + 1, opcode);
+
+    cpu.set_register(src, value);
+
+    cpu.tick();
+
+    assert_eq!(cpu.get_index_register_part(dest), value);
+}
+
