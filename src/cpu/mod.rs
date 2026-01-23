@@ -211,6 +211,7 @@ pub struct Z80A {
     memory: Rc<RefCell<dyn MemoryMapper>>,
 
     cycles: u64,
+    halted: bool,
 
     #[cfg(test)]
     test_callback: (
@@ -236,6 +237,14 @@ impl Z80A {
         self.IY
     }
     
+    pub fn is_halted(&self) -> bool {
+        self.halted
+    }
+
+    pub fn set_halted(&mut self, halted: bool) {
+        self.halted = halted;
+    }
+
     pub fn new(memory: Rc<RefCell<dyn MemoryMapper>>) -> Self {
         Z80A {
             af_registers: [AFSet::default(); 2],
@@ -250,6 +259,7 @@ impl Z80A {
             R: 0,
             memory,
             cycles: 0,
+            halted: false,
 
             #[cfg(test)]
             test_callback: (
@@ -986,7 +996,8 @@ impl Z80A {
                         // LD rp[p], nn
                         test_log!(self, "LD rp[p], nn");
                         let nn = self.fetch_word();
-                        let src = self.table_rp(p);
+                        let rp = self.table_rp(p);
+                        let src = self.transform_register(rp, addressing);
                         self.ld_16(src, AddressingMode::ImmediateExtended(nn));
                     }
                 }
@@ -1194,7 +1205,8 @@ impl Z80A {
             },
             1 => {
                 if (z == 6) && (y == 6) {
-                    test_log!(self, "HALT"); // TODO: HALT
+                    test_log!(self, "HALT");
+                    self.halted = true;
                 } else {
                     test_log!(self, "LD r[y], r[z]");
                     let reg = self.table_r(y);
@@ -1854,6 +1866,9 @@ impl Z80A {
 
 impl SyncronousComponent for Z80A {
     fn tick(&mut self) {
+        if self.halted {
+            return;
+        }
         /*
         self.cycles -= 1;
             if self.cycles == 0 {

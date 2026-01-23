@@ -21,20 +21,19 @@ struct Z80App {
     memory: Rc<RefCell<dyn MemoryMapper>>,
     code: String,
     last_error: Option<String>,
-    running: bool,
 }
 
 impl Default for Z80App {
     fn default() -> Self {
         let memory: Rc<RefCell<dyn MemoryMapper>> = Rc::new(RefCell::new(Mem64k::new()));
-        let cpu = Z80A::new(memory.clone());
+        let mut cpu = Z80A::new(memory.clone());
+        cpu.set_halted(true);
         
         Self {
             cpu,
             memory,
             code: "LD A, 0x42\nLD (0x2000), A\nHALT".to_string(),
             last_error: None,
-            running: false,
         }
     }
 }
@@ -49,6 +48,7 @@ impl eframe::App for Z80App {
                     let memory: Rc<RefCell<dyn MemoryMapper>> = Rc::new(RefCell::new(Mem64k::new()));
                     self.memory = memory.clone();
                     self.cpu = Z80A::new(self.memory.clone());
+                    self.cpu.set_halted(true);
                     
                     // Assemble and  Load code
                     let (bytes, error) = match assemble(&self.code) {
@@ -70,17 +70,23 @@ impl eframe::App for Z80App {
                 ui.separator();
 
                 if ui.button("⏭ Step").clicked() {
+                    if self.cpu.is_halted() {
+                        self.cpu.set_halted(false);
+                    }
                     self.cpu.tick();
+                    self.cpu.set_halted(true);
                 }
                 
-                let run_label = if self.running { "⏸ Stop" } else { "▶ Run" };
+                let run_label = if !self.cpu.is_halted() { "⏸ Stop" } else { "▶ Run" };
                 if ui.button(run_label).clicked() {
-                    self.running = !self.running;
+                    self.cpu.set_halted(!self.cpu.is_halted());
                 }
 
                 ui.separator();
 
-                if let Some(err) = &self.last_error {
+                if self.cpu.is_halted() {
+                    ui.colored_label(egui::Color32::RED, "HALTED");
+                } else if let Some(err) = &self.last_error {
                     ui.colored_label(egui::Color32::RED, format!("⚠ {}", err));
                 } else {
                     ui.label(egui::RichText::new("Ready").color(egui::Color32::GREEN));
@@ -176,7 +182,7 @@ impl eframe::App for Z80App {
             });
         });
 
-        if self.running {
+        if !self.cpu.is_halted() {
             self.cpu.tick();
             ctx.request_repaint();
         }
