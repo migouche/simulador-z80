@@ -1,9 +1,8 @@
+mod assembler;
 mod components;
 mod cpu;
-mod traits;
 mod gui;
-mod assembler;
-
+mod traits;
 
 #[cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 

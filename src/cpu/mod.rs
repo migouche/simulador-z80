@@ -224,7 +224,7 @@ impl Z80A {
     pub fn get_pc(&self) -> u16 {
         self.PC
     }
-    
+
     pub fn get_sp(&self) -> u16 {
         self.SP
     }
@@ -236,7 +236,7 @@ impl Z80A {
     pub fn get_iy(&self) -> u16 {
         self.IY
     }
-    
+
     pub fn is_halted(&self) -> bool {
         self.halted
     }
@@ -807,67 +807,67 @@ impl Z80A {
             (4, 0) => {
                 test_log!(self, "LDI");
                 BlockInstruction::LDI
-            },
+            }
             (4, 1) => {
                 test_log!(self, "CPI");
                 BlockInstruction::CPI
-            },
+            }
             (4, 2) => {
                 test_log!(self, "INI");
                 BlockInstruction::INI
-            },
+            }
             (4, 3) => {
                 test_log!(self, "OUTI");
                 BlockInstruction::OUTI
-            },
+            }
             (5, 0) => {
                 test_log!(self, "LDD");
                 BlockInstruction::LDD
-            },
+            }
             (5, 1) => {
                 test_log!(self, "CPD");
                 BlockInstruction::CPD
-            },
+            }
             (5, 2) => {
                 test_log!(self, "IND");
                 BlockInstruction::IND
-            },
+            }
             (5, 3) => {
                 test_log!(self, "OUTD");
                 BlockInstruction::OUTD
-            },
+            }
             (6, 0) => {
                 test_log!(self, "LDIR");
                 BlockInstruction::LDIR
-            },
-            (6, 1) => {          
+            }
+            (6, 1) => {
                 test_log!(self, "CPIR");
                 BlockInstruction::CPIR
-            },
+            }
             (6, 2) => {
                 test_log!(self, "INIR");
                 BlockInstruction::INIR
-            },
+            }
             (6, 3) => {
                 test_log!(self, "OTIR");
                 BlockInstruction::OTIR
-            },
+            }
             (7, 0) => {
                 test_log!(self, "LDDR");
                 BlockInstruction::LDDR
-            },
+            }
             (7, 1) => {
                 test_log!(self, "CPDR");
                 BlockInstruction::CPDR
-            },
+            }
             (7, 2) => {
                 test_log!(self, "INDR");
                 BlockInstruction::INDR
-            },
+            }
             (7, 3) => {
                 test_log!(self, "OTDR");
                 BlockInstruction::OTDR
-            },
+            }
             _ => unreachable!("Invalid a,b values"), // should never happen
         }
     }

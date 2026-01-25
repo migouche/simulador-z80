@@ -424,23 +424,32 @@ fn test_register_indexed(
 fn test_ld_gpr(
     #[case] initial_pc: u16,
     #[case] initial_regs: [(GPR, u8); 2],
-    #[case] memory_bytes:&[u8],
+    #[case] memory_bytes: &[u8],
     #[case] expected_regs: [(GPR, u8); 2],
-){
+) {
     let mut cpu = setup_cpu();
     cpu.PC = initial_pc;
     for (reg, val) in initial_regs.iter() {
         cpu.set_register(*reg, *val);
     }
     for (i, byte) in memory_bytes.iter().enumerate() {
-        cpu.memory.borrow_mut().write(initial_pc.wrapping_add(i as u16), *byte);
+        cpu.memory
+            .borrow_mut()
+            .write(initial_pc.wrapping_add(i as u16), *byte);
     }
 
     cpu.tick();
 
     // Check expected register values
     for (reg, expected_val) in expected_regs.iter() {
-        assert_eq!(cpu.get_register(*reg), *expected_val, "Register {:?} mismatch, expected {:02X}, got {:02X}", reg, expected_val, cpu.get_register(*reg));
+        assert_eq!(
+            cpu.get_register(*reg),
+            *expected_val,
+            "Register {:?} mismatch, expected {:02X}, got {:02X}",
+            reg,
+            expected_val,
+            cpu.get_register(*reg)
+        );
     }
 }
 
@@ -553,18 +562,22 @@ fn test_ld_index_immediate_extended(
     cpu.PC = initial_pc;
     cpu.memory.borrow_mut().write(initial_pc, prefix);
     cpu.memory.borrow_mut().write(initial_pc + 1, opcode);
-    cpu.memory.borrow_mut().write(initial_pc + 2, (value & 0xFF) as u8);
-    cpu.memory.borrow_mut().write(initial_pc + 3, (value >> 8) as u8);
+    cpu.memory
+        .borrow_mut()
+        .write(initial_pc + 2, (value & 0xFF) as u8);
+    cpu.memory
+        .borrow_mut()
+        .write(initial_pc + 3, (value >> 8) as u8);
 
-    cpu.tick(); 
+    cpu.tick();
 
     assert_eq!(cpu.get_index_register(reg), value);
 }
 
 #[rstest]
-#[case::ld_b_ix_d(0, GPR::B, 0xDD, 0x46, 0x42, 0x1000, 5)]   // ld b, (ix + 5)
-#[case::ld_c_ix_d(0, GPR::C, 0xDD, 0x4E, 0x42, 0x1000, -5)]  // ld c, (ix - 5)
-#[case::ld_a_iy_d(0, GPR::A, 0xFD, 0x7E, 0x42, 0x1000, 0)]   // ld a, (iy + 0)
+#[case::ld_b_ix_d(0, GPR::B, 0xDD, 0x46, 0x42, 0x1000, 5)] // ld b, (ix + 5)
+#[case::ld_c_ix_d(0, GPR::C, 0xDD, 0x4E, 0x42, 0x1000, -5)] // ld c, (ix - 5)
+#[case::ld_a_iy_d(0, GPR::A, 0xFD, 0x7E, 0x42, 0x1000, 0)] // ld a, (iy + 0)
 fn test_ld_indexed_load(
     #[case] initial_pc: u16,
     #[case] dest_reg: GPR,
@@ -653,8 +666,12 @@ fn test_ld_a_absolute(
     let mut cpu = setup_cpu();
     cpu.PC = initial_pc;
     cpu.memory.borrow_mut().write(initial_pc, opcode);
-    cpu.memory.borrow_mut().write(initial_pc + 1, (addr & 0xFF) as u8);
-    cpu.memory.borrow_mut().write(initial_pc + 2, (addr >> 8) as u8);
+    cpu.memory
+        .borrow_mut()
+        .write(initial_pc + 1, (addr & 0xFF) as u8);
+    cpu.memory
+        .borrow_mut()
+        .write(initial_pc + 2, (addr >> 8) as u8);
     cpu.memory.borrow_mut().write(addr, value);
 
     cpu.tick();
@@ -673,8 +690,12 @@ fn test_ld_absolute_a(
     let mut cpu = setup_cpu();
     cpu.PC = initial_pc;
     cpu.memory.borrow_mut().write(initial_pc, opcode);
-    cpu.memory.borrow_mut().write(initial_pc + 1, (addr & 0xFF) as u8);
-    cpu.memory.borrow_mut().write(initial_pc + 2, (addr >> 8) as u8);
+    cpu.memory
+        .borrow_mut()
+        .write(initial_pc + 1, (addr & 0xFF) as u8);
+    cpu.memory
+        .borrow_mut()
+        .write(initial_pc + 2, (addr >> 8) as u8);
     cpu.set_register(GPR::A, value);
 
     cpu.tick();
@@ -750,4 +771,3 @@ fn test_ld_to_index_part(
 
     assert_eq!(cpu.get_index_register_part(dest), value);
 }
-

@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::components::memories::mem_64k::Mem64k;
-use crate::cpu::{Flag, Z80A, GPR};
+use crate::cpu::{Flag, GPR, Z80A};
 use crate::traits::{MemoryMapper, SyncronousComponent};
 
 pub fn run() -> eframe::Result<()> {
@@ -28,7 +28,7 @@ impl Default for Z80App {
         let memory: Rc<RefCell<dyn MemoryMapper>> = Rc::new(RefCell::new(Mem64k::new()));
         let mut cpu = Z80A::new(memory.clone());
         cpu.set_halted(true);
-        
+
         Self {
             cpu,
             memory,
@@ -45,11 +45,12 @@ impl eframe::App for Z80App {
             ui.horizontal(|ui| {
                 if ui.button("⟳ Load & Reset").clicked() {
                     // Reset
-                    let memory: Rc<RefCell<dyn MemoryMapper>> = Rc::new(RefCell::new(Mem64k::new()));
+                    let memory: Rc<RefCell<dyn MemoryMapper>> =
+                        Rc::new(RefCell::new(Mem64k::new()));
                     self.memory = memory.clone();
                     self.cpu = Z80A::new(self.memory.clone());
                     self.cpu.set_halted(true);
-                    
+
                     // Assemble and  Load code
                     let (bytes, error) = match assemble(&self.code) {
                         Ok(b) => (b, None),
@@ -69,25 +70,35 @@ impl eframe::App for Z80App {
 
                 ui.separator();
 
-                if ui.button("⏭ Step").clicked() {
+                if ui
+                    .add_enabled(self.last_error.is_none(), egui::Button::new("⏭ Step"))
+                    .clicked()
+                {
                     if self.cpu.is_halted() {
                         self.cpu.set_halted(false);
                     }
                     self.cpu.tick();
                     self.cpu.set_halted(true);
                 }
-                
-                let run_label = if !self.cpu.is_halted() { "⏸ Stop" } else { "▶ Run" };
-                if ui.button(run_label).clicked() {
+
+                let run_label = if !self.cpu.is_halted() {
+                    "⏸ Stop"
+                } else {
+                    "▶ Run"
+                };
+                if ui
+                    .add_enabled(self.last_error.is_none(), egui::Button::new(run_label))
+                    .clicked()
+                {
                     self.cpu.set_halted(!self.cpu.is_halted());
                 }
 
                 ui.separator();
 
-                if self.cpu.is_halted() {
-                    ui.colored_label(egui::Color32::RED, "HALTED");
-                } else if let Some(err) = &self.last_error {
+                if let Some(err) = &self.last_error {
                     ui.colored_label(egui::Color32::RED, format!("⚠ {}", err));
+                } else if self.cpu.is_halted() {
+                    ui.colored_label(egui::Color32::RED, "HALTED");
                 } else {
                     ui.label(egui::RichText::new("Ready").color(egui::Color32::GREEN));
                 }
@@ -101,7 +112,7 @@ impl eframe::App for Z80App {
             .show(ctx, |ui| {
                 ui.heading("Registers");
                 ui.separator();
-                
+
                 let reg_a = self.cpu.get_register(GPR::A);
                 let reg_f = self.cpu.get_register(GPR::F);
                 let reg_b = self.cpu.get_register(GPR::B);
@@ -110,7 +121,7 @@ impl eframe::App for Z80App {
                 let reg_e = self.cpu.get_register(GPR::E);
                 let reg_h = self.cpu.get_register(GPR::H);
                 let reg_l = self.cpu.get_register(GPR::L);
-                
+
                 let pc = self.cpu.get_pc();
                 let sp = self.cpu.get_sp();
                 let ix = self.cpu.get_ix();
@@ -122,37 +133,77 @@ impl eframe::App for Z80App {
                     .show(ui, |ui| {
                         let mono = |text: String| egui::RichText::new(text).monospace();
 
-                        ui.label("PC"); ui.label(mono(format!("0x{:04X}", pc))); ui.end_row();
-                        ui.label("SP"); ui.label(mono(format!("0x{:04X}", sp))); ui.end_row();
-                        ui.label("IX"); ui.label(mono(format!("0x{:04X}", ix))); ui.end_row();
-                        ui.label("IY"); ui.label(mono(format!("0x{:04X}", iy))); ui.end_row();
-                        
-                        ui.separator(); ui.separator(); ui.end_row();
+                        ui.label("PC");
+                        ui.label(mono(format!("0x{:04X}", pc)));
+                        ui.end_row();
+                        ui.label("SP");
+                        ui.label(mono(format!("0x{:04X}", sp)));
+                        ui.end_row();
+                        ui.label("IX");
+                        ui.label(mono(format!("0x{:04X}", ix)));
+                        ui.end_row();
+                        ui.label("IY");
+                        ui.label(mono(format!("0x{:04X}", iy)));
+                        ui.end_row();
 
-                        ui.label("A"); ui.label(mono(format!("0x{:02X}", reg_a))); ui.end_row();
-                        ui.label("F"); ui.label(mono(format!("0x{:02X}", reg_f))); ui.end_row();
-                        ui.label("B"); ui.label(mono(format!("0x{:02X}", reg_b))); ui.end_row();
-                        ui.label("C"); ui.label(mono(format!("0x{:02X}", reg_c))); ui.end_row();
-                        ui.label("D"); ui.label(mono(format!("0x{:02X}", reg_d))); ui.end_row();
-                        ui.label("E"); ui.label(mono(format!("0x{:02X}", reg_e))); ui.end_row();
-                        ui.label("H"); ui.label(mono(format!("0x{:02X}", reg_h))); ui.end_row();
-                        ui.label("L"); ui.label(mono(format!("0x{:02X}", reg_l))); ui.end_row();
+                        ui.separator();
+                        ui.separator();
+                        ui.end_row();
+
+                        ui.label("A");
+                        ui.label(mono(format!("0x{:02X}", reg_a)));
+                        ui.end_row();
+                        ui.label("F");
+                        ui.label(mono(format!("0x{:02X}", reg_f)));
+                        ui.end_row();
+                        ui.label("B");
+                        ui.label(mono(format!("0x{:02X}", reg_b)));
+                        ui.end_row();
+                        ui.label("C");
+                        ui.label(mono(format!("0x{:02X}", reg_c)));
+                        ui.end_row();
+                        ui.label("D");
+                        ui.label(mono(format!("0x{:02X}", reg_d)));
+                        ui.end_row();
+                        ui.label("E");
+                        ui.label(mono(format!("0x{:02X}", reg_e)));
+                        ui.end_row();
+                        ui.label("H");
+                        ui.label(mono(format!("0x{:02X}", reg_h)));
+                        ui.end_row();
+                        ui.label("L");
+                        ui.label(mono(format!("0x{:02X}", reg_l)));
+                        ui.end_row();
                     });
 
                 ui.add_space(20.0);
                 ui.heading("Flags");
                 ui.separator();
-                
+
                 ui.horizontal_wrapped(|ui| {
                     ui.spacing_mut().item_spacing.x = 10.0;
                     for (flag, label) in [
-                        (Flag::S, "S"), (Flag::Z, "Z"), (Flag::Y, "Y"), (Flag::H, "H"),
-                        (Flag::X, "X"), (Flag::PV, "PV"), (Flag::N, "N"), (Flag::C, "C")
+                        (Flag::S, "S"),
+                        (Flag::Z, "Z"),
+                        (Flag::Y, "Y"),
+                        (Flag::H, "H"),
+                        (Flag::X, "X"),
+                        (Flag::PV, "PV"),
+                        (Flag::N, "N"),
+                        (Flag::C, "C"),
                     ] {
                         let on = self.cpu.get_flag(flag);
-                        let color = if on { egui::Color32::from_rgb(0, 255, 0) } else { egui::Color32::from_rgb(60, 60, 60) };
-                        let text_color = if on { egui::Color32::BLACK } else { egui::Color32::WHITE };
-                        
+                        let color = if on {
+                            egui::Color32::from_rgb(0, 255, 0)
+                        } else {
+                            egui::Color32::from_rgb(60, 60, 60)
+                        };
+                        let text_color = if on {
+                            egui::Color32::BLACK
+                        } else {
+                            egui::Color32::WHITE
+                        };
+
                         // Drawn as a small badge
                         let text = egui::RichText::new(label).strong().color(text_color);
                         egui::Frame::new()
@@ -169,7 +220,7 @@ impl eframe::App for Z80App {
         // Central Panel: Code Editor
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Assembly Source (Hex)");
-            
+
             egui::ScrollArea::vertical().show(ui, |ui| {
                 ui.add(
                     egui::TextEdit::multiline(&mut self.code)
@@ -177,7 +228,7 @@ impl eframe::App for Z80App {
                         .code_editor()
                         .desired_width(f32::INFINITY)
                         .desired_rows(25)
-                        .lock_focus(true)
+                        .lock_focus(true),
                 );
             });
         });
