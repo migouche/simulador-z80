@@ -1,4 +1,4 @@
-use crate::assembler::assemble;
+use crate::assembler::{assemble, Symbol, SymbolType};
 use eframe::egui;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -22,7 +22,7 @@ struct Z80App {
     memory: Rc<RefCell<dyn MemoryMapper>>,
     code: String,
     last_error: Option<String>,
-    symbol_table: HashMap<String, u16>,
+    symbol_table: HashMap<String, Symbol>,
 }
 
 impl Default for Z80App {
@@ -230,28 +230,37 @@ impl eframe::App for Z80App {
                     .show(ui, |ui| {
                         egui::Grid::new("vars_grid")
                             .striped(true)
-                            .spacing([15.0, 4.0])
+                            .spacing([20.0, 4.0])
                             .show(ui, |ui| {
                                 ui.label(egui::RichText::new("Name").strong());
                                 ui.label(egui::RichText::new("Addr").strong());
-                                ui.label(egui::RichText::new("8-bit").strong());
-                                ui.label(egui::RichText::new("16-bit").strong());
+                                ui.label(egui::RichText::new("Value").strong());
                                 ui.end_row();
 
                                 let mut sorted_symbols: Vec<_> = self.symbol_table.iter().collect();
-                                sorted_symbols.sort_by_key(|&(_, &addr)| addr);
+                                sorted_symbols.sort_by_key(|item| item.1.address);
 
-                                for (name, &addr) in sorted_symbols {
-                                    // simple heuristic to hide temporary labels if desired,
-                                    // but we show everything for now.
-                                    let val_8 = self.memory.borrow().read(addr);
-                                    let val_8_next = self.memory.borrow().read(addr.wrapping_add(1));
-                                    let val_16 = (val_8 as u16) | ((val_8_next as u16) << 8);
-
+                                for (name, symbol) in sorted_symbols {
+                                    let addr = symbol.address;
+                                    
                                     ui.label(name);
                                     ui.monospace(format!("0x{:04X}", addr));
-                                    ui.monospace(format!("0x{:02X}", val_8));
-                                    ui.monospace(format!("0x{:04X}", val_16));
+
+                                    match symbol.kind {
+                                        SymbolType::Byte => {
+                                            let val = self.memory.borrow().read(addr);
+                                            ui.monospace(format!("0x{:02X}", val));
+                                        }
+                                        SymbolType::Word => {
+                                            let low = self.memory.borrow().read(addr);
+                                            let high = self.memory.borrow().read(addr.wrapping_add(1));
+                                            let val = (low as u16) | ((high as u16) << 8);
+                                            ui.monospace(format!("0x{:04X}", val));
+                                        }
+                                        SymbolType::Label => {
+                                            ui.weak("(Label)");
+                                        }
+                                    }
                                     ui.end_row();
                                 }
                             });

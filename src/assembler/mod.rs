@@ -28,7 +28,20 @@ pub enum Operand {
     StringLiteral(String),
 }
 
-pub fn assemble(code: &str) -> Result<(Vec<u8>, HashMap<String, u16>), String> {
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum SymbolType {
+    Label, // Code label
+    Byte,  // DB/DEFB
+    Word,  // DW/DEFW
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Symbol {
+    pub address: u16,
+    pub kind: SymbolType,
+}
+
+pub fn assemble(code: &str) -> Result<(Vec<u8>, HashMap<String, Symbol>), String> {
     let mut labels = HashMap::new();
     let mut current_pc = 0u16;
     let mut instructions = Vec::new();
@@ -53,7 +66,20 @@ pub fn assemble(code: &str) -> Result<(Vec<u8>, HashMap<String, u16>), String> {
                 if labels.contains_key(name) {
                     return Err(format!("Line {}: Duplicate label '{}'", line_idx + 1, name));
                 }
-                labels.insert(name.clone(), current_pc);
+
+                // Determine symbol type based on what follows
+                let mut sym_kind = SymbolType::Label;
+                if tokens.len() > 2 {
+                     if let Token::Identifier(next_mnemonic) = &tokens[2] {
+                         match next_mnemonic.as_str() {
+                             "DB" | "DEFB" => sym_kind = SymbolType::Byte,
+                             "DW" | "DEFW" => sym_kind = SymbolType::Word,
+                             _ => {}
+                         }
+                     }
+                }
+
+                labels.insert(name.clone(), Symbol { address: current_pc, kind: sym_kind });
                 tokens.drain(0..2);
             }
         }
@@ -71,8 +97,12 @@ pub fn assemble(code: &str) -> Result<(Vec<u8>, HashMap<String, u16>), String> {
 
     // Pass 2: Code Gen
     let mut output = Vec::new();
+    // In Pass 2 we need a map of String -> u16 for parse_instruction to work.
+    // We can just project our Symbol map.
+    let label_addresses: HashMap<String, u16> = labels.iter().map(|(k, v)| (k.clone(), v.address)).collect();
+
     for (line_idx, pc, tokens) in instructions {
-        let bytes = parse_instruction(&tokens, pc, &labels, false)
+        let bytes = parse_instruction(&tokens, pc, &label_addresses, false)
             .map_err(|e| format!("Line {}: {}", line_idx + 1, e))?;
         output.extend(bytes);
     }
