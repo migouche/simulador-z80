@@ -1,9 +1,12 @@
 use std::collections::HashMap;
 
+use crate::assembler;
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     Identifier(String),
     Number(u16),
+    String(String),
     Comma,
     OpenParen,
     CloseParen,
@@ -22,9 +25,10 @@ pub enum Operand {
     Condition(String),         // NZ, Z, NC...
     Label(String),
     IndirectLabel(String),
+    StringLiteral(String),
 }
 
-pub fn assemble(code: &str) -> Result<Vec<u8>, String> {
+pub fn assemble(code: &str) -> Result<(Vec<u8>, HashMap<String, u16>), String> {
     let mut labels = HashMap::new();
     let mut current_pc = 0u16;
     let mut instructions = Vec::new();
@@ -72,7 +76,7 @@ pub fn assemble(code: &str) -> Result<Vec<u8>, String> {
             .map_err(|e| format!("Line {}: {}", line_idx + 1, e))?;
         output.extend(bytes);
     }
-    Ok(output)
+    Ok((output, labels))
 }
 
 fn tokenize(text: &str) -> Result<Vec<Token>, String> {
@@ -84,6 +88,19 @@ fn tokenize(text: &str) -> Result<Vec<Token>, String> {
             ':' => {
                 tokens.push(Token::Colon);
                 chars.next();
+            }
+            '"' => {
+                chars.next(); // consume "
+                let mut s = String::new();
+                while let Some(&c) = chars.peek() {
+                    if c == '"' {
+                        chars.next();
+                        break;
+                    }
+                    s.push(c);
+                    chars.next();
+                }
+                tokens.push(Token::String(s));
             }
             ',' => {
                 tokens.push(Token::Comma);
@@ -228,6 +245,10 @@ fn parse_operands(tokens: &[Token]) -> Result<Vec<Operand>, String> {
                 } else {
                     operands.push(Operand::Label(r.clone()));
                 }
+                i += 1;
+            }
+            Token::String(s) => {
+                operands.push(Operand::StringLiteral(s.clone()));
                 i += 1;
             }
             Token::Number(n) => {
@@ -413,6 +434,67 @@ fn parse_instruction(
 
         "IN" => encode_in(&operands),
         "OUT" => encode_out(&operands),
+
+        "ORG" => {
+            if operands.len() != 1 {
+                return Err("ORG expects 1 operand".to_string());
+            }
+            let target = resolve_immediate(&operands[0], labels, is_dry_run)?;
+            if target < pc {
+                 // In dry run (Pass 1), we might have temporary 0 labels producing bad targets,
+                 // but ORG usually uses constants.
+                 // If using labels in ORG (advanced), Pass 1 might fail.
+                 // We assume ORG uses constants or pre-defined symbols.
+                 return Err("ORG cannot go backwards".to_string());
+            }
+            Ok(vec![0; (target - pc) as usize])
+        }
+        "DB" | "DEFB" => {
+            let mut bytes = Vec::new();
+            for op in operands {
+                match op {
+                    Operand::Immediate(n) => {
+                        if n > 255 {
+                            // If literal is hex 0x12, it's u16.
+                            // But DB 0x12 is valid.
+                            // Check if fits in u8?
+                            // Yes.
+                            return Err(format!("Value {} too large for DB", n));
+                        }
+                        bytes.push(n as u8);
+                    }
+                    Operand::StringLiteral(s) => {
+                        bytes.extend_from_slice(s.as_bytes());
+                    }
+                    Operand::Label(l) => {
+                         let val = if is_dry_run { 0 } else { *labels.get(&l).unwrap_or(&0) };
+                         // Use just the low byte? Or error if > 255?
+                         // Usually DB Label puts the low byte.
+                         bytes.push((val & 0xFF) as u8);
+                    }
+                    _ => return Err("Invalid DB operand".to_string()),
+                }
+            }
+            Ok(bytes)
+        }
+        "DW" | "DEFW" => {
+            let mut bytes = Vec::new();
+            for op in operands {
+                match op {
+                    Operand::Immediate(n) => {
+                        bytes.push((n & 0xFF) as u8);
+                        bytes.push((n >> 8) as u8);
+                    }
+                    Operand::Label(l) => {
+                        let val = if is_dry_run { 0 } else { *labels.get(&l).unwrap_or(&0) };
+                        bytes.push((val & 0xFF) as u8);
+                        bytes.push((val >> 8) as u8);
+                    }
+                     _ => return Err("Invalid DW operand".to_string()),
+                }
+            }
+            Ok(bytes)
+        }
 
         "LDI" => Ok(vec![0xED, 0xA0]),
         "LDIR" => Ok(vec![0xED, 0xB0]),
@@ -1091,3 +1173,8 @@ fn encode_out(ops: &[Operand]) -> Result<Vec<u8>, String> {
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod tests_variables;
+
+#[cfg(test)]
+mod scripts;

@@ -147,7 +147,7 @@ fn test_parse_operands_errors() {
 
 // Helper to assemble single line
 fn asm(code: &str) -> Vec<u8> {
-    assemble(code).unwrap_or_else(|e| panic!("Failed to assemble '{}': {}", code, e))
+    assemble(code).map(|(bytes, _)| bytes).unwrap_or_else(|e| panic!("Failed to assemble '{}': {}", code, e))
 }
 
 fn asm_err(code: &str) {
@@ -318,14 +318,14 @@ fn test_control_flow() {
         HALT
     ";
     // 20 01 (jump over 1 byte NOP)
-    assert_eq!(assemble(code).unwrap(), vec![0x20, 0x01, 0x00, 0x76]);
+    assert_eq!(asm(code), vec![0x20, 0x01, 0x00, 0x76]);
 
     // DJNZ
     let code = "
         loop:
         DJNZ loop
     ";
-    assert_eq!(assemble(code).unwrap(), vec![0x10, 0xFE]);
+    assert_eq!(asm(code), vec![0x10, 0xFE]);
 
     // CALL
     assert_eq!(asm("CALL 0x1234"), vec![0xCD, 0x34, 0x12]);

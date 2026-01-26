@@ -12,6 +12,7 @@ egui_kittest = "0.33.3"
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage)'] }
+non_snake_case = "allow"
 
 [profile.release]
 opt-level = "z"

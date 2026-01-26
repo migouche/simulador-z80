@@ -1,6 +1,7 @@
 use crate::assembler::assemble;
 use eframe::egui;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::components::memories::mem_64k::Mem64k;
@@ -21,6 +22,7 @@ struct Z80App {
     memory: Rc<RefCell<dyn MemoryMapper>>,
     code: String,
     last_error: Option<String>,
+    symbol_table: HashMap<String, u16>,
 }
 
 impl Default for Z80App {
@@ -34,6 +36,7 @@ impl Default for Z80App {
             memory,
             code: "LD A, 0x42\nLD (0x2000), A\nHALT".to_string(),
             last_error: None,
+            symbol_table: HashMap::new(),
         }
     }
 }
@@ -52,10 +55,12 @@ impl eframe::App for Z80App {
                     self.cpu.set_halted(true);
 
                     // Assemble and  Load code
-                    let (bytes, error) = match assemble(&self.code) {
-                        Ok(b) => (b, None),
-                        Err(e) => (Vec::new(), Some(e)),
+                    let (bytes, symbols, error) = match assemble(&self.code) {
+                        Ok((b, s)) => (b, s, None),
+                        Err(e) => (Vec::new(), HashMap::new(), Some(e)),
                     };
+                    
+                    self.symbol_table = symbols;
 
                     if let Some(err) = error {
                         self.last_error = Some(err);
@@ -215,6 +220,42 @@ impl eframe::App for Z80App {
                             });
                     }
                 });
+
+                ui.add_space(20.0);
+                ui.heading("Variables");
+                ui.separator();
+
+                egui::ScrollArea::vertical()
+                    .id_salt("vars_scroll")
+                    .show(ui, |ui| {
+                        egui::Grid::new("vars_grid")
+                            .striped(true)
+                            .spacing([15.0, 4.0])
+                            .show(ui, |ui| {
+                                ui.label(egui::RichText::new("Name").strong());
+                                ui.label(egui::RichText::new("Addr").strong());
+                                ui.label(egui::RichText::new("8-bit").strong());
+                                ui.label(egui::RichText::new("16-bit").strong());
+                                ui.end_row();
+
+                                let mut sorted_symbols: Vec<_> = self.symbol_table.iter().collect();
+                                sorted_symbols.sort_by_key(|&(_, &addr)| addr);
+
+                                for (name, &addr) in sorted_symbols {
+                                    // simple heuristic to hide temporary labels if desired,
+                                    // but we show everything for now.
+                                    let val_8 = self.memory.borrow().read(addr);
+                                    let val_8_next = self.memory.borrow().read(addr.wrapping_add(1));
+                                    let val_16 = (val_8 as u16) | ((val_8_next as u16) << 8);
+
+                                    ui.label(name);
+                                    ui.monospace(format!("0x{:04X}", addr));
+                                    ui.monospace(format!("0x{:02X}", val_8));
+                                    ui.monospace(format!("0x{:04X}", val_16));
+                                    ui.end_row();
+                                }
+                            });
+                    });
             });
 
         // Central Panel: Code Editor
@@ -222,14 +263,35 @@ impl eframe::App for Z80App {
             ui.heading("Assembly Source");
 
             egui::ScrollArea::vertical().show(ui, |ui| {
-                ui.add(
-                    egui::TextEdit::multiline(&mut self.code)
-                        .font(egui::TextStyle::Monospace)
-                        .code_editor()
-                        .desired_width(f32::INFINITY)
-                        .desired_rows(25)
-                        .lock_focus(true),
-                );
+                ui.horizontal_top(|ui| {
+                    let num_lines = if self.code.is_empty() {
+                        1
+                    } else {
+                        self.code.lines().count() + if self.code.ends_with('\n') { 1 } else { 0 }
+                    };
+
+                    let line_numbers = (1..=num_lines)
+                        .map(|n| n.to_string())
+                        .collect::<Vec<_>>()
+                        .join("\n");
+
+                    ui.add(
+                        egui::Label::new(
+                            egui::RichText::new(line_numbers)
+                                .text_style(egui::TextStyle::Monospace)
+                                .color(egui::Color32::GRAY),
+                        )
+                    );
+
+                    ui.add(
+                        egui::TextEdit::multiline(&mut self.code)
+                            .font(egui::TextStyle::Monospace)
+                            .code_editor()
+                            .desired_width(f32::INFINITY)
+                            .desired_rows(25)
+                            .lock_focus(true),
+                    );
+                });
             });
         });
 
