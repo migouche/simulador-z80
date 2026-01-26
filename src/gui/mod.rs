@@ -219,7 +219,7 @@ impl eframe::App for Z80App {
 
         // Central Panel: Code Editor
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("Assembly Source (Hex)");
+            ui.heading("Assembly Source");
 
             egui::ScrollArea::vertical().show(ui, |ui| {
                 ui.add(
@@ -234,7 +234,9 @@ impl eframe::App for Z80App {
         });
 
         if !self.cpu.is_halted() {
-            self.cpu.tick();
+            while !self.cpu.is_halted() {
+                self.cpu.tick();
+            }
             ctx.request_repaint();
         }
     }
