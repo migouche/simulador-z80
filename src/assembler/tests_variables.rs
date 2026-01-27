@@ -2,7 +2,9 @@ use super::*;
 
 // Helper to assemble single line
 fn asm(code: &str) -> Vec<u8> {
-    assemble(code).map(|(bytes, _)| bytes).unwrap_or_else(|e| panic!("Failed to assemble '{}': {}", code, e))
+    assemble(code)
+        .map(|(bytes, _)| bytes)
+        .unwrap_or_else(|e| panic!("Failed to assemble '{}': {}", code, e))
 }
 
 #[test]
@@ -13,7 +15,7 @@ fn test_org_simple() {
     ";
     let res = asm(code);
     assert_eq!(res.len(), 6);
-    assert_eq!(res[0..5], [0,0,0,0,0]);
+    assert_eq!(res[0..5], [0, 0, 0, 0, 0]);
     assert_eq!(res[5], 0xAA);
 }
 
@@ -30,20 +32,17 @@ fn test_variables_scenario() {
     ";
     let res = asm(code);
     /*
-        0000: JP 0006   (C3 06 00)
-        0003: N: 10     (0A)
-        0004: RESULT: 0 (00 00)
-        0006: START:
-        0006: LD A, (0003) (3A 03 00)
-        0009: HALT      (76)
-     */
-    assert_eq!(res, vec![
-        0xC3, 0x06, 0x00,
-        0x0A,
-        0x00, 0x00,
-        0x3A, 0x03, 0x00,
-        0x76
-    ]);
+       0000: JP 0006   (C3 06 00)
+       0003: N: 10     (0A)
+       0004: RESULT: 0 (00 00)
+       0006: START:
+       0006: LD A, (0003) (3A 03 00)
+       0009: HALT      (76)
+    */
+    assert_eq!(
+        res,
+        vec![0xC3, 0x06, 0x00, 0x0A, 0x00, 0x00, 0x3A, 0x03, 0x00, 0x76]
+    );
 }
 
 #[test]

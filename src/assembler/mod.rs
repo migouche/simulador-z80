@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use crate::assembler;
-
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     Identifier(String),
@@ -70,16 +68,22 @@ pub fn assemble(code: &str) -> Result<(Vec<u8>, HashMap<String, Symbol>), String
                 // Determine symbol type based on what follows
                 let mut sym_kind = SymbolType::Label;
                 if tokens.len() > 2 {
-                     if let Token::Identifier(next_mnemonic) = &tokens[2] {
-                         match next_mnemonic.as_str() {
-                             "DB" | "DEFB" => sym_kind = SymbolType::Byte,
-                             "DW" | "DEFW" => sym_kind = SymbolType::Word,
-                             _ => {}
-                         }
-                     }
+                    if let Token::Identifier(next_mnemonic) = &tokens[2] {
+                        match next_mnemonic.as_str() {
+                            "DB" | "DEFB" => sym_kind = SymbolType::Byte,
+                            "DW" | "DEFW" => sym_kind = SymbolType::Word,
+                            _ => {}
+                        }
+                    }
                 }
 
-                labels.insert(name.clone(), Symbol { address: current_pc, kind: sym_kind });
+                labels.insert(
+                    name.clone(),
+                    Symbol {
+                        address: current_pc,
+                        kind: sym_kind,
+                    },
+                );
                 tokens.drain(0..2);
             }
         }
@@ -99,7 +103,8 @@ pub fn assemble(code: &str) -> Result<(Vec<u8>, HashMap<String, Symbol>), String
     let mut output = Vec::new();
     // In Pass 2 we need a map of String -> u16 for parse_instruction to work.
     // We can just project our Symbol map.
-    let label_addresses: HashMap<String, u16> = labels.iter().map(|(k, v)| (k.clone(), v.address)).collect();
+    let label_addresses: HashMap<String, u16> =
+        labels.iter().map(|(k, v)| (k.clone(), v.address)).collect();
 
     for (line_idx, pc, tokens) in instructions {
         let bytes = parse_instruction(&tokens, pc, &label_addresses, false)
@@ -471,11 +476,11 @@ fn parse_instruction(
             }
             let target = resolve_immediate(&operands[0], labels, is_dry_run)?;
             if target < pc {
-                 // In dry run (Pass 1), we might have temporary 0 labels producing bad targets,
-                 // but ORG usually uses constants.
-                 // If using labels in ORG (advanced), Pass 1 might fail.
-                 // We assume ORG uses constants or pre-defined symbols.
-                 return Err("ORG cannot go backwards".to_string());
+                // In dry run (Pass 1), we might have temporary 0 labels producing bad targets,
+                // but ORG usually uses constants.
+                // If using labels in ORG (advanced), Pass 1 might fail.
+                // We assume ORG uses constants or pre-defined symbols.
+                return Err("ORG cannot go backwards".to_string());
             }
             Ok(vec![0; (target - pc) as usize])
         }
@@ -497,10 +502,14 @@ fn parse_instruction(
                         bytes.extend_from_slice(s.as_bytes());
                     }
                     Operand::Label(l) => {
-                         let val = if is_dry_run { 0 } else { *labels.get(&l).unwrap_or(&0) };
-                         // Use just the low byte? Or error if > 255?
-                         // Usually DB Label puts the low byte.
-                         bytes.push((val & 0xFF) as u8);
+                        let val = if is_dry_run {
+                            0
+                        } else {
+                            *labels.get(&l).unwrap_or(&0)
+                        };
+                        // Use just the low byte? Or error if > 255?
+                        // Usually DB Label puts the low byte.
+                        bytes.push((val & 0xFF) as u8);
                     }
                     _ => return Err("Invalid DB operand".to_string()),
                 }
@@ -516,11 +525,15 @@ fn parse_instruction(
                         bytes.push((n >> 8) as u8);
                     }
                     Operand::Label(l) => {
-                        let val = if is_dry_run { 0 } else { *labels.get(&l).unwrap_or(&0) };
+                        let val = if is_dry_run {
+                            0
+                        } else {
+                            *labels.get(&l).unwrap_or(&0)
+                        };
                         bytes.push((val & 0xFF) as u8);
                         bytes.push((val >> 8) as u8);
                     }
-                     _ => return Err("Invalid DW operand".to_string()),
+                    _ => return Err("Invalid DW operand".to_string()),
                 }
             }
             Ok(bytes)

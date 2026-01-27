@@ -1,10 +1,10 @@
 use crate::assembler::assemble;
+use crate::components::memories::mem_64k::Mem64k;
 use crate::cpu::Z80A;
 use crate::traits::MemoryMapper;
+use crate::traits::SyncronousComponent;
 use std::cell::RefCell;
 use std::rc::Rc;
-use crate::components::memories::mem_64k::Mem64k;
-use crate::traits::SyncronousComponent;
 
 #[test]
 fn test_fibonacci_execution() {
@@ -108,5 +108,9 @@ END:
     let res = u16::from_le_bytes([res_low, res_high]);
 
     // Expected F(15) = 610 (0x0262) for N=16
-    assert_eq!(res, 610, "Fibonacci result incorrect: expected 610, got {}", res);
+    assert_eq!(
+        res, 610,
+        "Fibonacci result incorrect: expected 610, got {}",
+        res
+    );
 }
