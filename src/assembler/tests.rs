@@ -36,7 +36,7 @@ fn test_tokenize_numbers() {
     assert_eq!(tokenize("10h").unwrap()[0], Token::Number(16));
     assert_eq!(tokenize("0FFh").unwrap()[0], Token::Number(255));
     assert_eq!(tokenize("0A0H").unwrap()[0], Token::Number(160));
-    
+
     // Edge case: 0 without x
     assert_eq!(tokenize("0").unwrap()[0], Token::Number(0));
     assert_eq!(tokenize("00").unwrap()[0], Token::Number(0));
@@ -46,21 +46,24 @@ fn test_tokenize_numbers() {
 #[test]
 fn test_tokenize_symbols() {
     let tokens = tokenize(":,()+-").unwrap();
-    assert_eq!(tokens, vec![
-        Token::Colon,
-        Token::Comma,
-        Token::OpenParen,
-        Token::CloseParen,
-        Token::Plus,
-        Token::Minus,
-    ]);
+    assert_eq!(
+        tokens,
+        vec![
+            Token::Colon,
+            Token::Comma,
+            Token::OpenParen,
+            Token::CloseParen,
+            Token::Plus,
+            Token::Minus,
+        ]
+    );
 }
 
 #[test]
 fn test_tokenize_identifiers() {
     let tokens = tokenize("AX_1 LOOP' Z").unwrap();
     assert_eq!(tokens[0], Token::Identifier("AX_1".to_string()));
-    assert_eq!(tokens[1], Token::Identifier("LOOP'".to_string())); 
+    assert_eq!(tokens[1], Token::Identifier("LOOP'".to_string()));
     assert_eq!(tokens[2], Token::Identifier("Z".to_string()));
 }
 
@@ -70,7 +73,7 @@ fn test_tokenize_errors() {
     assert!(tokenize("0xG").is_err());
     assert!(tokenize("$G").is_err());
     // "10z" -> 10, z (valid)
-    let t = tokenize("10z").unwrap(); 
+    let t = tokenize("10z").unwrap();
     assert_eq!(t[0], Token::Number(10));
     assert_eq!(t[1], Token::Identifier("Z".to_string()));
 }
@@ -83,10 +86,22 @@ fn test_tokenize_errors() {
 fn test_parse_operands_basic() {
     let tokens = tokenize("A, 10, (HL), (100)").unwrap();
     let ops = parse_operands(&tokens).unwrap();
-    match &ops[0] { Operand::Register(s) => assert_eq!(s, "A"), _ => panic!() }
-    match &ops[1] { Operand::Immediate(n) => assert_eq!(*n, 10), _ => panic!() }
-    match &ops[2] { Operand::IndirectRegister(s) => assert_eq!(s, "HL"), _ => panic!() }
-    match &ops[3] { Operand::IndirectImmediate(n) => assert_eq!(*n, 100), _ => panic!() }
+    match &ops[0] {
+        Operand::Register(s) => assert_eq!(s, "A"),
+        _ => panic!(),
+    }
+    match &ops[1] {
+        Operand::Immediate(n) => assert_eq!(*n, 10),
+        _ => panic!(),
+    }
+    match &ops[2] {
+        Operand::IndirectRegister(s) => assert_eq!(s, "HL"),
+        _ => panic!(),
+    }
+    match &ops[3] {
+        Operand::IndirectImmediate(n) => assert_eq!(*n, 100),
+        _ => panic!(),
+    }
 }
 
 #[test]
@@ -94,23 +109,32 @@ fn test_parse_operands_index() {
     // (IX+10)
     let tokens = tokenize("(IX+10)").unwrap();
     let ops = parse_operands(&tokens).unwrap();
-    match &ops[0] { 
-        Operand::IndirectIndex(r, d) => { assert_eq!(r, "IX"); assert_eq!(*d, 10); } 
-        _ => panic!() 
+    match &ops[0] {
+        Operand::IndirectIndex(r, d) => {
+            assert_eq!(r, "IX");
+            assert_eq!(*d, 10);
+        }
+        _ => panic!(),
     }
 
     // (IY-5)
     let tokens = tokenize("(IY-5)").unwrap();
     let ops = parse_operands(&tokens).unwrap();
-    match &ops[0] { 
-        Operand::IndirectIndex(r, d) => { assert_eq!(r, "IY"); assert_eq!(*d, -5); } 
-        _ => panic!() 
+    match &ops[0] {
+        Operand::IndirectIndex(r, d) => {
+            assert_eq!(r, "IY");
+            assert_eq!(*d, -5);
+        }
+        _ => panic!(),
     }
 
     // (IX) -> IndirectRegister
     let tokens = tokenize("(IX)").unwrap();
     let ops = parse_operands(&tokens).unwrap();
-    match &ops[0] { Operand::IndirectRegister(s) => assert_eq!(s, "IX"), _ => panic!() }
+    match &ops[0] {
+        Operand::IndirectRegister(s) => assert_eq!(s, "IX"),
+        _ => panic!(),
+    }
 }
 
 #[test]
@@ -118,22 +142,34 @@ fn test_parse_operands_minus_number() {
     let tokens = tokenize("-10").unwrap();
     let ops = parse_operands(&tokens).unwrap();
     // -10 as u16 is 0xFFF6
-    match &ops[0] { Operand::Immediate(n) => assert_eq!(*n, 0xFFF6), _ => panic!() }
+    match &ops[0] {
+        Operand::Immediate(n) => assert_eq!(*n, 0xFFF6),
+        _ => panic!(),
+    }
 }
 
 #[test]
 fn test_parse_operands_labels_conditions() {
     let tokens = tokenize("NZ, LOOP, (LOOP)").unwrap();
     let ops = parse_operands(&tokens).unwrap();
-    match &ops[0] { Operand::Condition(s) => assert_eq!(s, "NZ"), _ => panic!() }
-    match &ops[1] { Operand::Label(s) => assert_eq!(s, "LOOP"), _ => panic!() }
-    match &ops[2] { Operand::IndirectLabel(s) => assert_eq!(s, "LOOP"), _ => panic!() }
+    match &ops[0] {
+        Operand::Condition(s) => assert_eq!(s, "NZ"),
+        _ => panic!(),
+    }
+    match &ops[1] {
+        Operand::Label(s) => assert_eq!(s, "LOOP"),
+        _ => panic!(),
+    }
+    match &ops[2] {
+        Operand::IndirectLabel(s) => assert_eq!(s, "LOOP"),
+        _ => panic!(),
+    }
 }
 
 #[test]
 fn test_parse_operands_errors() {
     assert!(parse_operands(&tokenize("A B").unwrap()).is_err()); // missing comma
-    assert!(parse_operands(&tokenize("-").unwrap()).is_err());   // minus no number
+    assert!(parse_operands(&tokenize("-").unwrap()).is_err()); // minus no number
     assert!(parse_operands(&tokenize("- A").unwrap()).is_err()); // minus non number
     assert!(parse_operands(&tokenize("(10").unwrap()).is_err()); // missing close paren
     assert!(parse_operands(&tokenize("(IX+").unwrap()).is_err()); // missing offset
@@ -147,7 +183,9 @@ fn test_parse_operands_errors() {
 
 // Helper to assemble single line
 fn asm(code: &str) -> Vec<u8> {
-    assemble(code).unwrap_or_else(|e| panic!("Failed to assemble '{}': {}", code, e))
+    assemble(code)
+        .map(|(bytes, _)| bytes)
+        .unwrap_or_else(|e| panic!("Failed to assemble '{}': {}", code, e))
 }
 
 fn asm_err(code: &str) {
@@ -159,7 +197,7 @@ fn test_ld() {
     // LD r, r
     assert_eq!(asm("LD A, B"), vec![0x78]);
     assert_eq!(asm("LD B, A"), vec![0x47]);
-    
+
     // LD r, n
     assert_eq!(asm("LD B, 10"), vec![0x06, 10]);
     assert_eq!(asm("LD BC, 0x1234"), vec![0x01, 0x34, 0x12]);
@@ -233,11 +271,11 @@ fn test_alu_uni() {
     assert_eq!(asm("DEC SP"), vec![0x3B]);
     assert_eq!(asm("INC IX"), vec![0xDD, 0x23]);
     assert_eq!(asm("DEC IY"), vec![0xFD, 0x2B]);
-    
+
     // INC/DEC (HL)
     assert_eq!(asm("INC (HL)"), vec![0x34]);
     assert_eq!(asm("DEC (HL)"), vec![0x35]);
-    
+
     // INC/DEC (IX+d)
     assert_eq!(asm("INC (IX+5)"), vec![0xDD, 0x34, 5]);
     assert_eq!(asm("DEC (IY-5)"), vec![0xFD, 0x35, 0xFB]);
@@ -252,7 +290,7 @@ fn test_add() {
     assert_eq!(asm("ADD A, 10"), vec![0xC6, 10]);
     assert_eq!(asm("ADD A, (HL)"), vec![0x86]);
     assert_eq!(asm("ADD A, (IX+1)"), vec![0xDD, 0x86, 1]);
-    
+
     // ADD HL, ...
     assert_eq!(asm("ADD HL, BC"), vec![0x09]);
     assert_eq!(asm("ADD HL, DE"), vec![0x19]);
@@ -264,7 +302,7 @@ fn test_add() {
     assert_eq!(asm("ADD IX, IX"), vec![0xDD, 0x29]);
     assert_eq!(asm("ADD IY, SP"), vec![0xFD, 0x39]);
 
-    asm_err("ADD HL, A"); 
+    asm_err("ADD HL, A");
 }
 
 #[test]
@@ -284,7 +322,7 @@ fn test_other_alu_bin() {
     // SUB
     assert_eq!(asm("SUB B"), vec![0x90]);
     assert_eq!(asm("SUB 10"), vec![0xD6, 10]);
-    assert_eq!(asm("SUB (IX+1)"), vec![0xDD, 0x96, 1]); 
+    assert_eq!(asm("SUB (IX+1)"), vec![0xDD, 0x96, 1]);
     // AND
     assert_eq!(asm("AND C"), vec![0xA1]);
     assert_eq!(asm("AND 0xFF"), vec![0xE6, 0xFF]);
@@ -295,8 +333,8 @@ fn test_other_alu_bin() {
     // CP
     assert_eq!(asm("CP 5"), vec![0xFE, 5]);
     // IXH/IXL
-    assert_eq!(asm("CP IXH"), vec![0xDD, 0xBC]); 
-    assert_eq!(asm("CP IXL"), vec![0xDD, 0xBD]); 
+    assert_eq!(asm("CP IXH"), vec![0xDD, 0xBC]);
+    assert_eq!(asm("CP IXL"), vec![0xDD, 0xBD]);
 }
 
 #[test]
@@ -306,7 +344,7 @@ fn test_control_flow() {
     assert_eq!(asm("JP NZ, 0x1234"), vec![0xC2, 0x34, 0x12]);
     assert_eq!(asm("JP (HL)"), vec![0xE9]);
     assert_eq!(asm("JP (IX)"), vec![0xDD, 0xE9]);
-    
+
     // JR
     assert_eq!(asm("JR 2"), vec![0x18, 0x00]); // Jump to address 2. PC=0. 2-(0+2)=0.
 
@@ -318,27 +356,27 @@ fn test_control_flow() {
         HALT
     ";
     // 20 01 (jump over 1 byte NOP)
-    assert_eq!(assemble(code).unwrap(), vec![0x20, 0x01, 0x00, 0x76]);
+    assert_eq!(asm(code), vec![0x20, 0x01, 0x00, 0x76]);
 
     // DJNZ
     let code = "
         loop:
         DJNZ loop
     ";
-    assert_eq!(assemble(code).unwrap(), vec![0x10, 0xFE]);
+    assert_eq!(asm(code), vec![0x10, 0xFE]);
 
     // CALL
     assert_eq!(asm("CALL 0x1234"), vec![0xCD, 0x34, 0x12]);
     assert_eq!(asm("CALL Z, 0x1234"), vec![0xCC, 0x34, 0x12]);
-    
+
     // RET
     assert_eq!(asm("RET"), vec![0xC9]);
     assert_eq!(asm("RET NZ"), vec![0xC0]);
-    
+
     // RST
     assert_eq!(asm("RST 0"), vec![0xC7]);
     assert_eq!(asm("RST 0x38"), vec![0xFF]);
-    asm_err("RST 1"); 
+    asm_err("RST 1");
 }
 
 #[test]
@@ -347,13 +385,13 @@ fn test_stack_misc() {
     assert_eq!(asm("PUSH BC"), vec![0xC5]);
     assert_eq!(asm("PUSH AF"), vec![0xF5]);
     assert_eq!(asm("POP IX"), vec![0xDD, 0xE1]);
-    
+
     // EX
     assert_eq!(asm("EX DE, HL"), vec![0xEB]);
     assert_eq!(asm("EX AF, AF'"), vec![0x08]);
     assert_eq!(asm("EX (SP), HL"), vec![0xE3]);
     assert_eq!(asm("EX (SP), IX"), vec![0xDD, 0xE3]);
-    
+
     // Misc
     assert_eq!(asm("HALT"), vec![0x76]);
     assert_eq!(asm("NOP"), vec![0x00]);
@@ -364,13 +402,13 @@ fn test_stack_misc() {
     assert_eq!(asm("CPL"), vec![0x2F]);
     assert_eq!(asm("CCF"), vec![0x3F]);
     assert_eq!(asm("SCF"), vec![0x37]);
-    
+
     // Rotates
     assert_eq!(asm("RLA"), vec![0x17]);
     assert_eq!(asm("RRA"), vec![0x1F]);
     assert_eq!(asm("RLCA"), vec![0x07]);
     assert_eq!(asm("RRCA"), vec![0x0F]);
-    
+
     // Block
     assert_eq!(asm("LDI"), vec![0xED, 0xA0]);
     assert_eq!(asm("LDIR"), vec![0xED, 0xB0]);
@@ -394,16 +432,16 @@ fn test_assembler_errors_logic() {
         lbl:
     ";
     asm_err(code);
-    
+
     // Unknown mnemonic
     asm_err("XYZ");
-    
+
     // Label as operand
     let code = "
         LD A, LBL
     ";
     asm_err(code);
-    
+
     // JR out of range (Pass 2)
     let mut code = String::from("start: JR end\n");
     for _ in 0..130 {
@@ -428,70 +466,70 @@ fn test_jump_limits() {
 fn test_extensive_error_coverage() {
     // -- LD Errors --
     // Invalid LD register combos
-    asm_err("LD BC, DE");      // ld r16, r16 invalid usually (except SP/HL logic, but BC/DE nope)
-    asm_err("LD (BC), (DE)");  // Mem to Mem
-    asm_err("LD (IX), A");     // Must be (IX+d) in this assembler syntax
-    asm_err("LD A, (IX)");     // Must be (IX+d)
-    
+    asm_err("LD BC, DE"); // ld r16, r16 invalid usually (except SP/HL logic, but BC/DE nope)
+    asm_err("LD (BC), (DE)"); // Mem to Mem
+    asm_err("LD (IX), A"); // Must be (IX+d) in this assembler syntax
+    asm_err("LD A, (IX)"); // Must be (IX+d)
+
     // Invalid LD special
     asm_err("LD I, B");
     asm_err("LD R, B");
-    
+
     // LD parsing specific logic
     asm_err("LD B, (0x1234)"); // Only A, HL, RP, IX, IY allowed for (nn)
     asm_err("LD (0x1234), B"); // Only A, HL, RP, IX, IY allowed for (nn)
-    asm_err("LD (BC), HL");    // Invalid LD (reg), r
-    
+    asm_err("LD (BC), HL"); // Invalid LD (reg), r
+
     // -- ALU Errors --
     // INC/DEC
-    asm_err("INC 10");         // Immediate
-    asm_err("INC AF");         // Invalid reg
-    
+    asm_err("INC 10"); // Immediate
+    asm_err("INC AF"); // Invalid reg
+
     // ADD
-    asm_err("ADD HL, A");      // Invalid
-    asm_err("ADD IX, HL");     // Invalid (IX adds with BC, DE, IX, SP)
-    asm_err("ADD A, B, C");    // Too many ops
+    asm_err("ADD HL, A"); // Invalid
+    asm_err("ADD IX, HL"); // Invalid (IX adds with BC, DE, IX, SP)
+    asm_err("ADD A, B, C"); // Too many ops
 
     // Binary ALU
-    asm_err("SUB A, B");       // SUB takes 1 operand (SUB B implies A-B)
-    asm_err("SUB SP");         // Invalid ALU reg
+    asm_err("SUB A, B"); // SUB takes 1 operand (SUB B implies A-B)
+    asm_err("SUB SP"); // Invalid ALU reg
 
     // -- Jump/Call/Ret Errors --
     // JP
-    asm_err("JP AF");          // Invalid JP target
+    asm_err("JP AF"); // Invalid JP target
     // Z80 support PO. My assembler supports PO.
     assert_eq!(asm("JP PO, 0x1234"), vec![0xE2, 0x34, 0x12]);
 
-    asm_err("JP NX, 0x1234");  // Invalid condition (NX is made up)
-    
+    asm_err("JP NX, 0x1234"); // Invalid condition (NX is made up)
+
     // JR
-    asm_err("JR PO, 0");       // Invalid condition for JR (only NZ, Z, NC, C)
-    asm_err("JR A, 0");        // Invalid condition arg
+    asm_err("JR PO, 0"); // Invalid condition for JR (only NZ, Z, NC, C)
+    asm_err("JR A, 0"); // Invalid condition arg
 
     // DJNZ
-    asm_err("DJNZ A, 0");      // DJNZ takes 1 op (the displacement/target)
+    asm_err("DJNZ A, 0"); // DJNZ takes 1 op (the displacement/target)
 
     // CALL
-    asm_err("CALL BC");        // Invalid CALL target (must be imm/label/ind-imm)
-    asm_err("CALL POO, 0");    // Bad condition
-    
+    asm_err("CALL BC"); // Invalid CALL target (must be imm/label/ind-imm)
+    asm_err("CALL POO, 0"); // Bad condition
+
     // RET
-    asm_err("RET 10");         // Invalid RET arg
+    asm_err("RET 10"); // Invalid RET arg
 
     // RST
-    asm_err("RST 0x01");       // Invalid RST address
-    asm_err("RST A");          // Invalid RST operand
+    asm_err("RST 0x01"); // Invalid RST address
+    asm_err("RST A"); // Invalid RST operand
 
     // -- Stack/Ex/IO Errors --
     // PUSH/POP
-    asm_err("PUSH A");         // Invalid PUSH reg (must be AF)
-    asm_err("POP B");          // Invalid POP reg
+    asm_err("PUSH A"); // Invalid PUSH reg (must be AF)
+    asm_err("POP B"); // Invalid POP reg
 
     // EX
-    asm_err("EX A, B");        // Invalid EX
-    asm_err("EX (SP), BC");    // Invalid EX (SP)
+    asm_err("EX A, B"); // Invalid EX
+    asm_err("EX (SP), BC"); // Invalid EX (SP)
 
     // IN/OUT
-    asm_err("IN (HL), A");     // IN can be IN A, (n) or IN r, (C). Not (HL)
-    asm_err("OUT (BC), A");    // OUT can be OUT (n), A or OUT (C), r. Not (BC)
+    asm_err("IN (HL), A"); // IN can be IN A, (n) or IN r, (C). Not (HL)
+    asm_err("OUT (BC), A"); // OUT can be OUT (n), A or OUT (C), r. Not (BC)
 }
