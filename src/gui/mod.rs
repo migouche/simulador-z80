@@ -2,27 +2,54 @@ use crate::assembler::{Symbol, SymbolType, assemble};
 use eframe::egui;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::rc::Rc;
 
 use crate::components::memories::mem_64k::Mem64k;
 use crate::cpu::{Flag, GPR, Z80A};
 use crate::traits::{MemoryMapper, SyncronousComponent};
 
+#[derive(serde::Deserialize, serde::Serialize)]
+#[serde(default)]
+pub struct Z80App {
+    #[serde(skip)]
+    cpu: Z80A,
+    #[serde(skip)]
+    memory: Rc<RefCell<dyn MemoryMapper>>,
+
+    code: String,
+    
+    #[serde(skip)]
+    last_error: Option<String>,
+    #[serde(skip)]
+    symbol_table: HashMap<String, Symbol>,
+    
+    // File management
+    current_file_path: Option<PathBuf>,
+    recent_files: Vec<PathBuf>,
+}
 pub fn run() -> eframe::Result<()> {
-    let options = eframe::NativeOptions::default();
+    let options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default()
+            .with_app_id("z80-simulator")
+            .with_inner_size([1280.0, 720.0]),
+        ..Default::default()
+    };
     eframe::run_native(
         "Z80 Simulator",
         options,
-        Box::new(|_cc| Ok(Box::new(Z80App::default()))),
+        Box::new(|cc| {
+            let mut app = if let Some(storage) = cc.storage {
+                eframe::get_value(storage, "z80_workspace").unwrap_or_default()
+            } else {
+                Z80App::default()
+            };
+            
+            // Re-initialize non-serialized fields
+            app.load_and_reset();
+            Ok(Box::new(app))
+        }),
     )
-}
-
-struct Z80App {
-    cpu: Z80A,
-    memory: Rc<RefCell<dyn MemoryMapper>>,
-    code: String,
-    last_error: Option<String>,
-    symbol_table: HashMap<String, Symbol>,
 }
 
 impl Z80App {
@@ -51,6 +78,80 @@ impl Z80App {
             }
         }
     }
+
+    fn save_to_storage(&self, storage: Option<&mut (dyn eframe::Storage + 'static)>) {
+        if let Some(storage) = storage {
+            eframe::set_value(storage, "z80_workspace", self);
+            storage.flush();
+        }
+    }
+
+    fn open_file_dialog(&mut self, storage: Option<&mut (dyn eframe::Storage + 'static)>) {
+        if let Some(path) = rfd::FileDialog::new()
+            .add_filter("Assembly", &["asm", "z80"])
+            .add_filter("All files", &["*"])
+            .pick_file()
+        {
+            self.open_file(path, storage);
+        }
+    }
+
+    fn open_file(&mut self, path: PathBuf, storage: Option<&mut (dyn eframe::Storage + 'static)>) {
+        match std::fs::read_to_string(&path) {
+            Ok(content) => {
+                self.code = content;
+                self.current_file_path = Some(path.clone());
+                self.add_recent_file(path);
+                self.load_and_reset();
+                self.save_to_storage(storage);
+            }
+            Err(err) => {
+                self.last_error = Some(format!("Failed to open file: {}", err));
+            }
+        }
+    }
+
+    fn save_file(&mut self, storage: Option<&mut (dyn eframe::Storage + 'static)>) {
+        if let Some(path) = &self.current_file_path {
+            if let Err(err) = std::fs::write(path, &self.code) {
+                self.last_error = Some(format!("Failed to save file: {}", err));
+            }
+        } else {
+            self.save_file_as(storage);
+            return;
+        }
+        if let Some(path) = &self.current_file_path {
+            self.add_recent_file(path.clone());
+        }
+        self.save_to_storage(storage);
+    }
+
+    fn save_file_as(&mut self, storage: Option<&mut (dyn eframe::Storage + 'static)>) {
+        if let Some(path) = rfd::FileDialog::new()
+            .add_filter("Assembly", &["asm", "z80"])
+            .save_file()
+        {
+            if let Err(err) = std::fs::write(&path, &self.code) {
+                self.last_error = Some(format!("Failed to save file: {}", err));
+            } else {
+                self.current_file_path = Some(path.clone());
+                self.add_recent_file(path);
+                self.save_to_storage(storage);
+            }
+        }
+    }
+
+    fn add_recent_file(&mut self, path: PathBuf) {
+        // Remove if exists to move it to the top
+        println!("Adding recent file: {:?}", path);
+        self.recent_files.retain(|p| p != &path);
+        self.recent_files.insert(0, path);
+        
+        // Keep only last 10
+        if self.recent_files.len() > 10 {
+            self.recent_files.truncate(10);
+        }
+    }
 }
 
 impl Default for Z80App {
@@ -58,7 +159,7 @@ impl Default for Z80App {
         let memory: Rc<RefCell<dyn MemoryMapper>> = Rc::new(RefCell::new(Mem64k::new()));
         let cpu = Z80A::new(memory.clone());
 
-        let mut app = Self {
+        Self {
             cpu,
             memory,
             code: r"        ORG 0000h
@@ -79,16 +180,74 @@ START:
             .to_string(),
             last_error: None,
             symbol_table: HashMap::new(),
-        };
-        app.load_and_reset();
-        app
+            current_file_path: None,
+            recent_files: Vec::new(),
+        }
     }
 }
 
 impl eframe::App for Z80App {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // Top Panel: Control Toolbar
+    /// Called by the frame work to save state before shutdown.
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        eframe::set_value(storage, "z80_workspace", self);
+    }
+
+    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        enum Action {
+            OpenFileDialog,
+            OpenFile(PathBuf),
+            SaveFile,
+            SaveFileAs,
+        }
+        let mut action = None;
+
+        // Top Panel: Menu Bar and Control Toolbar
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+            // Menu Bar
+            egui::MenuBar::new().ui(ui, |ui| {
+                ui.menu_button("File", |ui| {
+                    if ui.button("Open...").clicked() {
+                        action = Some(Action::OpenFileDialog);
+                        ui.close();
+                    }
+                    
+                    ui.menu_button("Open Recent", |ui| {
+                        if self.recent_files.is_empty() {
+                            ui.label("No recent files");
+                        } else {
+                             let mut to_open = None;
+                            for path in &self.recent_files {
+                                if ui.button(path.display().to_string()).clicked() {
+                                    to_open = Some(path.clone());
+                                }
+                            }
+                            if let Some(path) = to_open {
+                                action = Some(Action::OpenFile(path));
+                                ui.close();
+                            }
+                        }
+                    });
+
+                    ui.separator();
+
+                    if ui.button("Save").clicked() {
+                        action = Some(Action::SaveFile);
+                        ui.close();
+                    }
+                    if ui.button("Save As...").clicked() {
+                        action = Some(Action::SaveFileAs);
+                        ui.close();
+                    }
+                    
+                    ui.separator();
+                     if ui.button("Quit").clicked() {
+                         ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                     }
+                });
+            });
+            ui.separator();
+            
+            // Toolbar
             ui.horizontal(|ui| {
                 if ui.button("⟳ Load & Reset").clicked() {
                     self.load_and_reset();
@@ -130,6 +289,15 @@ impl eframe::App for Z80App {
                 }
             });
         });
+
+        if let Some(action) = action {
+            match action {
+                Action::OpenFileDialog => self.open_file_dialog(frame.storage_mut()),
+                Action::OpenFile(path) => self.open_file(path, frame.storage_mut()),
+                Action::SaveFile => self.save_file(frame.storage_mut()),
+                Action::SaveFileAs => self.save_file_as(frame.storage_mut()),
+            }
+        }
 
         // Right Panel: Registers and Flags
         egui::SidePanel::right("right_panel")
