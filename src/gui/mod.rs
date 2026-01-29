@@ -43,7 +43,7 @@ pub struct Z80App {
 
     tabs: Vec<EditorTab>,
     active_tab: usize,
-    
+
     #[serde(skip)]
     last_error: Option<String>,
     #[serde(skip)]
@@ -65,27 +65,27 @@ pub fn run() -> eframe::Result<()> {
         options,
         Box::new(|cc| {
             let mut app = if let Some(storage) = cc.storage {
-                 match eframe::get_value::<Z80App>(storage, "z80_workspace") {
-                     Some(mut app) => {
-                         // Ensure at least one tab exists if something went wrong
-                         if app.tabs.is_empty() {
-                             app.tabs.push(EditorTab {
-                                 path: None,
-                                 code: Z80App::default_code(),
-                                 is_dirty: false,
-                             });
-                         }
-                         if app.active_tab >= app.tabs.len() {
-                             app.active_tab = 0;
-                         }
-                         app
-                     }
-                     None => Z80App::default(),
-                 }
+                match eframe::get_value::<Z80App>(storage, "z80_workspace") {
+                    Some(mut app) => {
+                        // Ensure at least one tab exists if something went wrong
+                        if app.tabs.is_empty() {
+                            app.tabs.push(EditorTab {
+                                path: None,
+                                code: Z80App::default_code(),
+                                is_dirty: false,
+                            });
+                        }
+                        if app.active_tab >= app.tabs.len() {
+                            app.active_tab = 0;
+                        }
+                        app
+                    }
+                    None => Z80App::default(),
+                }
             } else {
                 Z80App::default()
             };
-            
+
             // Re-initialize non-serialized fields
             app.load_and_reset();
             Ok(Box::new(app))
@@ -109,14 +109,27 @@ impl Z80App {
 ; ----------------------------
 START:
 ; Write your code here:
-".to_string()
+"
+        .to_string()
     }
 
     fn keybinds() -> Vec<(egui::Modifiers, egui::Key, HeaderAction)> {
         vec![
-            (egui::Modifiers::COMMAND, egui::Key::S, HeaderAction::SaveFile),
-            (egui::Modifiers::COMMAND | egui::Modifiers::SHIFT, egui::Key::S, HeaderAction::SaveFileAs),
-            (egui::Modifiers::COMMAND, egui::Key::O, HeaderAction::OpenFileDialog),
+            (
+                egui::Modifiers::COMMAND,
+                egui::Key::S,
+                HeaderAction::SaveFile,
+            ),
+            (
+                egui::Modifiers::COMMAND | egui::Modifiers::SHIFT,
+                egui::Key::S,
+                HeaderAction::SaveFileAs,
+            ),
+            (
+                egui::Modifiers::COMMAND,
+                egui::Key::O,
+                HeaderAction::OpenFileDialog,
+            ),
         ]
     }
 
@@ -141,7 +154,7 @@ START:
         self.cpu.set_halted(true);
 
         if self.tabs.is_empty() {
-             return;
+            return;
         }
 
         let code = &self.tabs[self.active_tab].code;
@@ -190,7 +203,7 @@ START:
         self.active_tab = self.tabs.len() - 1;
         self.save_to_storage(storage);
     }
-    
+
     fn close_tab(&mut self, index: usize, storage: Option<&mut (dyn eframe::Storage + 'static)>) {
         if index < self.tabs.len() {
             self.tabs.remove(index);
@@ -206,8 +219,12 @@ START:
     }
 
     fn open_file(&mut self, path: PathBuf, storage: Option<&mut (dyn eframe::Storage + 'static)>) {
-         // Check if already open
-        if let Some(idx) = self.tabs.iter().position(|t| t.path.as_ref() == Some(&path)) {
+        // Check if already open
+        if let Some(idx) = self
+            .tabs
+            .iter()
+            .position(|t| t.path.as_ref() == Some(&path))
+        {
             self.active_tab = idx;
             // Reload from disk? Maybe user wants to revert. For now just switch.
             self.save_to_storage(storage);
@@ -216,12 +233,12 @@ START:
 
         match std::fs::read_to_string(&path) {
             Ok(content) => {
-                 // If current tab is empty (default code or empty) and untitled, replace it
+                // If current tab is empty (default code or empty) and untitled, replace it
                 let current_tab = &self.tabs[self.active_tab];
                 let default_code = Self::default_code();
-                let current_is_disposable = current_tab.path.is_none() 
-                                    && (current_tab.code.trim().is_empty() || current_tab.code == default_code)
-                                    && !current_tab.is_dirty;
+                let current_is_disposable = current_tab.path.is_none()
+                    && (current_tab.code.trim().is_empty() || current_tab.code == default_code)
+                    && !current_tab.is_dirty;
 
                 if current_is_disposable {
                     self.tabs[self.active_tab] = EditorTab {
@@ -230,7 +247,7 @@ START:
                         is_dirty: false,
                     };
                 } else {
-                     self.tabs.push(EditorTab {
+                    self.tabs.push(EditorTab {
                         path: Some(path.clone()),
                         code: content,
                         is_dirty: false,
@@ -255,13 +272,13 @@ START:
             if let Err(err) = std::fs::write(&path_clone, &tab.code) {
                 self.last_error = Some(format!("Failed to save file: {}", err));
             } else {
-                 tab.is_dirty = false;
+                tab.is_dirty = false;
             }
         } else {
             self.save_file_as(storage);
             return;
         }
-        
+
         if let Some(path) = &self.tabs[self.active_tab].path {
             self.add_recent_file(path.clone());
         }
@@ -290,7 +307,7 @@ START:
         println!("Adding recent file: {:?}", path);
         self.recent_files.retain(|p| p != &path);
         self.recent_files.insert(0, path);
-        
+
         // Keep only last 10
         if self.recent_files.len() > 10 {
             self.recent_files.truncate(10);
@@ -325,11 +342,11 @@ impl eframe::App for Z80App {
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value(storage, "z80_workspace", self);
     }
-    
+
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         // Handle window close request
         if ctx.input(|i| i.viewport().close_requested()) {
-             let any_dirty = self.tabs.iter().any(|t| t.is_dirty);
+            let any_dirty = self.tabs.iter().any(|t| t.is_dirty);
             if any_dirty {
                 ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
                 self.pending_modal = Some(ModalType::Quit);
@@ -347,16 +364,19 @@ impl eframe::App for Z80App {
                         action = Some(HeaderAction::NewFile);
                         ui.close();
                     }
-                    if ui.add(egui::Button::new("Open...").shortcut_text("Ctrl+O")).clicked() {
+                    if ui
+                        .add(egui::Button::new("Open...").shortcut_text("Ctrl+O"))
+                        .clicked()
+                    {
                         action = Some(HeaderAction::OpenFileDialog);
                         ui.close();
                     }
-                    
+
                     ui.menu_button("Open Recent", |ui| {
                         if self.recent_files.is_empty() {
                             ui.label("No recent files");
                         } else {
-                             let mut to_open = None;
+                            let mut to_open = None;
                             for path in &self.recent_files {
                                 if ui.button(path.display().to_string()).clicked() {
                                     to_open = Some(path.clone());
@@ -371,24 +391,30 @@ impl eframe::App for Z80App {
 
                     ui.separator();
 
-                    if ui.add(egui::Button::new("Save").shortcut_text("Ctrl+S")).clicked() {
+                    if ui
+                        .add(egui::Button::new("Save").shortcut_text("Ctrl+S"))
+                        .clicked()
+                    {
                         action = Some(HeaderAction::SaveFile);
                         ui.close();
                     }
-                    if ui.add(egui::Button::new("Save As...").shortcut_text("Ctrl+Shift+S")).clicked() {
+                    if ui
+                        .add(egui::Button::new("Save As...").shortcut_text("Ctrl+Shift+S"))
+                        .clicked()
+                    {
                         action = Some(HeaderAction::SaveFileAs);
                         ui.close();
                     }
-                    
+
                     ui.separator();
-                     if ui.button("Quit").clicked() {
-                         action = Some(HeaderAction::Quit);
-                         ui.close();
-                     }
+                    if ui.button("Quit").clicked() {
+                        action = Some(HeaderAction::Quit);
+                        ui.close();
+                    }
                 });
             });
             ui.separator();
-            
+
             // Toolbar
             ui.horizontal(|ui| {
                 if ui.button("⟳ Load & Reset").clicked() {
@@ -433,9 +459,9 @@ impl eframe::App for Z80App {
         });
 
         // Tab Bar Logic (pre-processing to find if we need to close tabs)
-        // We'll define the closure later inside central panel? 
+        // We'll define the closure later inside central panel?
         // No, let's process actions first. but Tab Bar is part of Central Panel UI.
-        
+
         // Right Panel: Registers and Flags
         egui::SidePanel::right("right_panel")
             .resizable(true)
@@ -631,86 +657,121 @@ impl eframe::App for Z80App {
 
         // Central Panel: Code Editor
         egui::CentralPanel::default().show(ctx, |ui| {
-             // Tab Bar
+            // Tab Bar
             ui.horizontal(|ui| {
-                egui::ScrollArea::horizontal().id_salt("tabs_scroll").show(ui, |ui| {
-                    ui.horizontal(|ui| {
-                         let mut to_activate = None;
-                         let mut to_close = None;
+                egui::ScrollArea::horizontal()
+                    .id_salt("tabs_scroll")
+                    .show(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            let mut to_activate = None;
+                            let mut to_close = None;
 
-                         for (i, tab) in self.tabs.iter().enumerate() {
-                             let name = tab.path.as_ref()
-                                 .and_then(|p| p.file_name())
-                                 .and_then(|n| n.to_str())
-                                 .unwrap_or("Untitled");
-                             
-                             let is_active = i == self.active_tab;
-                             
-                             // Visuals
-                             let bg_color = if is_active {
-                                 ui.visuals().selection.bg_fill
-                             } else {
-                                 ui.visuals().faint_bg_color
-                             };
-                             let fg_color = if is_active {
-                                 ui.visuals().selection.stroke.color
-                             } else {
-                                 ui.visuals().text_color()
-                             };
+                            for (i, tab) in self.tabs.iter().enumerate() {
+                                let name = tab
+                                    .path
+                                    .as_ref()
+                                    .and_then(|p| p.file_name())
+                                    .and_then(|n| n.to_str())
+                                    .unwrap_or("Untitled");
 
-                             let resp = egui::Frame::new()
-                                 .fill(bg_color)
-                                 .inner_margin(egui::Margin::symmetric(8, 4))
-                                 .corner_radius(egui::CornerRadius { nw: 5, ne: 5, ..Default::default() })
-                                 .stroke(egui::Stroke::new(1.0, ui.visuals().widgets.noninteractive.bg_stroke.color))
-                                 .show(ui, |ui| {
-                                     ui.horizontal(|ui| {
-                                        if ui.add(egui::Label::new(
-                                             egui::RichText::new(name).color(fg_color)
-                                         ).sense(egui::Sense::click())).clicked() {
-                                             to_activate = Some(i);
-                                         }
-                                         
-                                         if tab.is_dirty {
-                                             ui.add(egui::Label::new(egui::RichText::new("●").size(10.0)).sense(egui::Sense::hover()));
-                                         }
-                                         
-                                         // Close button (x)
-                                         if ui.add(egui::Button::new(egui::RichText::new("×").size(14.0)).frame(false)).clicked() {
-                                             to_close = Some(i);
-                                         }
-                                     });
-                                 });
-                                 
-                                 if resp.response.clicked() {
-                                     to_activate = Some(i);
-                                 }
+                                let is_active = i == self.active_tab;
 
-                             ui.add_space(2.0);
-                         }
+                                // Visuals
+                                let bg_color = if is_active {
+                                    ui.visuals().selection.bg_fill
+                                } else {
+                                    ui.visuals().faint_bg_color
+                                };
+                                let fg_color = if is_active {
+                                    ui.visuals().selection.stroke.color
+                                } else {
+                                    ui.visuals().text_color()
+                                };
 
-                         if let Some(i) = to_activate {
-                             self.active_tab = i;
-                         }
-                         if let Some(i) = to_close {
-                             action = Some(HeaderAction::CloseTab(i));
-                         }
+                                let resp = egui::Frame::new()
+                                    .fill(bg_color)
+                                    .inner_margin(egui::Margin::symmetric(8, 4))
+                                    .corner_radius(egui::CornerRadius {
+                                        nw: 5,
+                                        ne: 5,
+                                        ..Default::default()
+                                    })
+                                    .stroke(egui::Stroke::new(
+                                        1.0,
+                                        ui.visuals().widgets.noninteractive.bg_stroke.color,
+                                    ))
+                                    .show(ui, |ui| {
+                                        ui.horizontal(|ui| {
+                                            if ui
+                                                .add(
+                                                    egui::Label::new(
+                                                        egui::RichText::new(name).color(fg_color),
+                                                    )
+                                                    .sense(egui::Sense::click()),
+                                                )
+                                                .clicked()
+                                            {
+                                                to_activate = Some(i);
+                                            }
+
+                                            if tab.is_dirty {
+                                                ui.add(
+                                                    egui::Label::new(
+                                                        egui::RichText::new("●").size(10.0),
+                                                    )
+                                                    .sense(egui::Sense::hover()),
+                                                );
+                                            }
+
+                                            // Close button (x)
+                                            if ui
+                                                .add(
+                                                    egui::Button::new(
+                                                        egui::RichText::new("×").size(14.0),
+                                                    )
+                                                    .frame(false),
+                                                )
+                                                .clicked()
+                                            {
+                                                to_close = Some(i);
+                                            }
+                                        });
+                                    });
+
+                                if resp.response.clicked() {
+                                    to_activate = Some(i);
+                                }
+
+                                ui.add_space(2.0);
+                            }
+
+                            if let Some(i) = to_activate {
+                                self.active_tab = i;
+                            }
+                            if let Some(i) = to_close {
+                                action = Some(HeaderAction::CloseTab(i));
+                            }
+                        });
                     });
-                });
             });
             ui.separator();
 
             ui.heading("Assembly Source");
-            
+
             if self.active_tab < self.tabs.len() {
                 let current_tab = &mut self.tabs[self.active_tab];
-                
+
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     ui.horizontal_top(|ui| {
                         let num_lines = if current_tab.code.is_empty() {
                             1
                         } else {
-                            current_tab.code.lines().count() + if current_tab.code.ends_with('\n') { 1 } else { 0 }
+                            current_tab.code.lines().count()
+                                + if current_tab.code.ends_with('\n') {
+                                    1
+                                } else {
+                                    0
+                                }
                         };
 
                         let line_numbers = (1..=num_lines)
@@ -724,14 +785,17 @@ impl eframe::App for Z80App {
                                 .color(egui::Color32::GRAY),
                         ));
 
-                        if ui.add(
-                            egui::TextEdit::multiline(&mut current_tab.code)
-                                .font(egui::TextStyle::Monospace)
-                                .code_editor()
-                                .desired_width(f32::INFINITY)
-                                .desired_rows(25)
-                                .lock_focus(true),
-                        ).changed() {
+                        if ui
+                            .add(
+                                egui::TextEdit::multiline(&mut current_tab.code)
+                                    .font(egui::TextStyle::Monospace)
+                                    .code_editor()
+                                    .desired_width(f32::INFINITY)
+                                    .desired_rows(25)
+                                    .lock_focus(true),
+                            )
+                            .changed()
+                        {
                             current_tab.is_dirty = true;
                         }
                     });
@@ -740,7 +804,7 @@ impl eframe::App for Z80App {
                 ui.label("No files open");
             }
         });
-        
+
         if let Some(action) = action {
             match action {
                 HeaderAction::NewFile => self.new_file(frame.storage_mut()),
@@ -761,12 +825,12 @@ impl eframe::App for Z80App {
                 }
             }
         }
-        
+
         // Handle Modal Dialogs
         if let Some(modal_type) = self.pending_modal {
             let mut open = true;
             let mut should_close_modal = false;
-            
+
             // We use a centered window to simulate a modal
             egui::Window::new("Unsaved Changes")
                 .collapsible(false)
@@ -776,14 +840,20 @@ impl eframe::App for Z80App {
                 .show(ctx, |ui| {
                     match modal_type {
                         ModalType::CloseTab(idx) => {
-                             let name = self.tabs.get(idx).and_then(|t| t.path.as_ref())
-                                 .and_then(|p| p.file_name())
-                                 .and_then(|n| n.to_str())
-                                 .unwrap_or("Untitled");
-                                 
-                            ui.label(format!("Do you want to save the changes you made to {}?", name));
+                            let name = self
+                                .tabs
+                                .get(idx)
+                                .and_then(|t| t.path.as_ref())
+                                .and_then(|p| p.file_name())
+                                .and_then(|n| n.to_str())
+                                .unwrap_or("Untitled");
+
+                            ui.label(format!(
+                                "Do you want to save the changes you made to {}?",
+                                name
+                            ));
                             ui.label("Your changes will be lost if you don't save them.");
-                            
+
                             ui.horizontal(|ui| {
                                 if ui.button("Save").clicked() {
                                     // Hack: temporarily activate tab to save it, then restore?
@@ -794,7 +864,7 @@ impl eframe::App for Z80App {
                                     self.active_tab = idx;
                                     self.save_file(frame.storage_mut());
                                     self.active_tab = prev_active; // Restore (although closing tab will change it anyway)
-                                    
+
                                     // Check if save succeeded (is_dirty false)
                                     if !self.tabs[idx].is_dirty {
                                         self.close_tab(idx, frame.storage_mut());
@@ -816,7 +886,7 @@ impl eframe::App for Z80App {
                         ModalType::Quit => {
                             ui.label("You have unsaved changes in your workspace.");
                             ui.label("Do you want to save all changes before quitting?");
-                            
+
                             ui.horizontal(|ui| {
                                 if ui.button("Save All").clicked() {
                                     // Iterate and save all dirty tabs
@@ -828,23 +898,23 @@ impl eframe::App for Z80App {
                                         }
                                     }
                                     self.active_tab = prev_active;
-                                    
+
                                     // If all clear, close
                                     if !self.tabs.iter().any(|t| t.is_dirty) {
-                                         // Force close by clearing modal first to prevent loop
-                                         should_close_modal = true;
-                                         self.pending_modal = None; // clear immediately
-                                         ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                                        // Force close by clearing modal first to prevent loop
+                                        should_close_modal = true;
+                                        self.pending_modal = None; // clear immediately
+                                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                                     }
                                 }
                                 if ui.button("Quit Without Saving").clicked() {
-                                     // Clear all dirty flags to bypass on_close_event check
-                                     for tab in &mut self.tabs {
-                                         tab.is_dirty = false;
-                                     }
-                                     should_close_modal = true;
-                                     self.pending_modal = None;
-                                     ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                                    // Clear all dirty flags to bypass on_close_event check
+                                    for tab in &mut self.tabs {
+                                        tab.is_dirty = false;
+                                    }
+                                    should_close_modal = true;
+                                    self.pending_modal = None;
+                                    ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                                 }
                                 if ui.button("Cancel").clicked() {
                                     should_close_modal = true;
@@ -853,7 +923,7 @@ impl eframe::App for Z80App {
                         }
                     }
                 });
-            
+
             if !open || should_close_modal {
                 self.pending_modal = None;
             }
@@ -867,4 +937,3 @@ impl eframe::App for Z80App {
         }
     }
 }
-
