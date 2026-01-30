@@ -50,6 +50,8 @@ pub struct Z80App {
     symbol_table: HashMap<String, Symbol>,
     #[serde(skip)]
     pending_modal: Option<ModalType>,
+    #[serde(skip)]
+    loaded_file_name: String,
 
     recent_files: Vec<PathBuf>,
 }
@@ -117,6 +119,11 @@ START:
         vec![
             (
                 egui::Modifiers::COMMAND,
+                egui::Key::N,
+                HeaderAction::NewFile,
+            ),
+            (
+                egui::Modifiers::COMMAND,
                 egui::Key::S,
                 HeaderAction::SaveFile,
             ),
@@ -156,6 +163,14 @@ START:
         if self.tabs.is_empty() {
             return;
         }
+
+        self.loaded_file_name = self.tabs[self.active_tab]
+            .path
+            .as_ref()
+            .and_then(|p| p.file_name())
+            .and_then(|n| n.to_str())
+            .unwrap_or("Untitled")
+            .to_string();
 
         let code = &self.tabs[self.active_tab].code;
         // Assemble and  Load code
@@ -332,6 +347,7 @@ impl Default for Z80App {
             last_error: None,
             symbol_table: HashMap::new(),
             pending_modal: None,
+            loaded_file_name: "Untitled".to_string(),
             recent_files: Vec::new(),
         }
     }
@@ -360,7 +376,10 @@ impl eframe::App for Z80App {
             // Menu Bar
             egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("File", |ui| {
-                    if ui.button("New").clicked() {
+                    if ui
+                        .add(egui::Button::new("New").shortcut_text("Ctrl+N"))
+                        .clicked()
+                    {
                         action = Some(HeaderAction::NewFile);
                         ui.close();
                     }
@@ -455,6 +474,10 @@ impl eframe::App for Z80App {
                 } else {
                     ui.label(egui::RichText::new("Ready").color(egui::Color32::GREEN));
                 }
+            });
+            ui.separator();
+            ui.vertical_centered(|ui| {
+                ui.heading(format!("Loaded: {}", self.loaded_file_name));
             });
         });
 
