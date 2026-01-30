@@ -1,5 +1,5 @@
 use crate::assembler::{Symbol, SymbolType, assemble};
-use eframe::egui;
+use eframe::egui::{self, TextBuffer};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -8,6 +8,8 @@ use std::rc::Rc;
 use crate::components::memories::mem_64k::Mem64k;
 use crate::cpu::{Flag, GPR, Z80A};
 use crate::traits::{MemoryMapper, SyncronousComponent};
+
+mod highlighting;
 
 #[derive(Clone)]
 enum HeaderAction {
@@ -52,6 +54,8 @@ pub struct Z80App {
     pending_modal: Option<ModalType>,
     #[serde(skip)]
     loaded_file_name: String,
+    #[serde(skip)]
+    code_theme: highlighting::CodeTheme,
 
     recent_files: Vec<PathBuf>,
 }
@@ -348,6 +352,7 @@ impl Default for Z80App {
             symbol_table: HashMap::new(),
             pending_modal: None,
             loaded_file_name: "Untitled".to_string(),
+            code_theme: highlighting::CodeTheme::one_dark_pro_vivid(),
             recent_files: Vec::new(),
         }
     }
@@ -808,10 +813,19 @@ impl eframe::App for Z80App {
                                 .color(egui::Color32::GRAY),
                         ));
 
+                        let theme = &self.code_theme;
+                        let mut layouter =
+                            |ui: &egui::Ui, string: &dyn TextBuffer, _wrap_width: f32| {
+                                let layout_job =
+                                    highlighting::highlight(ui.ctx(), theme, string.as_str());
+                                ui.painter().layout_job(layout_job)
+                            };
+
                         if ui
                             .add(
                                 egui::TextEdit::multiline(&mut current_tab.code)
-                                    .font(egui::TextStyle::Monospace)
+                                    .font(egui::TextStyle::Monospace) // fallback
+                                    .layouter(&mut layouter)
                                     .code_editor()
                                     .desired_width(f32::INFINITY)
                                     .desired_rows(25)
