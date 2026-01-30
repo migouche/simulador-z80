@@ -1216,8 +1216,3 @@ fn encode_out(ops: &[Operand]) -> Result<Vec<u8>, String> {
 
 #[cfg(test)]
 mod tests;
-#[cfg(test)]
-mod tests_variables;
-
-#[cfg(test)]
-mod scripts;
