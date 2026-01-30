@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+pub mod keywords;
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     Identifier(String),
@@ -350,29 +352,7 @@ fn is_condition(s: &str) -> bool {
 }
 
 fn is_register(s: &str) -> bool {
-    matches!(
-        s,
-        "A" | "B"
-            | "C"
-            | "D"
-            | "E"
-            | "H"
-            | "L"
-            | "AF"
-            | "BC"
-            | "DE"
-            | "HL"
-            | "SP"
-            | "IX"
-            | "IY"
-            | "IXH"
-            | "IXL"
-            | "IYH"
-            | "IYL"
-            | "I"
-            | "R"
-            | "AF'"
-    )
+    keywords::REGISTERS.contains(&s)
 }
 
 fn resolve_immediate(

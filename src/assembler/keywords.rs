@@ -1,0 +1,19 @@
+pub const REGISTERS: &[&str] = &[
+    "A", "B", "C", "D", "E", "H", "L", "AF", "BC", "DE", "HL", "IX", "IY", "SP", "PC", "IXH",
+    "IXL", "IYH", "IYL", "I", "R", "AF'",
+];
+
+pub const DIRECTIVES: &[&str] = &[
+    "ORG", "EQU", "DB", "DEFB", "DW", "DEFW", "DS", "DEFS", "END", "MACRO", "ENDM", "INCLUDE",
+];
+
+pub const MNEMONICS: &[&str] = &[
+    "ADC", "ADD", "AND", "BIT", "CALL", "CCF", "CP", "CPD", "CPDR", "CPI", "CPIR", "CPL", "DAA",
+    "DEC", "DI", "DJNZ", "EI", "EX", "EXX", "HALT", "IM", "IN", "INC", "IND", "INDR", "INI",
+    "INIR", "JP", "JR", "LD", "LDD", "LDDR", "LDI", "LDIR", "NEG", "NOP", "OR", "OTDR", "OTIR",
+    "OUT", "OUTD", "OUTI", "POP", "PUSH", "RES", "RET", "RETI", "RETN", "RL", "RLA", "RLC", "RLCA",
+    "RLD", "RR", "RRA", "RRC", "RRCA", "RRD", "RST", "SBC", "SCF", "SET", "SLA", "SRA", "SRL",
+    "SUB", "XOR",
+];
+
+pub const CONDITIONS: &[&str] = &["NZ", "Z", "NC", "C", "PO", "PE", "P", "M"];
