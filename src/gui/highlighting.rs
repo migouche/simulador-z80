@@ -36,11 +36,23 @@ impl CodeTheme {
     }
 }
 
-pub fn highlight(_ctx: &egui::Context, theme: &CodeTheme, code: &str) -> egui::text::LayoutJob {
+pub fn highlight(
+    _ctx: &egui::Context,
+    theme: &CodeTheme,
+    code: &str,
+    highlight_line: Option<usize>,
+) -> egui::text::LayoutJob {
     let mut job = egui::text::LayoutJob::default();
     let font_id = egui::FontId::monospace(14.0); // Standard mono size
 
-    for line in code.lines() {
+    for (line_idx, line) in code.lines().enumerate() {
+        let current_line_num = line_idx + 1;
+        let background = if highlight_line == Some(current_line_num) {
+            egui::Color32::from_rgba_premultiplied(40, 40, 40, 255) // Dark Gray Highlight
+        } else {
+            egui::Color32::TRANSPARENT
+        };
+
         // If line contains ; anywhere, split it
         let (code_part, comment_part) = if let Some(idx) = line.find(';') {
             (&line[..idx], Some(&line[idx..]))
@@ -102,6 +114,7 @@ pub fn highlight(_ctx: &egui::Context, theme: &CodeTheme, code: &str) -> egui::t
                         egui::TextFormat {
                             font_id: font_id.clone(),
                             color,
+                            background,
                             ..Default::default()
                         },
                     );
@@ -114,6 +127,7 @@ pub fn highlight(_ctx: &egui::Context, theme: &CodeTheme, code: &str) -> egui::t
                     egui::TextFormat {
                         font_id: font_id.clone(),
                         color: theme.plain, // Delimiters are plain
+                        background,
                         ..Default::default()
                     },
                 );
@@ -134,6 +148,7 @@ pub fn highlight(_ctx: &egui::Context, theme: &CodeTheme, code: &str) -> egui::t
                 egui::TextFormat {
                     font_id: font_id.clone(),
                     color,
+                    background,
                     ..Default::default()
                 },
             );
@@ -147,6 +162,7 @@ pub fn highlight(_ctx: &egui::Context, theme: &CodeTheme, code: &str) -> egui::t
                 egui::TextFormat {
                     font_id: font_id.clone(),
                     color: theme.comment,
+                    background,
                     ..Default::default()
                 },
             );
@@ -158,6 +174,7 @@ pub fn highlight(_ctx: &egui::Context, theme: &CodeTheme, code: &str) -> egui::t
             0.0,
             egui::TextFormat {
                 font_id: font_id.clone(),
+                background,
                 ..Default::default()
             },
         );

@@ -1,7 +1,7 @@
 use crate::assembler::{Symbol, SymbolType, assemble};
 use eframe::egui::{self, TextBuffer};
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -33,6 +33,8 @@ pub struct EditorTab {
     pub path: Option<PathBuf>,
     pub code: String,
     pub is_dirty: bool,
+    #[serde(default)]
+    pub breakpoints: HashSet<usize>,
 }
 
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -50,6 +52,10 @@ pub struct Z80App {
     last_error: Option<String>,
     #[serde(skip)]
     symbol_table: HashMap<String, Symbol>,
+    #[serde(skip)]
+    address_to_line: HashMap<u16, usize>,
+    #[serde(skip)]
+    is_running: bool,
     #[serde(skip)]
     pending_modal: Option<ModalType>,
     #[serde(skip)]
@@ -79,6 +85,7 @@ pub fn run() -> eframe::Result<()> {
                                 path: None,
                                 code: Z80App::default_code(),
                                 is_dirty: false,
+                                breakpoints: HashSet::new(),
                             });
                         }
                         if app.active_tab >= app.tabs.len() {
@@ -162,7 +169,7 @@ START:
         let memory: Rc<RefCell<dyn MemoryMapper>> = Rc::new(RefCell::new(Mem64k::new()));
         self.memory = memory.clone();
         self.cpu = Z80A::new(self.memory.clone());
-        self.cpu.set_halted(true);
+        self.is_running = false;
 
         if self.tabs.is_empty() {
             return;
@@ -178,12 +185,13 @@ START:
 
         let code = &self.tabs[self.active_tab].code;
         // Assemble and  Load code
-        let (bytes, symbols, error) = match assemble(code) {
-            Ok((b, s)) => (b, s, None),
-            Err(e) => (Vec::new(), HashMap::new(), Some(e)),
+        let (bytes, symbols, addr_map, error) = match assemble(code) {
+            Ok((b, s, m)) => (b, s, m, None),
+            Err(e) => (Vec::new(), HashMap::new(), HashMap::new(), Some(e)),
         };
 
         self.symbol_table = symbols;
+        self.address_to_line = addr_map;
 
         if let Some(err) = error {
             self.last_error = Some(err);
@@ -218,6 +226,7 @@ START:
             path: None,
             code: Self::default_code(),
             is_dirty: false,
+            breakpoints: HashSet::new(),
         });
         self.active_tab = self.tabs.len() - 1;
         self.save_to_storage(storage);
@@ -264,12 +273,14 @@ START:
                         path: Some(path.clone()),
                         code: content,
                         is_dirty: false,
+                        breakpoints: HashSet::new(),
                     };
                 } else {
                     self.tabs.push(EditorTab {
                         path: Some(path.clone()),
                         code: content,
                         is_dirty: false,
+                        breakpoints: HashSet::new(),
                     });
                     self.active_tab = self.tabs.len() - 1;
                 }
@@ -344,12 +355,15 @@ impl Default for Z80App {
             memory,
             tabs: vec![EditorTab {
                 path: None,
+                breakpoints: HashSet::new(),
                 code: Self::default_code(),
                 is_dirty: false,
             }],
             active_tab: 0,
             last_error: None,
             symbol_table: HashMap::new(),
+            address_to_line: HashMap::new(),
+            is_running: false,
             pending_modal: None,
             loaded_file_name: "Untitled".to_string(),
             code_theme: highlighting::CodeTheme::one_dark_pro_vivid(),
@@ -451,15 +465,14 @@ impl eframe::App for Z80App {
                     .add_enabled(self.last_error.is_none(), egui::Button::new("⏭ Step"))
                     .clicked()
                 {
-                    if self.cpu.is_halted() {
-                        self.cpu.set_halted(false);
-                    }
+                    self.is_running = false;
                     self.cpu.tick();
-                    self.cpu.set_halted(true);
                 }
 
-                let run_label = if !self.cpu.is_halted() {
+                let run_label = if self.is_running {
                     "⏸ Stop"
+                } else if self.cpu.get_pc() > 0 && !self.cpu.is_halted() {
+                    "▶ Resume"
                 } else {
                     "▶ Run"
                 };
@@ -467,7 +480,18 @@ impl eframe::App for Z80App {
                     .add_enabled(self.last_error.is_none(), egui::Button::new(run_label))
                     .clicked()
                 {
-                    self.cpu.set_halted(!self.cpu.is_halted());
+                    if !self.is_running && !self.cpu.is_halted() {
+                        // Check if we are at a breakpoint, and if so, step once
+                         let pc = self.cpu.get_pc();
+                        if let Some(&line) = self.address_to_line.get(&pc) {
+                            if let Some(tab) = self.tabs.get(self.active_tab) {
+                                if tab.breakpoints.contains(&line) {
+                                    self.cpu.tick();
+                                }
+                            }
+                        }
+                    }
+                    self.is_running = !self.is_running;
                 }
 
                 ui.separator();
@@ -476,8 +500,14 @@ impl eframe::App for Z80App {
                     ui.colored_label(egui::Color32::RED, format!("⚠ {}", err));
                 } else if self.cpu.is_halted() {
                     ui.colored_label(egui::Color32::RED, "HALTED");
+                    if ui.button("Resume").clicked() {
+                        self.cpu.set_halted(false);
+                        self.is_running = true;
+                    }
+                } else if self.is_running {
+                    ui.label(egui::RichText::new("Running").color(egui::Color32::GREEN));
                 } else {
-                    ui.label(egui::RichText::new("Ready").color(egui::Color32::GREEN));
+                    ui.label(egui::RichText::new("Paused").color(egui::Color32::YELLOW));
                 }
             });
             ui.separator();
@@ -802,22 +832,75 @@ impl eframe::App for Z80App {
                                 }
                         };
 
-                        let line_numbers = (1..=num_lines)
-                            .map(|n| n.to_string())
-                            .collect::<Vec<_>>()
-                            .join("\n");
+                        ui.vertical(|ui| {
+                            ui.spacing_mut().item_spacing.y = 0.0;
+                            let font_id = egui::FontId::monospace(14.0);
+                            for i in 1..=num_lines {
+                                let is_bp = current_tab.breakpoints.contains(&i);
+                                let bg = if is_bp {
+                                    egui::Color32::RED
+                                } else {
+                                    egui::Color32::TRANSPARENT
+                                };
+                                let text_color = if is_bp {
+                                    egui::Color32::WHITE
+                                } else {
+                                    egui::Color32::GRAY
+                                };
 
-                        ui.add(egui::Label::new(
-                            egui::RichText::new(line_numbers)
-                                .text_style(egui::TextStyle::Monospace)
-                                .color(egui::Color32::GRAY),
-                        ));
+                                let label = egui::Label::new(
+                                    egui::RichText::new(format!("{: >3}", i))
+                                        .font(font_id.clone())
+                                        .color(text_color)
+                                        .background_color(bg),
+                                )
+                                .sense(egui::Sense::click());
+
+                                if ui.add(label).clicked() {
+                                    // Toggle breakpoint
+                                    if is_bp {
+                                        current_tab.breakpoints.remove(&i);
+                                    } else {
+                                        current_tab.breakpoints.insert(i);
+                                    }
+                                }
+                            }
+                        });
+
+
+                        let highlight_line = if !self.is_running || self.cpu.is_halted() {
+                            let pc = self.cpu.get_pc();
+                            if self.cpu.is_halted() {
+                                // If halted, PC points to next instruction. 
+                                // We want to highlight the HALT instruction itself (the previous one).
+                                let mut best_match = None;
+                                let mut max_addr = -1i32;
+                                
+                                for (&addr, &line) in &self.address_to_line {
+                                    if addr < pc {
+                                        if (addr as i32) > max_addr {
+                                            max_addr = addr as i32;
+                                            best_match = Some(line);
+                                        }
+                                    }
+                                }
+                                best_match.or_else(|| self.address_to_line.get(&pc).copied())
+                            } else {
+                                self.address_to_line.get(&pc).copied()
+                            }
+                        } else {
+                            None
+                        };
 
                         let theme = &self.code_theme;
                         let mut layouter =
                             |ui: &egui::Ui, string: &dyn TextBuffer, _wrap_width: f32| {
-                                let layout_job =
-                                    highlighting::highlight(ui.ctx(), theme, string.as_str());
+                                let layout_job = highlighting::highlight(
+                                    ui.ctx(),
+                                    theme,
+                                    string.as_str(),
+                                    highlight_line,
+                                );
                                 ui.painter().layout_job(layout_job)
                             };
 
@@ -966,11 +1049,31 @@ impl eframe::App for Z80App {
             }
         }
 
-        if !self.cpu.is_halted() {
-            while !self.cpu.is_halted() {
+        if self.is_running {
+            let mut steps = 0;
+            // Execute in batches to keep UI responsive
+            while steps < 10000 {
+                if self.cpu.is_halted() {
+                    break;
+                }
+
+                // Check for breakpoint
+                let pc = self.cpu.get_pc();
+                if let Some(&line) = self.address_to_line.get(&pc) {
+                    if let Some(tab) = self.tabs.get(self.active_tab) {
+                        if tab.breakpoints.contains(&line) {
+                            self.is_running = false;
+                            break;
+                        }
+                    }
+                }
+
                 self.cpu.tick();
+                steps += 1;
             }
-            ctx.request_repaint();
+            if self.is_running {
+                ctx.request_repaint();
+            }
         }
     }
 }
