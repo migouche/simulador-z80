@@ -41,7 +41,7 @@ pub struct Symbol {
     pub kind: SymbolType,
 }
 
-pub fn assemble(code: &str) -> Result<(Vec<u8>, HashMap<String, Symbol>), String> {
+pub fn assemble(code: &str) -> Result<(Vec<u8>, HashMap<String, Symbol>, HashMap<u16, usize>), String> {
     let mut labels = HashMap::new();
     let mut current_pc = 0u16;
     let mut instructions = Vec::new();
@@ -103,6 +103,7 @@ pub fn assemble(code: &str) -> Result<(Vec<u8>, HashMap<String, Symbol>), String
 
     // Pass 2: Code Gen
     let mut output = Vec::new();
+    let mut address_to_line = HashMap::new();
     // In Pass 2 we need a map of String -> u16 for parse_instruction to work.
     // We can just project our Symbol map.
     let label_addresses: HashMap<String, u16> =
@@ -112,8 +113,9 @@ pub fn assemble(code: &str) -> Result<(Vec<u8>, HashMap<String, Symbol>), String
         let bytes = parse_instruction(&tokens, pc, &label_addresses, false)
             .map_err(|e| format!("Line {}: {}", line_idx + 1, e))?;
         output.extend(bytes);
+        address_to_line.insert(pc, line_idx + 1);
     }
-    Ok((output, labels))
+    Ok((output, labels, address_to_line))
 }
 
 fn tokenize(text: &str) -> Result<Vec<Token>, String> {

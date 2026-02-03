@@ -3,7 +3,7 @@ use super::*;
 // Helper to assemble single line
 fn asm(code: &str) -> Vec<u8> {
     assemble(code)
-        .map(|(bytes, _)| bytes)
+        .map(|(bytes, _, _)| bytes)
         .unwrap_or_else(|e| panic!("Failed to assemble '{}': {}", code, e))
 }
 
