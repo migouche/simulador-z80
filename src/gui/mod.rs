@@ -55,6 +55,8 @@ pub struct Z80App {
     #[serde(skip)]
     address_to_line: HashMap<u16, usize>,
     #[serde(skip)]
+    line_to_address: HashMap<usize, u16>,
+    #[serde(skip)]
     is_running: bool,
     #[serde(skip)]
     pending_modal: Option<ModalType>,
@@ -185,13 +187,20 @@ START:
 
         let code = &self.tabs[self.active_tab].code;
         // Assemble and  Load code
-        let (bytes, symbols, addr_map, error) = match assemble(code) {
-            Ok((b, s, m)) => (b, s, m, None),
-            Err(e) => (Vec::new(), HashMap::new(), HashMap::new(), Some(e)),
+        let (bytes, symbols, addr_map, line_map, error) = match assemble(code) {
+            Ok((b, s, m, l)) => (b, s, m, l, None),
+            Err(e) => (
+                Vec::new(),
+                HashMap::new(),
+                HashMap::new(),
+                HashMap::new(),
+                Some(e),
+            ),
         };
 
         self.symbol_table = symbols;
         self.address_to_line = addr_map;
+        self.line_to_address = line_map;
 
         if let Some(err) = error {
             self.last_error = Some(err);
@@ -295,8 +304,8 @@ START:
         }
     }
 
-    fn save_file(&mut self, storage: Option<&mut (dyn eframe::Storage + 'static)>) {
-        let tab = &mut self.tabs[self.active_tab];
+    fn save_file(&mut self, tab_idx: usize, storage: Option<&mut (dyn eframe::Storage + 'static)>) {
+        let tab = &mut self.tabs[tab_idx];
         if let Some(path) = &tab.path {
             let path_clone = path.clone(); // Clone to avoid borrow check issues if we needed it later, but here write takes reference
             if let Err(err) = std::fs::write(&path_clone, &tab.code) {
@@ -305,11 +314,15 @@ START:
                 tab.is_dirty = false;
             }
         } else {
-            self.save_file_as(storage);
+            if tab_idx == self.active_tab {
+                self.save_file_as(storage);
+            } else {
+                self.last_error = Some("Cannot save untitled file in background".to_string());
+            }
             return;
         }
 
-        if let Some(path) = &self.tabs[self.active_tab].path {
+        if let Some(path) = &self.tabs[tab_idx].path {
             self.add_recent_file(path.clone());
         }
         self.save_to_storage(storage);
@@ -363,6 +376,7 @@ impl Default for Z80App {
             last_error: None,
             symbol_table: HashMap::new(),
             address_to_line: HashMap::new(),
+            line_to_address: HashMap::new(),
             is_running: false,
             pending_modal: None,
             loaded_file_name: "Untitled".to_string(),
@@ -482,13 +496,20 @@ impl eframe::App for Z80App {
                 {
                     if !self.is_running && !self.cpu.is_halted() {
                         // Check if we are at a breakpoint, and if so, step once
-                         let pc = self.cpu.get_pc();
-                        if let Some(&line) = self.address_to_line.get(&pc) {
-                            if let Some(tab) = self.tabs.get(self.active_tab) {
-                                if tab.breakpoints.contains(&line) {
-                                    self.cpu.tick();
+                        let pc = self.cpu.get_pc();
+                        let mut at_bp = false;
+                        if let Some(tab) = self.tabs.get(self.active_tab) {
+                            for &bp_line in &tab.breakpoints {
+                                if let Some(&addr) = self.line_to_address.get(&bp_line) {
+                                    if addr == pc {
+                                        at_bp = true;
+                                        break;
+                                    }
                                 }
                             }
+                        }
+                        if at_bp {
+                            self.cpu.tick();
                         }
                     }
                     self.is_running = !self.is_running;
@@ -867,15 +888,14 @@ impl eframe::App for Z80App {
                             }
                         });
 
-
                         let highlight_line = if !self.is_running || self.cpu.is_halted() {
                             let pc = self.cpu.get_pc();
                             if self.cpu.is_halted() {
-                                // If halted, PC points to next instruction. 
+                                // If halted, PC points to next instruction.
                                 // We want to highlight the HALT instruction itself (the previous one).
                                 let mut best_match = None;
                                 let mut max_addr = -1i32;
-                                
+
                                 for (&addr, &line) in &self.address_to_line {
                                     if addr < pc {
                                         if (addr as i32) > max_addr {
@@ -930,7 +950,7 @@ impl eframe::App for Z80App {
                 HeaderAction::NewFile => self.new_file(frame.storage_mut()),
                 HeaderAction::OpenFileDialog => self.open_file_dialog(frame.storage_mut()),
                 HeaderAction::OpenFile(path) => self.open_file(path, frame.storage_mut()),
-                HeaderAction::SaveFile => self.save_file(frame.storage_mut()),
+                HeaderAction::SaveFile => self.save_file(self.active_tab, frame.storage_mut()),
                 HeaderAction::SaveFileAs => self.save_file_as(frame.storage_mut()),
                 HeaderAction::CloseTab(idx) => {
                     if self.tabs[idx].is_dirty {
@@ -976,14 +996,7 @@ impl eframe::App for Z80App {
 
                             ui.horizontal(|ui| {
                                 if ui.button("Save").clicked() {
-                                    // Hack: temporarily activate tab to save it, then restore?
-                                    // Ideally save_file should take an index.
-                                    // For now, let's just force sync active tab or refactor save_file.
-                                    // Since save_file uses active_tab, let's swap active tab momentarily?
-                                    let prev_active = self.active_tab;
-                                    self.active_tab = idx;
-                                    self.save_file(frame.storage_mut());
-                                    self.active_tab = prev_active; // Restore (although closing tab will change it anyway)
+                                    self.save_file(idx, frame.storage_mut());
 
                                     // Check if save succeeded (is_dirty false)
                                     if !self.tabs[idx].is_dirty {
@@ -1013,8 +1026,19 @@ impl eframe::App for Z80App {
                                     let prev_active = self.active_tab;
                                     for i in 0..self.tabs.len() {
                                         if self.tabs[i].is_dirty {
-                                            self.active_tab = i;
-                                            self.save_file(frame.storage_mut());
+                                            self.save_file(i, frame.storage_mut());
+                                        }
+                                    }
+
+                                    for i in 0..self.tabs.len() {
+                                        if self.tabs[i].is_dirty {
+                                            // Ensure tab is active if it might need a dialog (untitled)
+                                            // The implementation of save_file checks `tab_idx == self.active_tab` for untitled files.
+                                            // So we must switch.
+                                            if self.tabs[i].path.is_none() {
+                                                self.active_tab = i;
+                                            }
+                                            self.save_file(i, frame.storage_mut());
                                         }
                                     }
                                     self.active_tab = prev_active;
@@ -1051,6 +1075,14 @@ impl eframe::App for Z80App {
 
         if self.is_running {
             let mut steps = 0;
+            // Optimization: Clone breakpoints once before the tight loop.
+            // This prevents looking up the tab and the hashset 10,000 times per frame.
+            let active_breakpoints = self
+                .tabs
+                .get(self.active_tab)
+                .map(|t| t.breakpoints.clone())
+                .unwrap_or_default();
+
             // Execute in batches to keep UI responsive
             while steps < 10000 {
                 if self.cpu.is_halted() {
@@ -1059,13 +1091,13 @@ impl eframe::App for Z80App {
 
                 // Check for breakpoint
                 let pc = self.cpu.get_pc();
-                if let Some(&line) = self.address_to_line.get(&pc) {
-                    if let Some(tab) = self.tabs.get(self.active_tab) {
-                        if tab.breakpoints.contains(&line) {
-                            self.is_running = false;
-                            break;
-                        }
-                    }
+                if self
+                    .line_to_address
+                    .iter()
+                    .any(|(line, &addr)| addr == pc && active_breakpoints.contains(line))
+                {
+                    self.is_running = false;
+                    break;
                 }
 
                 self.cpu.tick();

@@ -76,7 +76,7 @@ END:
     "#;
 
     // Assemble
-    let (bytes, symbols, _) = assemble(code).expect("Assembly failed");
+    let (bytes, symbols, _, _) = assemble(code).expect("Assembly failed");
 
     // Setup CPU
     let memory: Rc<RefCell<dyn MemoryMapper>> = Rc::new(RefCell::new(Mem64k::new()));

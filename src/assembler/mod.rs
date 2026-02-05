@@ -41,13 +41,25 @@ pub struct Symbol {
     pub kind: SymbolType,
 }
 
-pub fn assemble(code: &str) -> Result<(Vec<u8>, HashMap<String, Symbol>, HashMap<u16, usize>), String> {
+pub fn assemble(
+    code: &str,
+) -> Result<
+    (
+        Vec<u8>,
+        HashMap<String, Symbol>,
+        HashMap<u16, usize>,
+        HashMap<usize, u16>,
+    ),
+    String,
+> {
     let mut labels = HashMap::new();
     let mut current_pc = 0u16;
     let mut instructions = Vec::new();
+    let mut line_addresses = HashMap::new();
 
     // Pass 1: Build Symbol Table
     for (line_idx, line) in code.lines().enumerate() {
+        line_addresses.insert(line_idx + 1, current_pc);
         let clean_line = line.split(';').next().unwrap_or("").trim();
         if clean_line.is_empty() {
             continue;
@@ -115,7 +127,7 @@ pub fn assemble(code: &str) -> Result<(Vec<u8>, HashMap<String, Symbol>, HashMap
         output.extend(bytes);
         address_to_line.insert(pc, line_idx + 1);
     }
-    Ok((output, labels, address_to_line))
+    Ok((output, labels, address_to_line, line_addresses))
 }
 
 fn tokenize(text: &str) -> Result<Vec<Token>, String> {
@@ -489,6 +501,13 @@ fn parse_instruction(
                         } else {
                             *labels.get(&l).unwrap_or(&0)
                         };
+                        // Added safety check:
+                        if !is_dry_run && val > 255 {
+                            return Err(format!(
+                                "Label '{}' value {} is too large for DB (byte)",
+                                l, val
+                            ));
+                        }
                         // Use just the low byte? Or error if > 255?
                         // Usually DB Label puts the low byte.
                         bytes.push((val & 0xFF) as u8);
