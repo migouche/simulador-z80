@@ -186,7 +186,7 @@ fn test_parse_operands_errors() {
 // Helper to assemble single line
 fn asm(code: &str) -> Vec<u8> {
     assemble(code)
-        .map(|(bytes, _, _)| bytes)
+        .map(|(bytes, _, _, _)| bytes)
         .unwrap_or_else(|e| panic!("Failed to assemble '{}': {}", code, e))
 }
 
