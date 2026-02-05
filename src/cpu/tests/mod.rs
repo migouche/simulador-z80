@@ -42,3 +42,4 @@ fn test_mock_memory_read_write() {
     memory.write_word(0x1234, 0xCDEF);
     assert_eq!(memory.read_word(0x1234), 0xCDEF);
 }
+mod halt_test;

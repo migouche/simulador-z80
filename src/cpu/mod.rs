@@ -14,7 +14,7 @@ use crate::{
         rot::{self, RotOperation},
         set, sub_16,
     },
-    traits::{MemoryMapper, SyncronousComponent},
+    traits::{IODevice, MemoryMapper, SyncronousComponent},
 };
 
 #[cfg(test)]
@@ -209,9 +209,16 @@ pub struct Z80A {
     R: u8,
 
     memory: Rc<RefCell<dyn MemoryMapper>>,
+    devices: Vec<Rc<RefCell<dyn IODevice>>>,
 
     cycles: u64,
     halted: bool,
+    iff1: bool,
+    iff2: bool,
+    interrupt_mode: u8,
+    nmi_pending: bool,
+    int_pending: bool,
+    iff_delay_count: u8,
 
     #[cfg(test)]
     test_callback: (
@@ -241,6 +248,18 @@ impl Z80A {
         self.halted
     }
 
+    pub fn get_iff1(&self) -> bool {
+        self.iff1
+    }
+
+    pub fn get_iff2(&self) -> bool {
+        self.iff2
+    }
+
+    pub fn get_interrupt_mode(&self) -> u8 {
+        self.interrupt_mode
+    }
+
     pub fn set_halted(&mut self, halted: bool) {
         self.halted = halted;
     }
@@ -258,14 +277,103 @@ impl Z80A {
             I: 0,
             R: 0,
             memory,
+            devices: Vec::new(),
             cycles: 0,
             halted: false,
+            iff1: false,
+            iff2: false,
+            interrupt_mode: 0,
+            nmi_pending: false,
+            int_pending: false,
+            iff_delay_count: 0,
 
             #[cfg(test)]
             test_callback: (
                 VecDeque::new(),
                 Box::new(|s, q| q.push_front(s.to_string())),
             ),
+        }
+    }
+
+    pub fn attach_device(&mut self, device: Rc<RefCell<dyn IODevice>>) {
+        self.devices.push(device);
+    }
+
+    pub fn nmi(&mut self) {
+        self.nmi_pending = true;
+    }
+
+    pub fn set_interrupt(&mut self, active: bool) {
+        self.int_pending = active;
+    }
+
+    fn read_io(&mut self, port: u16) -> u8 {
+        for dev in &self.devices {
+            if let Some(val) = dev.borrow_mut().read_in(port) {
+                return val;
+            }
+        }
+        0xFF
+    }
+
+    fn write_io(&mut self, port: u16, data: u8) {
+        for dev in &self.devices {
+            if dev.borrow_mut().write_out(port, data) {
+                return;
+            }
+        }
+    }
+
+    fn is_int_line_active(&self) -> bool {
+        if self.int_pending {
+            return true;
+        }
+        for dev in &self.devices {
+            if dev.borrow().poll_interrupt() {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn ack_interrupt(&mut self) -> u8 {
+        for dev in &self.devices {
+            if dev.borrow().poll_interrupt() {
+                return dev.borrow_mut().ack_interrupt();
+            }
+        }
+        0xFF
+    }
+
+    fn handle_nmi(&mut self) {
+        self.iff2 = self.iff1;
+        self.iff1 = false;
+        self.push(self.PC);
+        self.PC = 0x0066;
+    }
+
+    fn handle_int(&mut self) {
+        self.iff1 = false;
+        self.iff2 = false;
+
+        match self.interrupt_mode {
+            0 => {
+                let opcode = self.ack_interrupt();
+                self.execute_instruction(opcode);
+            }
+            1 => {
+                self.ack_interrupt(); // Acknowledge interrupt to clear the line
+                self.push(self.PC);
+                self.PC = 0x0038;
+            }
+            2 => {
+                let vector = self.ack_interrupt() & 0xFE;
+                let addr = ((self.I as u16) << 8) | (vector as u16);
+                self.push(self.PC);
+                let dest = self.memory.borrow().read_word(addr);
+                self.PC = dest;
+            }
+            _ => unreachable!(),
         }
     }
 
@@ -1296,8 +1404,21 @@ impl Z80A {
                         self.PC = addr;
                     }
                     1 => unreachable!("CB prefix, should be handled separately"), // should never reach this
-                    2 => test_log!(self, "OUT (n), A"), // TODO: OUT (n), A
-                    3 => test_log!(self, "IN A, (n)"),  // TODO: IN A, (n)
+                    2 => {
+                        test_log!(self, "OUT (n), A");
+                        let n = self.fetch();
+                        let a = self.get_register(GPR::A);
+                        let port = ((a as u16) << 8) | (n as u16);
+                        self.write_io(port, a);
+                    }
+                    3 => {
+                        test_log!(self, "IN A, (n)");
+                        let n = self.fetch();
+                        let a = self.get_register(GPR::A);
+                        let port = ((a as u16) << 8) | (n as u16);
+                        let val = self.read_io(port);
+                        self.set_register(GPR::A, val);
+                    }
                     4 => {
                         // EX (SP), HL (or EX (SP), IX/IY if prefixed)
                         test_log!(self, "EX (SP), HL/IX/IY");
@@ -1324,8 +1445,16 @@ impl Z80A {
                         self.set_register_pair(RegisterPair::HL, de);
                     }
                     // TODO: will do interrupts later
-                    6 => test_log!(self, "DI"),           // TODO: DI
-                    7 => test_log!(self, "EI"),           // TODO: EI
+                    6 => {
+                        test_log!(self, "DI");
+                        self.iff1 = false;
+                        self.iff2 = false;
+                        self.iff_delay_count = 0;
+                    }
+                    7 => {
+                        test_log!(self, "EI");
+                        self.iff_delay_count = 2;
+                    }
                     _ => unreachable!("Invalid y value"), // should never happen
                 },
                 4 => {
@@ -1425,18 +1554,50 @@ impl Z80A {
             1 => match z {
                 0 => {
                     if y == 6 {
-                        test_log!(self, "IN (C)"); // TODO: IN (C)
+                        test_log!(self, "IN (C)");
+                        let c = self.get_register(GPR::C);
+                        let b = self.get_register(GPR::B);
+                        let port = ((b as u16) << 8) | (c as u16);
+                        let val = self.read_io(port);
+
+                        self.set_flag((val & flags::SIGN) != 0, Flag::S);
+                        self.set_flag(val == 0, Flag::Z);
+                        self.set_flag(false, Flag::H);
+                        self.set_flag(false, Flag::N);
+                        self.set_flag(val.count_ones() % 2 == 0, Flag::PV);
                     } else if y < 8 {
-                        test_log!(self, "IN r[y], (C)"); // TODO: IN r[y], (C)
+                        test_log!(self, "IN r[y], (C)");
+                        let reg = self.table_r(y);
+                        let c = self.get_register(GPR::C);
+                        let b = self.get_register(GPR::B);
+                        let port = ((b as u16) << 8) | (c as u16);
+                        let val = self.read_io(port);
+                        self.write_8(reg, val);
+
+                        self.set_flag((val & flags::SIGN) != 0, Flag::S);
+                        self.set_flag(val == 0, Flag::Z);
+                        self.set_flag(false, Flag::H);
+                        self.set_flag(false, Flag::N);
+                        self.set_flag(val.count_ones() % 2 == 0, Flag::PV);
                     } else {
                         unreachable!("Invalid y value") // should never happen
                     }
                 }
                 1 => {
                     if y == 6 {
-                        test_log!(self, "OUT (C), 0"); // TODO: OUT(C), 0
+                        test_log!(self, "OUT (C), 0");
+                        let c = self.get_register(GPR::C);
+                        let b = self.get_register(GPR::B);
+                        let port = ((b as u16) << 8) | (c as u16);
+                        self.write_io(port, 0);
                     } else if y < 8 {
-                        test_log!(self, "OUT (C), r[y]"); // TODO: OUT (C), r[y]
+                        test_log!(self, "OUT (C), r[y]");
+                        let reg = self.table_r(y);
+                        let value = self.read_8(reg);
+                        let c = self.get_register(GPR::C);
+                        let b = self.get_register(GPR::B);
+                        let port = ((b as u16) << 8) | (c as u16);
+                        self.write_io(port, value);
                     } else {
                         unreachable!("Invalid y value") // should never happen
                     }
@@ -1487,10 +1648,14 @@ impl Z80A {
                 }
                 5 => {
                     if y == 0 {
-                        // theres supposed to be just retn, but manual says noni
-                        test_log!(self, "RETN"); // TODO: RETN
+                        test_log!(self, "RETN");
+                        self.iff1 = self.iff2;
+                        let ret_addr = self.pop();
+                        self.PC = ret_addr;
                     } else if y == 1 {
-                        test_log!(self, "RETI"); // TODO: RETI
+                        test_log!(self, "RETI");
+                        let ret_addr = self.pop();
+                        self.PC = ret_addr;
                     } else if y < 8 {
                         test_log!(self, "NONI"); // NOTE: NONI
                     } else {
@@ -1504,13 +1669,16 @@ impl Z80A {
                 6 => {
                     match y {
                         0 => {
-                            test_log!(self, "IM 0"); // TODO: IM 0
+                            test_log!(self, "IM 0");
+                            self.interrupt_mode = 0;
                         }
                         2 => {
-                            test_log!(self, "IM 1"); // TODO: IM 1
+                            test_log!(self, "IM 1");
+                            self.interrupt_mode = 1;
                         }
                         3 => {
-                            test_log!(self, "IM 2"); // TODO: IM 2
+                            test_log!(self, "IM 2");
+                            self.interrupt_mode = 2;
                         }
                         _ => {
                             test_log!(self, "NONI"); // NOTE: NONI
@@ -1537,14 +1705,26 @@ impl Z80A {
                         self.ld(
                             AddressingMode::Register(GPR::A),
                             AddressingMode::System(SystemRegister::I),
-                        )
+                        );
+                        let a = self.get_register(GPR::A);
+                        self.set_flag((a & flags::SIGN) != 0, Flag::S);
+                        self.set_flag(a == 0, Flag::Z);
+                        self.set_flag(false, Flag::H);
+                        self.set_flag(false, Flag::N);
+                        self.set_flag(self.iff2, Flag::PV);
                     } //  LD A, I
                     3 => {
                         test_log!(self, "LD A, R");
                         self.ld(
                             AddressingMode::Register(GPR::A),
                             AddressingMode::System(SystemRegister::R),
-                        )
+                        );
+                        let a = self.get_register(GPR::A);
+                        self.set_flag((a & flags::SIGN) != 0, Flag::S);
+                        self.set_flag(a == 0, Flag::Z);
+                        self.set_flag(false, Flag::H);
+                        self.set_flag(false, Flag::N);
+                        self.set_flag(self.iff2, Flag::PV);
                     } //  LD A, R
                     4 => {
                         // RRD
@@ -1866,9 +2046,28 @@ impl Z80A {
 
 impl SyncronousComponent for Z80A {
     fn tick(&mut self) {
+        // Handle NMI (Edge triggered, highest priority)
+        if self.nmi_pending {
+            self.nmi_pending = false;
+            self.halted = false; // Wake from HALT
+            self.handle_nmi();
+            return;
+        }
+
+        // Handle Maskable Interrupts (Level triggered)
+        // Check if interrupts enabled and pending.
+        // Important: If we just executed EI (iff_delay_count > 0), iff1 is not yet true.
+        // Also check if delay is active (interrupts are inhibited during the instruction after EI)
+        if self.iff1 && self.is_int_line_active() && self.iff_delay_count == 0 {
+            self.halted = false; // Wake from HALT
+            self.handle_int();
+            return;
+        }
+
         if self.halted {
             return;
         }
+
         /*
         self.cycles -= 1;
             if self.cycles == 0 {
@@ -1879,6 +2078,15 @@ impl SyncronousComponent for Z80A {
         */
         let opcode = self.fetch();
         self.execute_instruction(opcode);
+
+        // Handle Delayed Interrupt Enable (EI)
+        if self.iff_delay_count > 0 {
+            self.iff_delay_count -= 1;
+            if self.iff_delay_count == 0 {
+                self.iff1 = true;
+                self.iff2 = true;
+            }
+        }
     }
 }
 

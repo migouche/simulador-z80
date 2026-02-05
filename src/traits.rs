@@ -17,3 +17,15 @@ pub trait MemoryMapper {
         self.write(address.overflowing_add(1).0, (data >> 8) as u8);
     }
 }
+
+pub trait IODevice {
+    fn read_in(&mut self, port: u16) -> Option<u8>;
+    fn write_out(&mut self, port: u16, data: u8) -> bool;
+
+    fn poll_interrupt(&self) -> bool {
+        false
+    }
+    fn ack_interrupt(&mut self) -> u8 {
+        0xFF
+    }
+}

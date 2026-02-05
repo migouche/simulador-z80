@@ -271,48 +271,48 @@ use crate::cpu::tests::setup_cpu;
 // ------------------------------------------------------------------------------
 // ED TABLE (MISC INSTRUCTIONS)
 // ------------------------------------------------------------------------------
-#[case::in_b_c(0x29f9, &[0xed, 0x40], &["decode_ed", "IN r[y], (C)"])] // IN B, (C)
-#[case::out_c_b(0x29f9, &[0xed, 0x41], &["decode_ed", "OUT (C), r[y]"])] // OUT (C), B
+#[case::in_b_c(0x29f9, &[0xed, 0x40], &["decode_ed", "IN r[y], (C)", "B"])] // IN B, (C)
+#[case::out_c_b(0x29f9, &[0xed, 0x41], &["decode_ed", "OUT (C), r[y]", "B"])] // OUT (C), B
 #[case::sbc_hl_bc(0x29f9, &[0xed, 0x42], &["decode_ed", "SBC HL, rp[p]", "BC"])] // SBC HL, BC
 #[case::ld_nni_bc_a(0x29f9, &[0xed, 0x43], &["decode_ed", "LD (nn), rp[p]", "BC"])] // LD (nn), BC
 #[case::neg(0x29f9, &[0xed, 0x44], &["decode_ed", "NEG"])] // NEG
 #[case::retn(0x29f9, &[0xed, 0x45], &["decode_ed", "RETN"])] // RETN
 #[case::im_0(0x29f9, &[0xed, 0x46], &["decode_ed", "IM 0"])] // IM 0
 #[case::ld_i_a(0x29f9, &[0xed, 0x47], &["decode_ed", "LD I, A"])] // LD I, A
-#[case::in_c_c(0x29f9, &[0xed, 0x48], &["decode_ed", "IN r[y], (C)"])] // IN C, (C)
-#[case::out_c_c(0x29f9, &[0xed, 0x49], &["decode_ed", "OUT (C), r[y]"])] // OUT (C), C
+#[case::in_c_c(0x29f9, &[0xed, 0x48], &["decode_ed", "IN r[y], (C)", "C"])] // IN C, (C)
+#[case::out_c_c(0x29f9, &[0xed, 0x49], &["decode_ed", "OUT (C), r[y]", "C"])] // OUT (C), C
 #[case::adc_hl_bc(0x29f9, &[0xed, 0x4a], &["decode_ed", "ADC HL, rp[p]", "BC"])] // ADC HL, BC
 #[case::ld_bc_nni(0x29f9, &[0xed, 0x4b], &["decode_ed", "LD rp[p], (nn)", "BC"])] // LD BC, (nn)
 #[case::ed_4c(0x29f9, &[0xed, 0x4c], &["decode_ed", "NONI"])] // NONI
 #[case::reti(0x29f9, &[0xed, 0x4d], &["decode_ed", "RETI"])] // RETI
 #[case::ed_4e(0x29f9, &[0xed, 0x4e], &["decode_ed", "NONI"])] // NONI
 #[case::ld_r_a(0x29f9, &[0xed, 0x4f], &["decode_ed", "LD R, A"])] // LD R, A
-#[case::in_d_c(0x29f9, &[0xed, 0x50], &["decode_ed", "IN r[y], (C)"])] // IN D, (C)
-#[case::out_c_d(0x29f9, &[0xed, 0x51], &["decode_ed", "OUT (C), r[y]"])] // OUT (C), D
+#[case::in_d_c(0x29f9, &[0xed, 0x50], &["decode_ed", "IN r[y], (C)", "D"])] // IN D, (C)
+#[case::out_c_d(0x29f9, &[0xed, 0x51], &["decode_ed", "OUT (C), r[y]", "D"])] // OUT (C), D
 #[case::sbc_hl_de(0x29f9, &[0xed, 0x52], &["decode_ed", "SBC HL, rp[p]", "DE"])] // SBC HL, DE
 #[case::ld_nni_de_a(0x29f9, &[0xed, 0x53], &["decode_ed", "LD (nn), rp[p]", "DE"])] // LD (nn), DE
 #[case::ed_54(0x29f9, &[0xed, 0x54], &["decode_ed", "NONI"])] // NONI
 #[case::ed_55(0x29f9, &[0xed, 0x55], &["decode_ed", "NONI"])] // NONI
 #[case::im_1(0x29f9, &[0xed, 0x56], &["decode_ed", "IM 1"])] // IM 1
 #[case::ld_a_i(0x29f9, &[0xed, 0x57], &["decode_ed", "LD A, I"])] // LD A, I
-#[case::in_e_c(0x29f9, &[0xed, 0x58], &["decode_ed", "IN r[y], (C)"])] // IN E, (C)
-#[case::out_c_e(0x29f9, &[0xed, 0x59], &["decode_ed", "OUT (C), r[y]"])] // OUT (C), E
+#[case::in_e_c(0x29f9, &[0xed, 0x58], &["decode_ed", "IN r[y], (C)", "E"])] // IN E, (C)
+#[case::out_c_e(0x29f9, &[0xed, 0x59], &["decode_ed", "OUT (C), r[y]", "E"])] // OUT (C), E
 #[case::adc_hl_de(0x29f9, &[0xed, 0x5a], &["decode_ed", "ADC HL, rp[p]", "DE"])] // ADC HL, DE
 #[case::ld_de_nni(0x29f9, &[0xed, 0x5b], &["decode_ed", "LD rp[p], (nn)", "DE"])] // LD DE, (nn)
 #[case::ed_5c(0x29f9, &[0xed, 0x5c], &["decode_ed", "NONI"])] // NONI
 #[case::ed_5d(0x29f9, &[0xed, 0x5d], &["decode_ed", "NONI"])] // NONI
 #[case::im_2(0x29f9, &[0xed, 0x5e], &["decode_ed", "IM 2"])] // IM 2
 #[case::ld_a_r(0x29f9, &[0xed, 0x5f], &["decode_ed", "LD A, R"])] // LD A, R
-#[case::in_h_c(0x29f9, &[0xed, 0x60], &["decode_ed", "IN r[y], (C)"])] // IN H, (C)
-#[case::out_c_h(0x29f9, &[0xed, 0x61], &["decode_ed", "OUT (C), r[y]"])] // OUT (C), H
+#[case::in_h_c(0x29f9, &[0xed, 0x60], &["decode_ed", "IN r[y], (C)", "H"])] // IN H, (C)
+#[case::out_c_h(0x29f9, &[0xed, 0x61], &["decode_ed", "OUT (C), r[y]", "H"])] // OUT (C), H
 #[case::sbc_hl_hl(0x29f9, &[0xed, 0x62], &["decode_ed", "SBC HL, rp[p]", "HL"])] // SBC HL, HL
 #[case::ld_nni_hl_a(0x29f9, &[0xed, 0x63], &["decode_ed", "LD (nn), rp[p]", "HL"])] // LD (nn), HL
 #[case::ed_64(0x29f9, &[0xed, 0x64], &["decode_ed", "NONI"])] // NONI
 #[case::ed_65(0x29f9, &[0xed, 0x65], &["decode_ed", "NONI"])] // NONI
 #[case::ed_66(0x29f9, &[0xed, 0x66], &["decode_ed", "NONI"])] // NONI
 #[case::rrd(0x29f9, &[0xed, 0x67], &["decode_ed", "RRD"])] // RRD
-#[case::in_l_c(0x29f9, &[0xed, 0x68], &["decode_ed", "IN r[y], (C)"])] // IN L, (C)
-#[case::out_c_l(0x29f9, &[0xed, 0x69], &["decode_ed", "OUT (C), r[y]"])] // OUT (C), L
+#[case::in_l_c(0x29f9, &[0xed, 0x68], &["decode_ed", "IN r[y], (C)", "L"])] // IN L, (C)
+#[case::out_c_l(0x29f9, &[0xed, 0x69], &["decode_ed", "OUT (C), r[y]", "L"])] // OUT (C), L
 #[case::adc_hl_hl(0x29f9, &[0xed, 0x6a], &["decode_ed", "ADC HL, rp[p]", "HL"])] // ADC HL, HL
 #[case::ld_hl_nni(0x29f9, &[0xed, 0x6b], &["decode_ed", "LD rp[p], (nn)", "HL"])] // LD HL, (nn)
 #[case::ed_6c(0x29f9, &[0xed, 0x6c], &["decode_ed", "NONI"])] // NONI
@@ -327,8 +327,8 @@ use crate::cpu::tests::setup_cpu;
 #[case::ed_75(0x29f9, &[0xed, 0x75], &["decode_ed", "NONI"])] // NONI
 #[case::ed_76(0x29f9, &[0xed, 0x76], &["decode_ed", "NONI"])] // NONI
 #[case::ed_77(0x29f9, &[0xed, 0x77], &["decode_ed", "NONI"])] // NONI
-#[case::in_a_c(0x29f9, &[0xed, 0x78], &["decode_ed", "IN r[y], (C)"])] // IN A, (C)
-#[case::out_c_a(0x29f9, &[0xed, 0x79], &["decode_ed", "OUT (C), r[y]"])] // OUT (C), A
+#[case::in_a_c(0x29f9, &[0xed, 0x78], &["decode_ed", "IN r[y], (C)", "A"])] // IN A, (C)
+#[case::out_c_a(0x29f9, &[0xed, 0x79], &["decode_ed", "OUT (C), r[y]", "A"])] // OUT (C), A
 #[case::adc_hl_sp(0x29f9, &[0xed, 0x7a], &["decode_ed", "ADC HL, rp[p]", "SP"])] // ADC HL, SP
 #[case::ld_sp_nni(0x29f9, &[0xed, 0x7b], &["decode_ed", "LD rp[p], (nn)", "SP"])] // LD SP, (nn)
 #[case::ldi(0x29f9, &[0xed, 0xa0], &["decode_ed", "bli[y, z]"])] // LDI

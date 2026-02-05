@@ -9,6 +9,8 @@ use crate::components::memories::mem_64k::Mem64k;
 use crate::cpu::{Flag, GPR, Z80A};
 use crate::traits::{MemoryMapper, SyncronousComponent};
 
+use crate::ui_traits::DeviceWithUi;
+
 mod highlighting;
 
 #[derive(Clone)]
@@ -64,6 +66,9 @@ pub struct Z80App {
     loaded_file_name: String,
     #[serde(skip)]
     code_theme: highlighting::CodeTheme,
+
+    #[serde(skip)]
+    attached_devices: Vec<Rc<RefCell<dyn DeviceWithUi>>>,
 
     recent_files: Vec<PathBuf>,
 }
@@ -171,6 +176,25 @@ START:
         let memory: Rc<RefCell<dyn MemoryMapper>> = Rc::new(RefCell::new(Mem64k::new()));
         self.memory = memory.clone();
         self.cpu = Z80A::new(self.memory.clone());
+        self.attached_devices.clear();
+
+        // Attach default devices (can be made dynamic later)
+        /*
+        {
+             use crate::components::devices::{Keypad, SevenSegmentDisplay};
+
+             // Keypad on Port 0x01
+             let keypad = Rc::new(RefCell::new(Keypad::new(0x01)));
+             self.cpu.attach_device(keypad.clone());
+             self.attached_devices.push(keypad);
+
+             // 7-Segment on Port 0x02
+             let segment = Rc::new(RefCell::new(SevenSegmentDisplay::new(0x02)));
+             self.cpu.attach_device(segment.clone());
+             self.attached_devices.push(segment);
+        }
+        */
+
         self.is_running = false;
 
         if self.tabs.is_empty() {
@@ -382,6 +406,7 @@ impl Default for Z80App {
             loaded_file_name: "Untitled".to_string(),
             code_theme: highlighting::CodeTheme::one_dark_pro_vivid(),
             recent_files: Vec::new(),
+            attached_devices: Vec::new(), // Initialized empty, populated in load_and_reset or attached manually
         }
     }
 }
@@ -462,6 +487,36 @@ impl eframe::App for Z80App {
                     if ui.button("Quit").clicked() {
                         action = Some(HeaderAction::Quit);
                         ui.close();
+                    }
+                });
+
+                ui.menu_button("Devices", |ui| {
+                    use crate::components::devices::{Keypad, SevenSegmentDisplay};
+
+                    if ui.button("Add Keypad (Port 0x01)").clicked() {
+                        let dev = Rc::new(RefCell::new(Keypad::new(0x01)));
+                        self.cpu.attach_device(dev.clone());
+                        self.attached_devices.push(dev);
+                        ui.close();
+                    }
+                    if ui.button("Add Display (Port 0x02)").clicked() {
+                        let dev = Rc::new(RefCell::new(SevenSegmentDisplay::new(0x02)));
+                        self.cpu.attach_device(dev.clone());
+                        self.attached_devices.push(dev);
+                        ui.close();
+                    }
+
+                    if !self.attached_devices.is_empty() {
+                        ui.separator();
+                        ui.label("Manage Windows:");
+                        for dev in &self.attached_devices {
+                            let mut dev_ref = dev.borrow_mut();
+                            let name = dev_ref.get_name();
+                            let mut open = dev_ref.get_window_open_state();
+                            if ui.checkbox(&mut open, name).changed() {
+                                dev_ref.set_window_open_state(open);
+                            }
+                        }
                     }
                 });
             });
@@ -609,6 +664,20 @@ impl eframe::App for Z80App {
                         ui.end_row();
                         ui.label("L");
                         ui.label(mono(format!("0x{:02X}", reg_l)));
+                        ui.end_row();
+
+                        ui.separator();
+                        ui.separator();
+                        ui.end_row();
+
+                        ui.label("IFF1");
+                        ui.label(mono(format!("{}", self.cpu.get_iff1())));
+                        ui.end_row();
+                        ui.label("IFF2");
+                        ui.label(mono(format!("{}", self.cpu.get_iff2())));
+                        ui.end_row();
+                        ui.label("IM");
+                        ui.label(mono(format!("{}", self.cpu.get_interrupt_mode())));
                         ui.end_row();
                     });
 
@@ -1086,6 +1155,18 @@ impl eframe::App for Z80App {
             // Execute in batches to keep UI responsive
             while steps < 10000 {
                 if self.cpu.is_halted() {
+                    // Even if halted, we must continue ticking to handle interrupts!
+                    // tick() checks interrupts.
+                    self.cpu.tick();
+
+                    // If we just woke up, we continue normal execution in this loop.
+                    if !self.cpu.is_halted() {
+                        steps += 1;
+                        continue;
+                    }
+
+                    // If still halted, we stop this batch to avoid spinning 10000 times on a halted cpu per frame.
+                    // We need to request repaint though (handled below)
                     break;
                 }
 
@@ -1105,7 +1186,14 @@ impl eframe::App for Z80App {
             }
             if self.is_running {
                 ctx.request_repaint();
+                // If halted, we still want to repaint/re-check because UI interaction (keypad)
+                // might change device state, which needs to be picked up by next tick.
             }
+        }
+
+        // Draw separate windows for devices
+        for device in &self.attached_devices {
+            device.borrow_mut().draw(ctx);
         }
     }
 }

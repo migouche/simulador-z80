@@ -440,6 +440,9 @@ fn parse_instruction(
         "NOP" => Ok(vec![0x00]),
         "DI" => Ok(vec![0xF3]),
         "EI" => Ok(vec![0xFB]),
+        "RETI" => Ok(vec![0xED, 0x4D]),
+        "RETN" => Ok(vec![0xED, 0x45]),
+        "IM" => encode_im(&operands),
         "EX" => encode_ex(&operands),
         "EXX" => Ok(vec![0xD9]),
         "DAA" => Ok(vec![0x27]),
@@ -1212,6 +1215,18 @@ fn encode_out(ops: &[Operand]) -> Result<Vec<u8>, String> {
             }
         }
         _ => Err("Invalid OUT form".to_string()),
+    }
+}
+
+fn encode_im(ops: &[Operand]) -> Result<Vec<u8>, String> {
+    if ops.len() != 1 {
+        return Err("IM expects 1 operand".to_string());
+    }
+    match &ops[0] {
+        Operand::Immediate(0) => Ok(vec![0xED, 0x46]),
+        Operand::Immediate(1) => Ok(vec![0xED, 0x56]),
+        Operand::Immediate(2) => Ok(vec![0xED, 0x5E]),
+        _ => Err("Invalid IM mode (0, 1, 2)".to_string()),
     }
 }
 
