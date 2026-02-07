@@ -1,4 +1,4 @@
-use super::*;
+use crate::assembler::assemble;
 
 // Helper to assemble single line
 fn asm(code: &str) -> Vec<u8> {

@@ -1,15 +1,15 @@
 mod alu;
 
-use std::cell::RefCell;
 #[cfg(test)]
 use std::collections::VecDeque;
-use std::rc::Rc;
-use std::usize;
+
+use std::{cell::RefCell, rc::Rc, usize};
+
 
 use crate::{
     cpu::alu::{
         add_16,
-        alu_op::{self, add},
+        alu_op,
         bit, dec, inc, res,
         rot::{self, RotOperation},
         set, sub_16,
@@ -980,6 +980,104 @@ impl Z80A {
         }
     }
 
+    fn execute_block_instruction(&mut self, instruction: BlockInstruction) {
+        match instruction {
+            BlockInstruction::INI => {
+                let b = self.get_register(GPR::B);
+                let c = self.get_register(GPR::C);
+                let hl = self.get_register_pair(RegisterPair::HL);
+
+                let port = ((b as u16) << 8) | (c as u16);
+                let val = self.read_io(port);
+                self.memory.borrow_mut().write(hl, val);
+
+                self.set_register_pair(RegisterPair::HL, hl.wrapping_add(1));
+                let next_b = b.wrapping_sub(1);
+                self.set_register(GPR::B, next_b);
+
+                self.set_flag(next_b == 0, Flag::Z);
+                self.set_flag(true, Flag::N);
+            }
+            BlockInstruction::INIR => {
+                self.execute_block_instruction(BlockInstruction::INI);
+                if self.get_register(GPR::B) != 0 {
+                    self.PC = self.PC.wrapping_sub(2);
+                }
+            }
+            BlockInstruction::IND => {
+                let b = self.get_register(GPR::B);
+                let c = self.get_register(GPR::C);
+                let hl = self.get_register_pair(RegisterPair::HL);
+
+                let port = ((b as u16) << 8) | (c as u16);
+                let val = self.read_io(port);
+                self.memory.borrow_mut().write(hl, val);
+
+                self.set_register_pair(RegisterPair::HL, hl.wrapping_sub(1));
+                let next_b = b.wrapping_sub(1);
+                self.set_register(GPR::B, next_b);
+
+                self.set_flag(next_b == 0, Flag::Z);
+                self.set_flag(true, Flag::N);
+            }
+            BlockInstruction::INDR => {
+                self.execute_block_instruction(BlockInstruction::IND);
+                if self.get_register(GPR::B) != 0 {
+                    self.PC = self.PC.wrapping_sub(2);
+                }
+            }
+            BlockInstruction::OUTI => {
+                let b = self.get_register(GPR::B);
+                let c = self.get_register(GPR::C);
+                let hl = self.get_register_pair(RegisterPair::HL);
+
+                let val = self.memory.borrow().read(hl);
+
+                let next_b = b.wrapping_sub(1);
+                self.set_register(GPR::B, next_b);
+                let port = ((next_b as u16) << 8) | (c as u16);
+                self.write_io(port, val);
+
+                self.set_register_pair(RegisterPair::HL, hl.wrapping_add(1));
+
+                self.set_flag(next_b == 0, Flag::Z);
+                self.set_flag(true, Flag::N);
+            }
+            BlockInstruction::OTIR => {
+                self.execute_block_instruction(BlockInstruction::OUTI);
+                if self.get_register(GPR::B) != 0 {
+                    self.PC = self.PC.wrapping_sub(2);
+                }
+            }
+            BlockInstruction::OUTD => {
+                let b = self.get_register(GPR::B);
+                let c = self.get_register(GPR::C);
+                let hl = self.get_register_pair(RegisterPair::HL);
+
+                let val = self.memory.borrow().read(hl);
+
+                let next_b = b.wrapping_sub(1);
+                self.set_register(GPR::B, next_b);
+                let port = ((next_b as u16) << 8) | (c as u16);
+                self.write_io(port, val);
+
+                self.set_register_pair(RegisterPair::HL, hl.wrapping_sub(1));
+
+                self.set_flag(next_b == 0, Flag::Z);
+                self.set_flag(true, Flag::N);
+            }
+            BlockInstruction::OTDR => {
+                self.execute_block_instruction(BlockInstruction::OUTD);
+                if self.get_register(GPR::B) != 0 {
+                    self.PC = self.PC.wrapping_sub(2);
+                }
+            }
+            _ => {
+                // Not implemented
+            }
+        }
+    }
+
     fn transform_register(
         &mut self,
         reg: AddressingMode,
@@ -1795,7 +1893,9 @@ impl Z80A {
             },
             2 => {
                 if z <= 3 && y >= 4 {
-                    test_log!(self, "bli[y, z]") // TODO: bli[y,z]
+                    test_log!(self, "bli[y, z]");
+                    let inst = self.table_bli(y, z);
+                    self.execute_block_instruction(inst);
                 } else {
                     test_log!(self, "NONI"); // NOTE: NONI
                 }

@@ -5,6 +5,8 @@ use crate::{cpu::Z80A, traits::MemoryMapper};
 pub mod alu_tests;
 pub mod decoding;
 pub mod instructions;
+pub mod interrupts;
+pub mod io;
 pub mod registers;
 pub mod stack;
 

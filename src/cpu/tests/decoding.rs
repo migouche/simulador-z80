@@ -331,18 +331,18 @@ use crate::cpu::tests::setup_cpu;
 #[case::out_c_a(0x29f9, &[0xed, 0x79], &["decode_ed", "OUT (C), r[y]", "A"])] // OUT (C), A
 #[case::adc_hl_sp(0x29f9, &[0xed, 0x7a], &["decode_ed", "ADC HL, rp[p]", "SP"])] // ADC HL, SP
 #[case::ld_sp_nni(0x29f9, &[0xed, 0x7b], &["decode_ed", "LD rp[p], (nn)", "SP"])] // LD SP, (nn)
-#[case::ldi(0x29f9, &[0xed, 0xa0], &["decode_ed", "bli[y, z]"])] // LDI
-#[case::cpi(0x29f9, &[0xed, 0xa1], &["decode_ed", "bli[y, z]"])] // CPI
-#[case::ini(0x29f9, &[0xed, 0xa2], &["decode_ed", "bli[y, z]"])] // INI
-#[case::outi(0x29f9, &[0xed, 0xa3], &["decode_ed", "bli[y, z]"])] // OUTI
-#[case::ldd(0x29f9, &[0xed, 0xa8], &["decode_ed", "bli[y, z]"])] // LDD
-#[case::cpd(0x29f9, &[0xed, 0xa9], &["decode_ed", "bli[y, z]"])] // CPD
-#[case::ind(0x29f9, &[0xed, 0xaa], &["decode_ed", "bli[y, z]"])] // IND
-#[case::outd(0x29f9, &[0xed, 0xab], &["decode_ed", "bli[y, z]"])] // OUTD
-#[case::ldir(0x29f9, &[0xed, 0xb0], &["decode_ed", "bli[y, z]"])] // LDIR
-#[case::cpir(0x29f9, &[0xed, 0xb1], &["decode_ed", "bli[y, z]"])] // CPIR
-#[case::inir(0x29f9, &[0xed, 0xb2], &["decode_ed", "bli[y, z]"])] // INIR
-#[case::outir(0x29f9, &[0xed, 0xb3], &["decode_ed", "bli[y, z]"])]
+#[case::ldi(0x29f9, &[0xed, 0xa0], &["decode_ed", "bli[y, z]", "LDI"])] // LDI
+#[case::cpi(0x29f9, &[0xed, 0xa1], &["decode_ed", "bli[y, z]", "CPI"])] // CPI
+#[case::ini(0x29f9, &[0xed, 0xa2], &["decode_ed", "bli[y, z]", "INI"])] // INI
+#[case::outi(0x29f9, &[0xed, 0xa3], &["decode_ed", "bli[y, z]", "OUTI"])] // OUTI
+#[case::ldd(0x29f9, &[0xed, 0xa8], &["decode_ed", "bli[y, z]", "LDD"])] // LDD
+#[case::cpd(0x29f9, &[0xed, 0xa9], &["decode_ed", "bli[y, z]", "CPD"])] // CPD
+#[case::ind(0x29f9, &[0xed, 0xaa], &["decode_ed", "bli[y, z]", "IND"])] // IND
+#[case::outd(0x29f9, &[0xed, 0xab], &["decode_ed", "bli[y, z]", "OUTD"])] // OUTD
+#[case::ldir(0x29f9, &[0xed, 0xb0], &["decode_ed", "bli[y, z]", "LDIR"])] // LDIR
+#[case::cpir(0x29f9, &[0xed, 0xb1], &["decode_ed", "bli[y, z]", "CPIR"])] // CPIR
+#[case::inir(0x29f9, &[0xed, 0xb2], &["decode_ed", "bli[y, z]", "INIR"])] // INIR
+#[case::outir(0x29f9, &[0xed, 0xb3], &["decode_ed", "bli[y, z]", "OTIR"])]
 // OUTIR
 
 // ------------------------------------------------------------------------

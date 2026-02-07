@@ -163,32 +163,31 @@ impl DeviceWithUi for Keypad {
 
                     ui.label(format!("Last Key: {:02X}", self.current_key));
 
-                    ui.horizontal_wrapped(|ui| {
-                        let keys = [
-                            (0x1, "1"),
-                            (0x2, "2"),
-                            (0x3, "3"),
-                            (0xA, "A"),
-                            (0x4, "4"),
-                            (0x5, "5"),
-                            (0x6, "6"),
-                            (0xB, "B"),
-                            (0x7, "7"),
-                            (0x8, "8"),
-                            (0x9, "9"),
-                            (0xC, "C"),
-                            (0xE, "*"),
-                            (0x0, "0"),
-                            (0xF, "#"),
-                            (0xD, "D"),
-                        ];
+                    egui::Grid::new("keypad_grid")
+                        .spacing(egui::vec2(5.0, 5.0))
+                        .show(ui, |ui| {
+                            let keys = [
+                                [(0x1, "1"), (0x2, "2"), (0x3, "3"), (0xA, "A")],
+                                [(0x4, "4"), (0x5, "5"), (0x6, "6"), (0xB, "B")],
+                                [(0x7, "7"), (0x8, "8"), (0x9, "9"), (0xC, "C")],
+                                [(0xE, "*"), (0x0, "0"), (0xF, "#"), (0xD, "D")],
+                            ];
 
-                        for (code, label) in keys {
-                            if ui.button(label).clicked() {
-                                self.press_key(code);
+                            for row in keys {
+                                for (code, label) in row {
+                                    if ui
+                                        .add(
+                                            egui::Button::new(label)
+                                                .min_size(egui::vec2(30.0, 30.0)),
+                                        )
+                                        .clicked()
+                                    {
+                                        self.press_key(code);
+                                    }
+                                }
+                                ui.end_row();
                             }
-                        }
-                    });
+                        });
                 });
             });
         self.is_open = open;

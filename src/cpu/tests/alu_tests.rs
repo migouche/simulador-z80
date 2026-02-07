@@ -1,7 +1,13 @@
 use rstest::rstest;
 
 use crate::cpu::{
-    alu::{add_16, alu_op::*, bit, dec, inc, res, rot::*, set, sub_16},
+    alu::{
+        add_16,
+        alu_op::{adc, add, and, or, sbc, sub, xor},
+        bit, dec, inc, res,
+        rot::{rl, rlc, rr, rrc, sla, sll, sra, srl},
+        set, sub_16,
+    },
     flags,
 };
 

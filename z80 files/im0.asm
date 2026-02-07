@@ -17,7 +17,7 @@
     LD A, 3         ; Load 3 on A
     OUT (02H), A    ; Show on display attached to Port 2
     EI              ; Re-enable interrupts
-    RET             ; Return to loop
+    RETI             ; Return to loop
 
 ORG 1000H
 START:
