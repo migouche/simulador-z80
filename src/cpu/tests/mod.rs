@@ -5,6 +5,8 @@ use crate::{cpu::Z80A, traits::MemoryMapper};
 pub mod alu_tests;
 pub mod decoding;
 pub mod instructions;
+pub mod interrupts;
+pub mod io;
 pub mod registers;
 pub mod stack;
 
@@ -42,3 +44,5 @@ fn test_mock_memory_read_write() {
     memory.write_word(0x1234, 0xCDEF);
     assert_eq!(memory.read_word(0x1234), 0xCDEF);
 }
+mod halt_test;
+pub mod nmi_tests;

@@ -9,6 +9,8 @@ use crate::components::memories::mem_64k::Mem64k;
 use crate::cpu::{Flag, GPR, Z80A};
 use crate::traits::{MemoryMapper, SyncronousComponent};
 
+use crate::ui_traits::DeviceWithUi;
+
 mod highlighting;
 
 #[derive(Clone)]
@@ -23,9 +25,18 @@ enum HeaderAction {
 }
 
 #[derive(Clone, Copy, PartialEq)]
+enum DeviceType {
+    Keypad,
+    SevenSegment,
+    GenericInterrupt,
+    NmiTrigger,
+}
+
+#[derive(Clone, PartialEq)]
 enum ModalType {
     CloseTab(usize),
     Quit,
+    AddDevice(DeviceType, String),
 }
 
 #[derive(serde::Deserialize, serde::Serialize, Clone)]
@@ -64,6 +75,9 @@ pub struct Z80App {
     loaded_file_name: String,
     #[serde(skip)]
     code_theme: highlighting::CodeTheme,
+
+    #[serde(skip)]
+    attached_devices: Vec<Rc<RefCell<dyn DeviceWithUi>>>,
 
     recent_files: Vec<PathBuf>,
 }
@@ -171,6 +185,25 @@ START:
         let memory: Rc<RefCell<dyn MemoryMapper>> = Rc::new(RefCell::new(Mem64k::new()));
         self.memory = memory.clone();
         self.cpu = Z80A::new(self.memory.clone());
+        self.attached_devices.clear();
+
+        // Attach default devices (can be made dynamic later)
+        /*
+        {
+             use crate::components::devices::{Keypad, SevenSegmentDisplay};
+
+             // Keypad on Port 0x01
+             let keypad = Rc::new(RefCell::new(Keypad::new(0x01)));
+             self.cpu.attach_device(keypad.clone());
+             self.attached_devices.push(keypad);
+
+             // 7-Segment on Port 0x02
+             let segment = Rc::new(RefCell::new(SevenSegmentDisplay::new(0x02)));
+             self.cpu.attach_device(segment.clone());
+             self.attached_devices.push(segment);
+        }
+        */
+
         self.is_running = false;
 
         if self.tabs.is_empty() {
@@ -382,6 +415,7 @@ impl Default for Z80App {
             loaded_file_name: "Untitled".to_string(),
             code_theme: highlighting::CodeTheme::one_dark_pro_vivid(),
             recent_files: Vec::new(),
+            attached_devices: Vec::new(), // Initialized empty, populated in load_and_reset or attached manually
         }
     }
 }
@@ -462,6 +496,48 @@ impl eframe::App for Z80App {
                     if ui.button("Quit").clicked() {
                         action = Some(HeaderAction::Quit);
                         ui.close();
+                    }
+                });
+
+                ui.menu_button("Devices", |ui| {
+                    if ui.button("Add Keypad").clicked() {
+                        self.pending_modal =
+                            Some(ModalType::AddDevice(DeviceType::Keypad, "1".to_string()));
+                        ui.close();
+                    }
+                    if ui.button("Add Display").clicked() {
+                        self.pending_modal = Some(ModalType::AddDevice(
+                            DeviceType::SevenSegment,
+                            "2".to_string(),
+                        ));
+                        ui.close();
+                    }
+                    if ui.button("Add Interrupt Controller").clicked() {
+                        self.pending_modal = Some(ModalType::AddDevice(
+                            DeviceType::GenericInterrupt,
+                            "0".to_string(),
+                        ));
+                        ui.close();
+                    }
+                    if ui.button("Add NMI Trigger").clicked() {
+                        self.pending_modal = Some(ModalType::AddDevice(
+                            DeviceType::NmiTrigger,
+                            "0".to_string(),
+                        ));
+                        ui.close();
+                    }
+
+                    if !self.attached_devices.is_empty() {
+                        ui.separator();
+                        ui.label("Manage Windows:");
+                        for dev in &self.attached_devices {
+                            let mut dev_ref = dev.borrow_mut();
+                            let name = dev_ref.get_name();
+                            let mut open = dev_ref.get_window_open_state();
+                            if ui.checkbox(&mut open, name).changed() {
+                                dev_ref.set_window_open_state(open);
+                            }
+                        }
                     }
                 });
             });
@@ -609,6 +685,20 @@ impl eframe::App for Z80App {
                         ui.end_row();
                         ui.label("L");
                         ui.label(mono(format!("0x{:02X}", reg_l)));
+                        ui.end_row();
+
+                        ui.separator();
+                        ui.separator();
+                        ui.end_row();
+
+                        ui.label("IFF1");
+                        ui.label(mono(format!("{}", self.cpu.get_iff1())));
+                        ui.end_row();
+                        ui.label("IFF2");
+                        ui.label(mono(format!("{}", self.cpu.get_iff2())));
+                        ui.end_row();
+                        ui.label("IM");
+                        ui.label(mono(format!("{}", self.cpu.get_interrupt_mode())));
                         ui.end_row();
                     });
 
@@ -967,19 +1057,68 @@ impl eframe::App for Z80App {
         }
 
         // Handle Modal Dialogs
-        if let Some(modal_type) = self.pending_modal {
+        if let Some(mut modal_type) = self.pending_modal.take() {
             let mut open = true;
             let mut should_close_modal = false;
 
+            let title = match modal_type {
+                ModalType::AddDevice(_, _) => "Add Device",
+                _ => "Unsaved Changes",
+            };
+
             // We use a centered window to simulate a modal
-            egui::Window::new("Unsaved Changes")
+            egui::Window::new(title)
                 .collapsible(false)
                 .resizable(false)
                 .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
                 .open(&mut open)
                 .show(ctx, |ui| {
-                    match modal_type {
+                    match &mut modal_type {
+                        ModalType::AddDevice(dev_type, port_text) => {
+                            use crate::components::devices::{
+                                GenericInterruptDevice, Keypad, SevenSegmentDisplay,
+                            };
+                            ui.label("Enter Port Number (Hex):");
+                            ui.text_edit_singleline(port_text);
+
+                            ui.horizontal(|ui| {
+                                if ui.button("Add").clicked() {
+                                    // Parse port
+                                    let port_res = u16::from_str_radix(port_text, 16);
+                                    match port_res {
+                                        Ok(port) => {
+                                            let dev: Rc<RefCell<dyn DeviceWithUi>> = match dev_type
+                                            {
+                                                DeviceType::Keypad => {
+                                                    Rc::new(RefCell::new(Keypad::new(port)))
+                                                }
+                                                DeviceType::SevenSegment => Rc::new(RefCell::new(
+                                                    SevenSegmentDisplay::new(port),
+                                                )),
+                                                DeviceType::GenericInterrupt => Rc::new(
+                                                    RefCell::new(GenericInterruptDevice::new(port)),
+                                                ),
+                                                DeviceType::NmiTrigger => Rc::new(RefCell::new(
+                                                    crate::components::nmi_trigger::NmiTrigger::new(
+                                                    ),
+                                                )),
+                                            };
+                                            self.cpu.attach_device(dev.clone());
+                                            self.attached_devices.push(dev);
+                                            should_close_modal = true;
+                                        }
+                                        Err(_) => {
+                                            ui.label("Invalid Hex Number");
+                                        }
+                                    }
+                                }
+                                if ui.button("Cancel").clicked() {
+                                    should_close_modal = true;
+                                }
+                            });
+                        }
                         ModalType::CloseTab(idx) => {
+                            let idx = *idx; // Copy index
                             let name = self
                                 .tabs
                                 .get(idx)
@@ -1047,7 +1186,7 @@ impl eframe::App for Z80App {
                                     if !self.tabs.iter().any(|t| t.is_dirty) {
                                         // Force close by clearing modal first to prevent loop
                                         should_close_modal = true;
-                                        self.pending_modal = None; // clear immediately
+                                        // self.pending_modal is already None because we took it
                                         ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                                     }
                                 }
@@ -1057,7 +1196,7 @@ impl eframe::App for Z80App {
                                         tab.is_dirty = false;
                                     }
                                     should_close_modal = true;
-                                    self.pending_modal = None;
+                                    // self.pending_modal is already None
                                     ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                                 }
                                 if ui.button("Cancel").clicked() {
@@ -1070,6 +1209,9 @@ impl eframe::App for Z80App {
 
             if !open || should_close_modal {
                 self.pending_modal = None;
+            } else {
+                // Restore logic
+                self.pending_modal = Some(modal_type);
             }
         }
 
@@ -1086,6 +1228,18 @@ impl eframe::App for Z80App {
             // Execute in batches to keep UI responsive
             while steps < 10000 {
                 if self.cpu.is_halted() {
+                    // Even if halted, we must continue ticking to handle interrupts!
+                    // tick() checks interrupts.
+                    self.cpu.tick();
+
+                    // If we just woke up, we continue normal execution in this loop.
+                    if !self.cpu.is_halted() {
+                        steps += 1;
+                        continue;
+                    }
+
+                    // If still halted, we stop this batch to avoid spinning 10000 times on a halted cpu per frame.
+                    // We need to request repaint though (handled below)
                     break;
                 }
 
@@ -1105,7 +1259,14 @@ impl eframe::App for Z80App {
             }
             if self.is_running {
                 ctx.request_repaint();
+                // If halted, we still want to repaint/re-check because UI interaction (keypad)
+                // might change device state, which needs to be picked up by next tick.
             }
+        }
+
+        // Draw separate windows for devices
+        for device in &self.attached_devices {
+            device.borrow_mut().draw(ctx);
         }
     }
 }

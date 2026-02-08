@@ -1,5 +1,10 @@
-use crate::cpu::tests::setup_cpu;
-use crate::cpu::*;
+use crate::{
+    cpu::{
+        AddressingMode, GPR, IndexRegister, IndexRegisterPart, RegisterPair, SystemRegister,
+        tests::setup_cpu,
+    },
+    traits::SyncronousComponent,
+};
 use rstest::rstest;
 
 #[rstest]
