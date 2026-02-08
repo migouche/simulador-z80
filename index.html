@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!--
+      If you want to support custom "404" pages on GitHub Pages:
+      https://github.com/rafgraph/spa-github-pages
+    -->
+    <meta charset="utf-8">
+    <title>Z80 Simulator</title>
+    <style>
+      html {
+        /* Remove touch delay: */
+        touch-action: manipulation;
+      }
+      body {
+        /* Light mode background color for what is not covered by the egui canvas,
+           or where the egui canvas is translucent. */
+        background: #909090; /* 202020 dark, 909090 light */
+        margin: 0;
+        padding: 0;
+      }
+      canvas {
+        display: block;
+        margin-right: auto;
+        margin-left: auto;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- The wasm code will resize this canvas to cover the entire window -->
+    <canvas id="z80-simulator-canvas"></canvas>
+  </body>
+</html>
