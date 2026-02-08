@@ -5,12 +5,9 @@ use std::collections::VecDeque;
 
 use std::{cell::RefCell, rc::Rc, usize};
 
-
 use crate::{
     cpu::alu::{
-        add_16,
-        alu_op,
-        bit, dec, inc, res,
+        add_16, alu_op, bit, dec, inc, res,
         rot::{self, RotOperation},
         set, sub_16,
     },
@@ -218,6 +215,7 @@ pub struct Z80A {
     interrupt_mode: u8,
     nmi_pending: bool,
     int_pending: bool,
+    nmi_last_state: bool, // Track NMI line state for edge detection
     iff_delay_count: u8,
 
     #[cfg(test)]
@@ -285,6 +283,7 @@ impl Z80A {
             interrupt_mode: 0,
             nmi_pending: false,
             int_pending: false,
+            nmi_last_state: false,
             iff_delay_count: 0,
 
             #[cfg(test)]
@@ -2146,6 +2145,20 @@ impl Z80A {
 
 impl SyncronousComponent for Z80A {
     fn tick(&mut self) {
+        // Poll for NMI (Edge detection)
+        let mut nmi_active = false;
+        for dev in &self.devices {
+            if dev.borrow().poll_nmi() {
+                nmi_active = true;
+                break;
+            }
+        }
+
+        if nmi_active && !self.nmi_last_state {
+            self.nmi_pending = true;
+        }
+        self.nmi_last_state = nmi_active;
+
         // Handle NMI (Edge triggered, highest priority)
         if self.nmi_pending {
             self.nmi_pending = false;

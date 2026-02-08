@@ -45,3 +45,4 @@ fn test_mock_memory_read_write() {
     assert_eq!(memory.read_word(0x1234), 0xCDEF);
 }
 mod halt_test;
+pub mod nmi_tests;

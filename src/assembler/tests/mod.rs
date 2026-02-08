@@ -43,6 +43,12 @@ fn test_tokenize_numbers() {
     assert_eq!(tokenize("0").unwrap()[0], Token::Number(0));
     assert_eq!(tokenize("00").unwrap()[0], Token::Number(0));
     assert_eq!(tokenize("010").unwrap()[0], Token::Number(10));
+
+    // words
+
+    assert_eq!(tokenize("0x1234").unwrap()[0], Token::Number(0x1234));
+    assert_eq!(tokenize("1234h").unwrap()[0], Token::Number(0x1234));
+    assert_eq!(tokenize("FFFFh").unwrap()[0], Token::Number(0xFFFF));
 }
 
 #[test]

@@ -186,7 +186,27 @@ fn tokenize(text: &str) -> Result<Vec<Token>, String> {
                         break;
                     }
                 }
-                tokens.push(Token::Identifier(ident.to_ascii_uppercase()));
+                let upper = ident.to_ascii_uppercase();
+
+                // Check for Hex number without leading zero (e.g. FFFFH)
+                // This is technically compliant with some assemblers but violates strict Z80 (requires leading 0-9)
+                // We add this to satisfy tests expecting FFFFH as a number.
+                let is_hex_candidate = upper.ends_with('H')
+                    && upper.len() > 1
+                    && upper[..upper.len() - 1]
+                        .chars()
+                        .all(|c| c.is_ascii_hexdigit());
+
+                if is_hex_candidate {
+                    if let Ok(val) = u16::from_str_radix(&upper[..upper.len() - 1], 16) {
+                        tokens.push(Token::Number(val));
+                    } else {
+                        // Overflow or error, fallback to identifier
+                        tokens.push(Token::Identifier(upper));
+                    }
+                } else {
+                    tokens.push(Token::Identifier(upper));
+                }
             }
             c if c.is_ascii_digit() => {
                 let mut num_str = String::new();

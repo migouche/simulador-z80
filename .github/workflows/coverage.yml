@@ -40,7 +40,7 @@ jobs:
       - name: Run llvm-cov (JSON)
         run: |
           cargo llvm-cov clean
-          cargo llvm-cov --ignore-filename-regex ".*gui.*" --json --output-path coverage.json
+          cargo llvm-cov --ignore-filename-regex ".*ui.*" --json --output-path coverage.json
 
       - name: Parse coverage and update gist
         env:

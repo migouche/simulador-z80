@@ -28,4 +28,8 @@ pub trait IODevice {
     fn ack_interrupt(&mut self) -> u8 {
         0xFF
     }
+
+    fn poll_nmi(&self) -> bool {
+        false
+    }
 }

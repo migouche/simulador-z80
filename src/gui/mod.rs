@@ -29,6 +29,7 @@ enum DeviceType {
     Keypad,
     SevenSegment,
     GenericInterrupt,
+    NmiTrigger,
 }
 
 #[derive(Clone, PartialEq)]
@@ -514,6 +515,13 @@ impl eframe::App for Z80App {
                     if ui.button("Add Interrupt Controller").clicked() {
                         self.pending_modal = Some(ModalType::AddDevice(
                             DeviceType::GenericInterrupt,
+                            "0".to_string(),
+                        ));
+                        ui.close();
+                    }
+                    if ui.button("Add NMI Trigger").clicked() {
+                        self.pending_modal = Some(ModalType::AddDevice(
+                            DeviceType::NmiTrigger,
                             "0".to_string(),
                         ));
                         ui.close();
@@ -1090,6 +1098,10 @@ impl eframe::App for Z80App {
                                                 DeviceType::GenericInterrupt => Rc::new(
                                                     RefCell::new(GenericInterruptDevice::new(port)),
                                                 ),
+                                                DeviceType::NmiTrigger => Rc::new(RefCell::new(
+                                                    crate::components::nmi_trigger::NmiTrigger::new(
+                                                    ),
+                                                )),
                                             };
                                             self.cpu.attach_device(dev.clone());
                                             self.attached_devices.push(dev);
