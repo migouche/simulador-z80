@@ -27,14 +27,15 @@
         height: 100%;
       }
     </style>
-  <link rel="modulepreload" href="simulador-z80/simulador-z80-93f7def465405281.js" crossorigin="anonymous" integrity="sha384-GEog1qGRPRW04nuceize5w0J6MGtWm4Q86BIcP13zY12ll9kaCi+/kBWe0Jo6Ks4"><link rel="preload" href="simulador-z80/simulador-z80-93f7def465405281_bg.wasm" crossorigin="anonymous" integrity="sha384-pWye4HPYBwcr06LY1aZmRentLBZ3dTUfoTfV3xyLYPIvO6i6WYgLFf/Z40xGgDnG" as="fetch" type="application/wasm"></head>
+    
+  <link rel="modulepreload" href="simulador-z80/simulador-z80-b07f5efc43c78bd1.js" crossorigin="anonymous" integrity="sha384-GEog1qGRPRW04nuceize5w0J6MGtWm4Q86BIcP13zY12ll9kaCi+/kBWe0Jo6Ks4"><link rel="preload" href="simulador-z80/simulador-z80-b07f5efc43c78bd1_bg.wasm" crossorigin="anonymous" integrity="sha384-ZF0Jbx8z+TZ1md2DuPq8J56LPGC2zlKxQoZOQniAUWMXvglTVKgtv6nYOUpvJaBi" as="fetch" type="application/wasm"></head>
   <body>
     <!-- The wasm code will resize this canvas to cover the entire window -->
     <canvas id="z80-simulator-canvas"></canvas>
   
 <script type="module">
-import init, * as bindings from 'simulador-z80/simulador-z80-93f7def465405281.js';
-const wasm = await init({ module_or_path: 'simulador-z80/simulador-z80-93f7def465405281_bg.wasm' });
+import init, * as bindings from 'simulador-z80/simulador-z80-b07f5efc43c78bd1.js';
+const wasm = await init({ module_or_path: 'simulador-z80/simulador-z80-b07f5efc43c78bd1_bg.wasm' });
 
 
 window.wasmBindings = bindings;
