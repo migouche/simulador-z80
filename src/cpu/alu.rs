@@ -234,14 +234,6 @@ pub mod alu_op {
             | (if s { flags::SIGN } else { 0x00 });
         (result, flags)
     }
-
-    pub fn adc(a: u8, b: u8, carry_in: bool) -> (u8, u8) {
-        add(a, b, carry_in)
-    }
-
-    pub fn sbc(a: u8, b: u8, carry_in: bool) -> (u8, u8) {
-        sub(a, b, carry_in)
-    }
 }
 
 pub fn inc(value: u8) -> (u8, u8) {
