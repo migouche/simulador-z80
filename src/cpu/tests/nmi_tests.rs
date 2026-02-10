@@ -11,7 +11,7 @@ fn test_nmi_basic() {
     let mut cpu = setup_cpu();
 
     // Set PC to some known location
-    cpu.PC = 0x1000;
+    cpu.pc = 0x1000;
 
     // Trigger NMI
     cpu.nmi();
@@ -32,9 +32,9 @@ fn test_nmi_basic() {
 
     // After NMI:
     // PC should be 0x0066
-    assert_eq!(cpu.PC, 0x0066);
+    assert_eq!(cpu.pc, 0x0066);
     // Old PC (0x1000) should be on stack
-    let sp = cpu.SP;
+    let sp = cpu.sp;
     let ret_addr_low = cpu.memory.borrow().read(sp);
     let ret_addr_high = cpu.memory.borrow().read(sp.wrapping_add(1));
     let ret_addr = u16::from_le_bytes([ret_addr_low, ret_addr_high]);
@@ -57,7 +57,7 @@ fn test_nmi_disables_maskable_interrupts() {
     assert_eq!(cpu.iff2, true);
 
     // And PC check
-    assert_eq!(cpu.PC, 0x0066);
+    assert_eq!(cpu.pc, 0x0066);
 }
 
 #[test]
@@ -98,7 +98,7 @@ fn test_retn_restores_iff1() {
     cpu.tick(); // Fetch and execute RETN
 
     // Should have returned to where we were (0x0000 default start)
-    assert_eq!(cpu.PC, 0x0000);
+    assert_eq!(cpu.pc, 0x0000);
 
     // IFF1 should be restored from IFF2
     assert_eq!(cpu.iff1, true);
@@ -128,7 +128,7 @@ fn test_retn_restores_iff1_disabled() {
     cpu.tick();
 
     // Should have returned to check PC
-    assert_eq!(cpu.PC, 0x0000);
+    assert_eq!(cpu.pc, 0x0000);
 
     // IFF1 should be restored from IFF2 (false)
     assert_eq!(cpu.iff1, false);
@@ -145,5 +145,5 @@ fn test_nmi_wakes_halt() {
     cpu.tick(); // Should wake up and process NMI
 
     assert_eq!(cpu.halted, false);
-    assert_eq!(cpu.PC, 0x0066);
+    assert_eq!(cpu.pc, 0x0066);
 }

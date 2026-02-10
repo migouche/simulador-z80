@@ -16,6 +16,25 @@ mod highlighting;
 #[cfg(target_arch = "wasm32")]
 use std::sync::mpsc::{Receiver, Sender, channel};
 
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::*;
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen(inline_js = "
+export function download_file(filename, text) {
+    var element = document.createElement('a');
+    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+    element.setAttribute('download', filename);
+    element.style.display = 'none';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+}
+")]
+extern "C" {
+    fn download_file(filename: &str, text: &str);
+}
+
 #[derive(Clone)]
 enum HeaderAction {
     NewFile,
@@ -85,6 +104,12 @@ pub struct Z80App {
     #[cfg(target_arch = "wasm32")]
     #[serde(skip)]
     file_receiver: Option<Receiver<(String, String)>>,
+
+    #[serde(skip)]
+    examples_list: Vec<String>,
+    #[cfg(target_arch = "wasm32")]
+    #[serde(skip)]
+    examples_receiver: Option<Receiver<Vec<String>>>,
 
     recent_files: Vec<PathBuf>,
 }
@@ -389,6 +414,27 @@ START:
         }
     }
 
+    #[cfg(target_arch = "wasm32")]
+    fn load_example(&mut self, filename: String) {
+        let (sender, receiver) = channel();
+        self.file_receiver = Some(receiver);
+
+        let origin = web_sys::window().unwrap().location().origin().unwrap();
+        let url = format!("{}/z80%20files/{}", origin, filename);
+        let name = filename;
+
+        wasm_bindgen_futures::spawn_local(async move {
+            match reqwest::get(&url).await {
+                Ok(resp) => {
+                    if let Ok(text) = resp.text().await {
+                        let _ = sender.send((name, text));
+                    }
+                }
+                Err(_) => {}
+            }
+        });
+    }
+
     fn save_file(&mut self, tab_idx: usize, storage: Option<&mut (dyn eframe::Storage + 'static)>) {
         #[cfg(target_arch = "wasm32")]
         {
@@ -458,18 +504,7 @@ START:
                 .and_then(|n| n.to_str())
                 .unwrap_or("program.asm");
 
-            let task = rfd::AsyncFileDialog::new()
-                .add_filter("Assembly", &["asm", "z80"])
-                .set_file_name(name)
-                .save_file();
-
-            let code = tab.code.clone();
-
-            wasm_bindgen_futures::spawn_local(async move {
-                if let Some(file) = task.await {
-                    let _ = file.write(code.as_bytes()).await;
-                }
-            });
+            download_file(name, &tab.code);
 
             tab.is_dirty = false;
             self.save_to_storage(storage);
@@ -494,6 +529,45 @@ impl Default for Z80App {
         let memory: Rc<RefCell<dyn MemoryMapper>> = Rc::new(RefCell::new(Mem64k::new()));
         let cpu = Z80A::new(memory.clone());
 
+        #[cfg(target_arch = "wasm32")]
+        let (examples_sender, examples_receiver) = channel();
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            wasm_bindgen_futures::spawn_local(async move {
+                // Fetch examples.json
+                let origin = web_sys::window().unwrap().location().origin().unwrap();
+                let url = format!("{}/z80%20files/examples.json", origin);
+
+                match reqwest::get(&url).await {
+                    Ok(resp) => {
+                        if !resp.status().is_success() {
+                            web_sys::console::error_1(
+                                &format!("Failed to fetch {}: status {}", url, resp.status())
+                                    .into(),
+                            );
+                            return;
+                        }
+                        match resp.json::<Vec<String>>().await {
+                            Ok(list) => {
+                                let _ = examples_sender.send(list);
+                            }
+                            Err(e) => {
+                                web_sys::console::error_1(
+                                    &format!("Failed to parse examples.json: {}", e).into(),
+                                );
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        web_sys::console::error_1(
+                            &format!("Failed to request {}: {}", url, e).into(),
+                        );
+                    }
+                }
+            });
+        }
+
         Self {
             cpu,
             memory,
@@ -516,6 +590,9 @@ impl Default for Z80App {
             attached_devices: Vec::new(), // Initialized empty, populated in load_and_reset or attached manually
             #[cfg(target_arch = "wasm32")]
             file_receiver: None,
+            examples_list: Vec::new(),
+            #[cfg(target_arch = "wasm32")]
+            examples_receiver: Some(examples_receiver),
         }
     }
 }
@@ -534,6 +611,13 @@ impl eframe::App for Z80App {
                     self.load_file_content(PathBuf::from(name), content, frame.storage_mut());
                 }
                 self.file_receiver = Some(receiver);
+            }
+
+            if let Some(receiver) = self.examples_receiver.take() {
+                if let Ok(list) = receiver.try_recv() {
+                    self.examples_list = list;
+                }
+                self.examples_receiver = Some(receiver);
             }
         }
 
@@ -647,6 +731,24 @@ impl eframe::App for Z80App {
                             if ui.checkbox(&mut open, name).changed() {
                                 dev_ref.set_window_open_state(open);
                             }
+                        }
+                    }
+                });
+
+                #[cfg(target_arch = "wasm32")]
+                ui.menu_button("Examples", |ui| {
+                    if self.examples_list.is_empty() {
+                        ui.label("No examples found");
+                    } else {
+                        let mut to_load = None;
+                        for ex in &self.examples_list {
+                            if ui.button(ex).clicked() {
+                                to_load = Some(ex.clone());
+                            }
+                        }
+                        if let Some(ex) = to_load {
+                            self.load_example(ex);
+                            ui.close();
                         }
                     }
                 });

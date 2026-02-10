@@ -187,8 +187,8 @@ fn test_ret(
     for &(addr, val) in stacked_values {
         cpu.memory.borrow_mut().write(addr, val);
     }
-    cpu.PC = initial_pc;
-    cpu.SP = initial_sp;
+    cpu.pc = initial_pc;
+    cpu.sp = initial_sp;
     cpu.set_register(GPR::F, initial_flags);
 
     let opcode = match ret_cc {
@@ -202,18 +202,18 @@ fn test_ret(
         CC::Condition(Condition::P) => RET_P_OPCODE,
         CC::Condition(Condition::M) => RET_M_OPCODE,
     };
-    cpu.memory.borrow_mut().write(cpu.PC, opcode);
+    cpu.memory.borrow_mut().write(cpu.pc, opcode);
     cpu.tick();
 
     assert_eq!(
-        cpu.PC, expected_final_pc,
+        cpu.pc, expected_final_pc,
         "PC mismatch: expected 0x{:04X}, got 0x{:04X}",
-        expected_final_pc, cpu.PC
+        expected_final_pc, cpu.pc
     );
     assert_eq!(
-        cpu.SP, expected_final_sp,
+        cpu.sp, expected_final_sp,
         "SP mismatch: expected 0x{:04X}, got 0x{:04X}",
-        expected_final_sp, cpu.SP
+        expected_final_sp, cpu.sp
     );
 }
 
@@ -392,8 +392,8 @@ fn test_call(
 ) {
     let mut cpu = setup_cpu();
 
-    cpu.PC = initial_pc;
-    cpu.SP = initial_sp;
+    cpu.pc = initial_pc;
+    cpu.sp = initial_sp;
     cpu.set_register(GPR::F, initial_flags);
 
     let opcode = match call_cc {
@@ -409,30 +409,30 @@ fn test_call(
     };
 
     // Write Opcode
-    cpu.memory.borrow_mut().write(cpu.PC, opcode);
+    cpu.memory.borrow_mut().write(cpu.pc, opcode);
 
     // Write Target Address (Little Endian)
     let low_byte = (target_addr & 0xFF) as u8;
     let high_byte = ((target_addr >> 8) & 0xFF) as u8;
     cpu.memory
         .borrow_mut()
-        .write(cpu.PC.wrapping_add(1), low_byte);
+        .write(cpu.pc.wrapping_add(1), low_byte);
     cpu.memory
         .borrow_mut()
-        .write(cpu.PC.wrapping_add(2), high_byte);
+        .write(cpu.pc.wrapping_add(2), high_byte);
 
     cpu.tick();
 
     // 1. Check PC and SP
     assert_eq!(
-        cpu.PC, expected_final_pc,
+        cpu.pc, expected_final_pc,
         "PC mismatch: expected 0x{:04X}, got 0x{:04X}",
-        expected_final_pc, cpu.PC
+        expected_final_pc, cpu.pc
     );
     assert_eq!(
-        cpu.SP, expected_final_sp,
+        cpu.sp, expected_final_sp,
         "SP mismatch: expected 0x{:04X}, got 0x{:04X}",
-        expected_final_sp, cpu.SP
+        expected_final_sp, cpu.sp
     );
 
     // 2. Check Stack Content (Only if the call was taken)
@@ -443,8 +443,8 @@ fn test_call(
 
         // In Little Endian, the value at SP should be Low, and SP+1 should be High
         // (Because we Pushed High first to SP-1, then Low to SP-2)
-        let stack_low = cpu.memory.borrow().read(cpu.SP);
-        let stack_high = cpu.memory.borrow().read(cpu.SP.wrapping_add(1));
+        let stack_low = cpu.memory.borrow().read(cpu.sp);
+        let stack_high = cpu.memory.borrow().read(cpu.sp.wrapping_add(1));
 
         assert_eq!(stack_low, ret_low, "Stack Low Byte (Return Addr) mismatch");
         assert_eq!(
@@ -499,27 +499,27 @@ fn test_rst(
 ) {
     let mut cpu = setup_cpu();
 
-    cpu.PC = starting_pc;
-    cpu.SP = starting_sp;
+    cpu.pc = starting_pc;
+    cpu.sp = starting_sp;
 
-    cpu.memory.borrow_mut().write(cpu.PC, opcode);
+    cpu.memory.borrow_mut().write(cpu.pc, opcode);
 
     cpu.tick();
 
     assert_eq!(
-        cpu.PC, expected_target_pc,
+        cpu.pc, expected_target_pc,
         "PC mismatch after RST: expected {:04X}, got {:04X}",
-        expected_target_pc, cpu.PC
+        expected_target_pc, cpu.pc
     );
 
     assert_eq!(
-        cpu.SP, expected_final_sp,
+        cpu.sp, expected_final_sp,
         "SP mismatch after RST: expected {:04X}, got {:04X}",
-        expected_final_sp, cpu.SP
+        expected_final_sp, cpu.sp
     );
 
     let ret_addr = starting_pc.wrapping_add(1);
-    let stack = cpu.memory.borrow().read_word(cpu.SP);
+    let stack = cpu.memory.borrow().read_word(cpu.sp);
 
     assert_eq!(stack, ret_addr, "Stack Word (Return Addr) mismatch");
 }

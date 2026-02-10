@@ -63,8 +63,8 @@ fn test_pop(
 ) {
     let mut cpu = setup_cpu();
 
-    cpu.PC = starting_pc;
-    cpu.SP = starting_sp;
+    cpu.pc = starting_pc;
+    cpu.sp = starting_sp;
 
     for (addr, value) in memory_contents {
         cpu.memory.borrow_mut().write(*addr, *value);
@@ -78,7 +78,7 @@ fn test_pop(
         RegisterPair::AF => 0xF1,
         _ => panic!("Invalid register for POP instruction"),
     };
-    cpu.memory.borrow_mut().write(cpu.PC, pop_opcode);
+    cpu.memory.borrow_mut().write(cpu.pc, pop_opcode);
 
     cpu.tick();
 
@@ -89,9 +89,9 @@ fn test_pop(
         dest_reg, expected_value, result
     );
     assert_eq!(
-        cpu.SP, expected_sp,
+        cpu.sp, expected_sp,
         "Wrong SP after POP: expected {:04X}, got {:04X}",
-        expected_sp, cpu.SP
+        expected_sp, cpu.sp
     );
 }
 
@@ -153,8 +153,8 @@ fn test_push(
 ) {
     let mut cpu = setup_cpu();
 
-    cpu.PC = starting_pc;
-    cpu.SP = starting_sp;
+    cpu.pc = starting_pc;
+    cpu.sp = starting_sp;
     cpu.set_register_pair(reg_to_push, value_in_reg);
 
     // Write the PUSH instruction at the current PC
@@ -165,15 +165,15 @@ fn test_push(
         RegisterPair::AF => 0xF5,
         _ => panic!("Invalid register for PUSH instruction"),
     };
-    cpu.memory.borrow_mut().write(cpu.PC, push_opcode);
+    cpu.memory.borrow_mut().write(cpu.pc, push_opcode);
 
     cpu.tick();
 
     // Verify SP moved correctly
     assert_eq!(
-        cpu.SP, expected_sp,
+        cpu.sp, expected_sp,
         "Wrong SP after PUSH {:?}: expected {:04X}, got {:04X}",
-        reg_to_push, expected_sp, cpu.SP
+        reg_to_push, expected_sp, cpu.sp
     );
 
     // Verify Memory contents

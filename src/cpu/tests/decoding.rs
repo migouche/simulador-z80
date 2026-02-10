@@ -892,7 +892,7 @@ fn test_opcode(
             .borrow_mut()
             .write(starting_pc.wrapping_add(i as u16), byte);
     }
-    cpu.PC = starting_pc;
+    cpu.pc = starting_pc;
     cpu.tick();
 
     assert_eq!(

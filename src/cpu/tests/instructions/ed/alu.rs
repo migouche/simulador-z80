@@ -117,7 +117,7 @@ fn test_alu16(
 ) {
     let mut cpu = setup_cpu();
     cpu.set_register(GPR::F, initial_flags);
-    cpu.PC = initial_pc;
+    cpu.pc = initial_pc;
     cpu.memory.borrow_mut().write(initial_pc, PREFIX);
     cpu.memory
         .borrow_mut()
@@ -198,7 +198,7 @@ fn test_neg(
     let mut cpu = setup_cpu();
     cpu.set_register(GPR::F, initial_flags);
     cpu.set_register(GPR::A, initial_a);
-    cpu.PC = initial_pc;
+    cpu.pc = initial_pc;
     cpu.memory.borrow_mut().write(initial_pc, PREFIX);
     cpu.memory
         .borrow_mut()
