@@ -54,7 +54,7 @@ fn test_rot(
     #[case] expected_flags: u8,
 ) {
     let mut cpu = setup_cpu();
-    cpu.PC = initial_pc;
+    cpu.pc = initial_pc;
     cpu.set_register(GPR::A, initial_a);
     cpu.memory.borrow_mut().write(initial_pc, PREFIX);
     cpu.memory

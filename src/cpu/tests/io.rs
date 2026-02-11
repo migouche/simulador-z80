@@ -284,7 +284,7 @@ fn test_block_io_repeat(#[case] opcode: u8, #[case] is_in: bool, #[case] inc_hl:
 
     assert_eq!(cpu.get_register(GPR::B), 0x01);
     assert_eq!(cpu.get_flag(Flag::Z), false);
-    assert_eq!(cpu.PC, 0x0000, "Should repeat");
+    assert_eq!(cpu.pc, 0x0000, "Should repeat");
 
     if is_in {
         assert_eq!(cpu.memory.borrow().read(0x4000), 0x11);
@@ -297,7 +297,7 @@ fn test_block_io_repeat(#[case] opcode: u8, #[case] is_in: bool, #[case] inc_hl:
 
     assert_eq!(cpu.get_register(GPR::B), 0x00);
     assert_eq!(cpu.get_flag(Flag::Z), true);
-    assert_ne!(cpu.PC, 0x0000, "Should advance");
+    assert_ne!(cpu.pc, 0x0000, "Should advance");
 
     // Address check
     let expected_final_hl = if inc_hl { 0x4002 } else { 0x3FFE };

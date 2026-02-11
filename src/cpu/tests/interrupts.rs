@@ -42,7 +42,7 @@ fn test_interrupt_mode_0() {
     let dev = Rc::new(RefCell::new(MockInterruptDevice::new(0xFF))); // RST 38H
     cpu.attach_device(dev.clone());
 
-    cpu.SP = 0xFFFF;
+    cpu.sp = 0xFFFF;
     cpu.memory.borrow_mut().write(0x0038, 0x00); // NOP at ISR
 
     // 0000: ED 46 (IM 0)
@@ -65,7 +65,7 @@ fn test_interrupt_mode_0() {
 
     cpu.tick(); // Interrupt -> RST 38H (pushes 0004)
 
-    assert_eq!(cpu.PC, 0x0038);
+    assert_eq!(cpu.pc, 0x0038);
     assert_eq!(cpu.pop(), 0x0004);
 }
 
@@ -74,7 +74,7 @@ fn test_interrupt_mode_1() {
     let mut cpu = setup_cpu();
     let dev = Rc::new(RefCell::new(MockInterruptDevice::new(0x00)));
     cpu.attach_device(dev.clone());
-    cpu.SP = 0xFFFF;
+    cpu.sp = 0xFFFF;
 
     cpu.memory.borrow_mut().write(0x0000, 0xED);
     cpu.memory.borrow_mut().write(0x0001, 0x56); // IM 1
@@ -89,7 +89,7 @@ fn test_interrupt_mode_1() {
 
     cpu.tick();
 
-    assert_eq!(cpu.PC, 0x0038);
+    assert_eq!(cpu.pc, 0x0038);
     assert_eq!(cpu.pop(), 0x0004);
 }
 
@@ -98,7 +98,7 @@ fn test_interrupt_mode_2() {
     let mut cpu = setup_cpu();
     let dev = Rc::new(RefCell::new(MockInterruptDevice::new(0x04)));
     cpu.attach_device(dev.clone());
-    cpu.SP = 0xFFFF;
+    cpu.sp = 0xFFFF;
 
     // I = 0x20. ISR table at 0x2004 -> points to 0x3000
     cpu.memory.borrow_mut().write_word(0x2004, 0x3000);
@@ -124,14 +124,14 @@ fn test_interrupt_mode_2() {
 
     cpu.tick(); // Interrupt logic
 
-    assert_eq!(cpu.PC, 0x3000);
+    assert_eq!(cpu.pc, 0x3000);
     assert_eq!(cpu.pop(), 0x0008);
 }
 
 #[test]
 fn test_reti() {
     let mut cpu = setup_cpu();
-    cpu.SP = 0xFFFD;
+    cpu.sp = 0xFFFD;
     cpu.memory.borrow_mut().write_word(0xFFFD, 0x1234);
 
     cpu.memory.borrow_mut().write(0x0000, 0xED);
@@ -139,13 +139,13 @@ fn test_reti() {
 
     cpu.tick();
 
-    assert_eq!(cpu.PC, 0x1234);
+    assert_eq!(cpu.pc, 0x1234);
 }
 
 #[test]
 fn test_retn() {
     let mut cpu = setup_cpu();
-    cpu.SP = 0xFFFD;
+    cpu.sp = 0xFFFD;
     cpu.memory.borrow_mut().write_word(0xFFFD, 0x5678);
     cpu.iff1 = false;
     cpu.iff2 = true;
@@ -155,6 +155,6 @@ fn test_retn() {
 
     cpu.tick();
 
-    assert_eq!(cpu.PC, 0x5678);
+    assert_eq!(cpu.pc, 0x5678);
     assert_eq!(cpu.iff1, true);
 }

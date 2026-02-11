@@ -198,17 +198,16 @@ pub struct Z80A {
     active_general: usize,
 
     // special registers
-    PC: u16,
-    SP: u16,
-    IX: u16,
-    IY: u16,
-    I: u8,
-    R: u8,
+    pc: u16,
+    sp: u16,
+    ix: u16,
+    iy: u16,
+    i: u8,
+    r: u8,
 
     memory: Rc<RefCell<dyn MemoryMapper>>,
     devices: Vec<Rc<RefCell<dyn IODevice>>>,
 
-    cycles: u64,
     halted: bool,
     iff1: bool,
     iff2: bool,
@@ -227,19 +226,19 @@ pub struct Z80A {
 
 impl Z80A {
     pub fn get_pc(&self) -> u16 {
-        self.PC
+        self.pc
     }
 
     pub fn get_sp(&self) -> u16 {
-        self.SP
+        self.sp
     }
 
     pub fn get_ix(&self) -> u16 {
-        self.IX
+        self.ix
     }
 
     pub fn get_iy(&self) -> u16 {
-        self.IY
+        self.iy
     }
 
     pub fn is_halted(&self) -> bool {
@@ -268,15 +267,14 @@ impl Z80A {
             active_af: 0,
             general_registers: [GeneralSet::default(); 2],
             active_general: 0,
-            PC: 0,
-            SP: 0,
-            IX: 0,
-            IY: 0,
-            I: 0,
-            R: 0,
+            pc: 0,
+            sp: 0,
+            ix: 0,
+            iy: 0,
+            i: 0,
+            r: 0,
             memory,
             devices: Vec::new(),
-            cycles: 0,
             halted: false,
             iff1: false,
             iff2: false,
@@ -347,8 +345,8 @@ impl Z80A {
     fn handle_nmi(&mut self) {
         self.iff2 = self.iff1;
         self.iff1 = false;
-        self.push(self.PC);
-        self.PC = 0x0066;
+        self.push(self.pc);
+        self.pc = 0x0066;
     }
 
     fn handle_int(&mut self) {
@@ -362,23 +360,23 @@ impl Z80A {
             }
             1 => {
                 self.ack_interrupt(); // Acknowledge interrupt to clear the line
-                self.push(self.PC);
-                self.PC = 0x0038;
+                self.push(self.pc);
+                self.pc = 0x0038;
             }
             2 => {
                 let vector = self.ack_interrupt() & 0xFE;
-                let addr = ((self.I as u16) << 8) | (vector as u16);
-                self.push(self.PC);
+                let addr = ((self.i as u16) << 8) | (vector as u16);
+                self.push(self.pc);
                 let dest = self.memory.borrow().read_word(addr);
-                self.PC = dest;
+                self.pc = dest;
             }
             _ => unreachable!(),
         }
     }
 
     fn fetch(&mut self) -> u8 {
-        let data = self.memory.borrow().read(self.PC);
-        self.PC = self.PC.wrapping_add(1);
+        let data = self.memory.borrow().read(self.pc);
+        self.pc = self.pc.wrapping_add(1);
         data
     }
 
@@ -444,7 +442,7 @@ impl Z80A {
                 let regs = &self.general_registers[self.active_general];
                 ((regs.h as u16) << 8) | (regs.l as u16)
             }
-            RegisterPair::SP => self.SP,
+            RegisterPair::SP => self.sp,
         }
     }
 
@@ -470,7 +468,7 @@ impl Z80A {
                 regs.h = (value >> 8) as u8;
                 regs.l = (value & 0xFF) as u8;
             }
-            RegisterPair::SP => self.SP = value,
+            RegisterPair::SP => self.sp = value,
         }
     }
 
@@ -515,41 +513,37 @@ impl Z80A {
         }
     }
 
-    pub fn get_flag_i(&self, usize: usize) -> bool {
-        self.af_registers[self.active_af].f & (1 << usize) != 0
-    }
-
     fn set_system_register(&mut self, reg: SystemRegister, value: u16) {
         match reg {
-            SystemRegister::PC => self.PC = value,
-            SystemRegister::I => self.I = value as u8,
-            SystemRegister::R => self.R = value as u8,
+            SystemRegister::PC => self.pc = value,
+            SystemRegister::I => self.i = value as u8,
+            SystemRegister::R => self.r = value as u8,
         }
     }
 
     fn get_system_register(&self, reg: SystemRegister) -> u16 {
         match reg {
-            SystemRegister::PC => self.PC,
-            SystemRegister::I => self.I as u16,
-            SystemRegister::R => self.R as u16,
+            SystemRegister::PC => self.pc,
+            SystemRegister::I => self.i as u16,
+            SystemRegister::R => self.r as u16,
         }
     }
 
     fn set_index_register_part(&mut self, reg: IndexRegisterPart, value: u8) {
         match reg {
-            IndexRegisterPart::IXH => self.IX = (self.IX & 0x00FF) | ((value as u16) << 8),
-            IndexRegisterPart::IXL => self.IX = (self.IX & 0xFF00) | (value as u16),
-            IndexRegisterPart::IYH => self.IY = (self.IY & 0x00FF) | ((value as u16) << 8),
-            IndexRegisterPart::IYL => self.IY = (self.IY & 0xFF00) | (value as u16),
+            IndexRegisterPart::IXH => self.ix = (self.ix & 0x00FF) | ((value as u16) << 8),
+            IndexRegisterPart::IXL => self.ix = (self.ix & 0xFF00) | (value as u16),
+            IndexRegisterPart::IYH => self.iy = (self.iy & 0x00FF) | ((value as u16) << 8),
+            IndexRegisterPart::IYL => self.iy = (self.iy & 0xFF00) | (value as u16),
         }
     }
 
     fn get_index_register_part(&self, reg: IndexRegisterPart) -> u8 {
         match reg {
-            IndexRegisterPart::IXH => (self.IX >> 8) as u8,
-            IndexRegisterPart::IXL => (self.IX & 0x00FF) as u8,
-            IndexRegisterPart::IYH => (self.IY >> 8) as u8,
-            IndexRegisterPart::IYL => (self.IY & 0x00FF) as u8,
+            IndexRegisterPart::IXH => (self.ix >> 8) as u8,
+            IndexRegisterPart::IXL => (self.ix & 0x00FF) as u8,
+            IndexRegisterPart::IYH => (self.iy >> 8) as u8,
+            IndexRegisterPart::IYL => (self.iy & 0x00FF) as u8,
         }
     }
 
@@ -615,26 +609,26 @@ impl Z80A {
 
     fn get_index_register(&self, index: IndexRegister) -> u16 {
         match index {
-            IndexRegister::IX => self.IX,
-            IndexRegister::IY => self.IY,
+            IndexRegister::IX => self.ix,
+            IndexRegister::IY => self.iy,
         }
     }
 
     fn set_index_register(&mut self, index: IndexRegister, value: u16) {
         match index {
-            IndexRegister::IX => self.IX = value,
-            IndexRegister::IY => self.IY = value,
+            IndexRegister::IX => self.ix = value,
+            IndexRegister::IY => self.iy = value,
         }
     }
 
     fn push(&mut self, value: u16) {
-        self.SP = self.SP.wrapping_sub(2);
-        self.memory.borrow_mut().write_word(self.SP, value);
+        self.sp = self.sp.wrapping_sub(2);
+        self.memory.borrow_mut().write_word(self.sp, value);
     }
 
     fn pop(&mut self) -> u16 {
-        let value = self.memory.borrow().read_word(self.SP);
-        self.SP = self.SP.wrapping_add(2);
+        let value = self.memory.borrow().read_word(self.sp);
+        self.sp = self.sp.wrapping_add(2);
         value
     }
 
@@ -1000,7 +994,7 @@ impl Z80A {
             BlockInstruction::INIR => {
                 self.execute_block_instruction(BlockInstruction::INI);
                 if self.get_register(GPR::B) != 0 {
-                    self.PC = self.PC.wrapping_sub(2);
+                    self.pc = self.pc.wrapping_sub(2);
                 }
             }
             BlockInstruction::IND => {
@@ -1022,7 +1016,7 @@ impl Z80A {
             BlockInstruction::INDR => {
                 self.execute_block_instruction(BlockInstruction::IND);
                 if self.get_register(GPR::B) != 0 {
-                    self.PC = self.PC.wrapping_sub(2);
+                    self.pc = self.pc.wrapping_sub(2);
                 }
             }
             BlockInstruction::OUTI => {
@@ -1045,7 +1039,7 @@ impl Z80A {
             BlockInstruction::OTIR => {
                 self.execute_block_instruction(BlockInstruction::OUTI);
                 if self.get_register(GPR::B) != 0 {
-                    self.PC = self.PC.wrapping_sub(2);
+                    self.pc = self.pc.wrapping_sub(2);
                 }
             }
             BlockInstruction::OUTD => {
@@ -1068,7 +1062,7 @@ impl Z80A {
             BlockInstruction::OTDR => {
                 self.execute_block_instruction(BlockInstruction::OUTD);
                 if self.get_register(GPR::B) != 0 {
-                    self.PC = self.PC.wrapping_sub(2);
+                    self.pc = self.pc.wrapping_sub(2);
                 }
             }
             _ => {
@@ -1165,14 +1159,14 @@ impl Z80A {
                         let b = self.get_register(GPR::B).wrapping_sub(1);
                         self.set_register(GPR::B, b);
                         if b != 0 {
-                            self.PC = self.PC.wrapping_add(d as i16 as u16);
+                            self.pc = self.pc.wrapping_add(d as i16 as u16);
                         }
                     }
                     3 => {
                         // JR d
                         test_log!(self, "JR d");
                         let d = self.fetch_displacement();
-                        self.PC = self.PC.wrapping_add(d as i16 as u16);
+                        self.pc = self.pc.wrapping_add(d as i16 as u16);
                     }
                     4..=7 => {
                         // JR cc[y-4], d
@@ -1180,7 +1174,7 @@ impl Z80A {
                         let condition = self.table_cc(y - 4);
                         let d = self.fetch_displacement();
                         if self.evaluate_condition(condition) {
-                            self.PC = self.PC.wrapping_add(d as i16 as u16);
+                            self.pc = self.pc.wrapping_add(d as i16 as u16);
                         }
                     }
                     _ => unreachable!("Invalid y value"), // should never happen
@@ -1438,7 +1432,7 @@ impl Z80A {
                     let condition = self.table_cc(y);
                     if self.evaluate_condition(condition) {
                         let ret_addr = self.pop();
-                        self.PC = ret_addr;
+                        self.pc = ret_addr;
                     }
                 }
                 1 => match (q, p) {
@@ -1456,7 +1450,7 @@ impl Z80A {
                         test_log!(self, "RET");
 
                         let ret_addr = self.pop();
-                        self.PC = ret_addr;
+                        self.pc = ret_addr;
                     }
                     (true, 1) => {
                         test_log!(self, "EXX");
@@ -1470,7 +1464,7 @@ impl Z80A {
                             addressing,
                         );
                         let addr = self.read_16(src);
-                        self.PC = addr;
+                        self.pc = addr;
                     }
                     (true, 3) => {
                         // LD SP, HL (or LD SP, IX/IY if prefixed)
@@ -1489,7 +1483,7 @@ impl Z80A {
                     let condition = self.table_cc(y);
                     let addr = self.fetch_word();
                     if self.evaluate_condition(condition) {
-                        self.PC = addr;
+                        self.pc = addr;
                     }
                 }
                 3 => match y {
@@ -1498,7 +1492,7 @@ impl Z80A {
                         // JP nn
                         test_log!(self, "JP nn");
                         let addr = self.fetch_word();
-                        self.PC = addr;
+                        self.pc = addr;
                     }
                     1 => unreachable!("CB prefix, should be handled separately"), // should never reach this
                     2 => {
@@ -1519,18 +1513,18 @@ impl Z80A {
                     4 => {
                         // EX (SP), HL (or EX (SP), IX/IY if prefixed)
                         test_log!(self, "EX (SP), HL/IX/IY");
-                        let temp_l = self.memory.borrow().read(self.SP);
-                        let temp_h = self.memory.borrow().read(self.SP.wrapping_add(1));
+                        let temp_l = self.memory.borrow().read(self.sp);
+                        let temp_h = self.memory.borrow().read(self.sp.wrapping_add(1));
                         let register_pair = self.transform_register(
                             AddressingMode::RegisterPair(RegisterPair::HL),
                             addressing,
                         );
 
                         let rp = self.read_16(register_pair);
-                        self.memory.borrow_mut().write(self.SP, (rp & 0xFF) as u8);
+                        self.memory.borrow_mut().write(self.sp, (rp & 0xFF) as u8);
                         self.memory
                             .borrow_mut()
-                            .write(self.SP.wrapping_add(1), (rp >> 8) as u8);
+                            .write(self.sp.wrapping_add(1), (rp >> 8) as u8);
 
                         self.write_16(register_pair, ((temp_h as u16) << 8) | (temp_l as u16));
                     }
@@ -1560,8 +1554,8 @@ impl Z80A {
                     let condition = self.table_cc(y);
                     let addr = self.fetch_word();
                     if self.evaluate_condition(condition) {
-                        self.push(self.PC);
-                        self.PC = addr;
+                        self.push(self.pc);
+                        self.pc = addr;
                     }
                 }
                 5 => match (q, p) {
@@ -1578,8 +1572,8 @@ impl Z80A {
                         // CALL nn
                         test_log!(self, "CALL nn");
                         let addr = self.fetch_word();
-                        self.push(self.PC);
-                        self.PC = addr;
+                        self.push(self.pc);
+                        self.pc = addr;
                     }
                     (true, 1) => unreachable!("Shouldn't reach ED prefix here"), // should never reach this
                     (true, 2) => unreachable!("Shouldn't reach DD prefix here"), // should never reach this
@@ -1598,8 +1592,8 @@ impl Z80A {
                     test_log!(self, "RST y*8");
                     let rst_addr = (y as u16) * 8;
                     test_log!(self, "{:02X}h", rst_addr);
-                    self.push(self.PC);
-                    self.PC = rst_addr;
+                    self.push(self.pc);
+                    self.pc = rst_addr;
                 }
                 _ => unreachable!("Invalid z value"), // should never happen
             },
@@ -1609,7 +1603,7 @@ impl Z80A {
 
     fn decode_cb(&mut self, opcode: u8) -> () {
         test_log!(self, "decode_cb");
-        let (x, y, z, p, q) = decode_opcode(opcode);
+        let (x, y, z, _p, _q) = decode_opcode(opcode);
         match x {
             0 => {
                 test_log!(self, "rot[y] r[z]");
@@ -1748,11 +1742,11 @@ impl Z80A {
                         test_log!(self, "RETN");
                         self.iff1 = self.iff2;
                         let ret_addr = self.pop();
-                        self.PC = ret_addr;
+                        self.pc = ret_addr;
                     } else if y == 1 {
                         test_log!(self, "RETI");
                         let ret_addr = self.pop();
-                        self.PC = ret_addr;
+                        self.pc = ret_addr;
                     } else if y < 8 {
                         test_log!(self, "NONI"); // NOTE: NONI
                     } else {
@@ -2139,7 +2133,7 @@ impl Z80A {
     }
 
     fn jmp(&mut self, addr: u16) {
-        self.PC = addr;
+        self.pc = addr;
     }
 }
 

@@ -13,6 +13,28 @@ use crate::ui_traits::DeviceWithUi;
 
 mod highlighting;
 
+#[cfg(target_arch = "wasm32")]
+use std::sync::mpsc::{Receiver, Sender, channel};
+
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::*;
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen(inline_js = "
+export function download_file(filename, text) {
+    var element = document.createElement('a');
+    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+    element.setAttribute('download', filename);
+    element.style.display = 'none';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+}
+")]
+extern "C" {
+    fn download_file(filename: &str, text: &str);
+}
+
 #[derive(Clone)]
 enum HeaderAction {
     NewFile,
@@ -79,8 +101,19 @@ pub struct Z80App {
     #[serde(skip)]
     attached_devices: Vec<Rc<RefCell<dyn DeviceWithUi>>>,
 
+    #[cfg(target_arch = "wasm32")]
+    #[serde(skip)]
+    file_receiver: Option<Receiver<(String, String)>>,
+
+    #[serde(skip)]
+    examples_list: Vec<String>,
+    #[cfg(target_arch = "wasm32")]
+    #[serde(skip)]
+    examples_receiver: Option<Receiver<Vec<String>>>,
+
     recent_files: Vec<PathBuf>,
 }
+#[cfg(not(target_arch = "wasm32"))]
 pub fn run() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
@@ -91,35 +124,14 @@ pub fn run() -> eframe::Result<()> {
     eframe::run_native(
         "Z80 Simulator",
         options,
-        Box::new(|cc| {
-            let mut app = if let Some(storage) = cc.storage {
-                match eframe::get_value::<Z80App>(storage, "z80_workspace") {
-                    Some(mut app) => {
-                        // Ensure at least one tab exists if something went wrong
-                        if app.tabs.is_empty() {
-                            app.tabs.push(EditorTab {
-                                path: None,
-                                code: Z80App::default_code(),
-                                is_dirty: false,
-                                breakpoints: HashSet::new(),
-                            });
-                        }
-                        if app.active_tab >= app.tabs.len() {
-                            app.active_tab = 0;
-                        }
-                        app
-                    }
-                    None => Z80App::default(),
-                }
-            } else {
-                Z80App::default()
-            };
-
-            // Re-initialize non-serialized fields
-            app.load_and_reset();
-            Ok(Box::new(app))
-        }),
+        Box::new(|cc| Ok(Box::new(Z80App::new(cc)))),
     )
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn run() -> eframe::Result<()> {
+    // Placeholder to satisfy main.rs, but main.rs will ignore it on wasm usually
+    Ok(())
 }
 
 impl Z80App {
@@ -253,13 +265,60 @@ START:
         }
     }
 
+    pub fn new(cc: &eframe::CreationContext) -> Self {
+        if let Some(storage) = cc.storage {
+            match eframe::get_value::<Z80App>(storage, "z80_workspace") {
+                Some(mut app) => {
+                    // Ensure at least one tab exists if something went wrong
+                    if app.tabs.is_empty() {
+                        app.tabs.push(EditorTab {
+                            path: None,
+                            code: Self::default_code(),
+                            is_dirty: false,
+                            breakpoints: HashSet::new(),
+                        });
+                    }
+                    // Re-run setup logic
+                    app.load_and_reset();
+                    app
+                }
+                None => Self::default(),
+            }
+        } else {
+            Self::default()
+        }
+    }
+
     fn open_file_dialog(&mut self, storage: Option<&mut (dyn eframe::Storage + 'static)>) {
+        #[cfg(not(target_arch = "wasm32"))]
         if let Some(path) = rfd::FileDialog::new()
             .add_filter("Assembly", &["asm", "z80"])
             .add_filter("All files", &["*"])
             .pick_file()
         {
             self.open_file(path, storage);
+        }
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            let task = rfd::AsyncFileDialog::new()
+                .add_filter("Assembly", &["asm", "z80"])
+                .add_filter("All files", &["*"])
+                .pick_file();
+
+            let (sender, receiver) = channel();
+            self.file_receiver = Some(receiver);
+
+            wasm_bindgen_futures::spawn_local(async move {
+                let file = task.await;
+                if let Some(file) = file {
+                    let name = file.file_name();
+                    let content = file.read().await;
+                    if let Ok(text) = String::from_utf8(content) {
+                        sender.send((name, text)).ok();
+                    }
+                }
+            });
         }
     }
 
@@ -288,6 +347,41 @@ START:
         }
     }
 
+    fn load_file_content(
+        &mut self,
+        path: PathBuf,
+        content: String,
+        storage: Option<&mut (dyn eframe::Storage + 'static)>,
+    ) {
+        // If current tab is empty (default code or empty) and untitled, replace it
+        let current_tab = &self.tabs[self.active_tab];
+        let default_code = Self::default_code();
+        let current_is_disposable = current_tab.path.is_none()
+            && (current_tab.code.trim().is_empty() || current_tab.code == default_code)
+            && !current_tab.is_dirty;
+
+        if current_is_disposable {
+            self.tabs[self.active_tab] = EditorTab {
+                path: Some(path.clone()),
+                code: content,
+                is_dirty: false,
+                breakpoints: HashSet::new(),
+            };
+        } else {
+            self.tabs.push(EditorTab {
+                path: Some(path.clone()),
+                code: content,
+                is_dirty: false,
+                breakpoints: HashSet::new(),
+            });
+            self.active_tab = self.tabs.len() - 1;
+        }
+
+        self.add_recent_file(path);
+        self.load_and_reset();
+        self.save_to_storage(storage);
+    }
+
     fn open_file(&mut self, path: PathBuf, storage: Option<&mut (dyn eframe::Storage + 'static)>) {
         // Check if already open
         if let Some(idx) = self
@@ -301,67 +395,102 @@ START:
             return;
         }
 
+        #[cfg(not(target_arch = "wasm32"))]
         match std::fs::read_to_string(&path) {
             Ok(content) => {
-                // If current tab is empty (default code or empty) and untitled, replace it
-                let current_tab = &self.tabs[self.active_tab];
-                let default_code = Self::default_code();
-                let current_is_disposable = current_tab.path.is_none()
-                    && (current_tab.code.trim().is_empty() || current_tab.code == default_code)
-                    && !current_tab.is_dirty;
-
-                if current_is_disposable {
-                    self.tabs[self.active_tab] = EditorTab {
-                        path: Some(path.clone()),
-                        code: content,
-                        is_dirty: false,
-                        breakpoints: HashSet::new(),
-                    };
-                } else {
-                    self.tabs.push(EditorTab {
-                        path: Some(path.clone()),
-                        code: content,
-                        is_dirty: false,
-                        breakpoints: HashSet::new(),
-                    });
-                    self.active_tab = self.tabs.len() - 1;
-                }
-
-                self.add_recent_file(path);
-                self.load_and_reset();
-                self.save_to_storage(storage);
+                self.load_file_content(path, content, storage);
             }
             Err(err) => {
                 self.last_error = Some(format!("Failed to open file: {}", err));
             }
         }
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            // On web, direct path opening isn't supported via standard FS,
+            // but if we receive a dropped file or similar, we might handle it differently.
+            // For now we assume this is not called directly with a "real" path on web unless via drag-drop implementation.
+            self.last_error = Some("Opening local files by path not supported on web".to_string());
+        }
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn load_example(&mut self, filename: String, ctx: egui::Context) {
+        let (sender, receiver) = channel();
+        self.file_receiver = Some(receiver);
+
+        let location = web_sys::window().unwrap().location();
+        let origin = location.origin().unwrap();
+        let pathname = location.pathname().unwrap();
+        // Ensure pathname ends in slash or strip filename if present (basic heuristic)
+        let base_path = if pathname.ends_with('/') {
+            pathname
+        } else if let Some(last_slash) = pathname.rfind('/') {
+             pathname[0..=last_slash].to_string()
+        } else {
+            "/".to_string()
+        };
+
+        let url = format!("{}{}z80%20files/{}", origin, base_path, filename);
+        let name = filename;
+
+        wasm_bindgen_futures::spawn_local(async move {
+            match reqwest::get(&url).await {
+                Ok(resp) => {
+                    if let Ok(text) = resp.text().await {
+                        let _ = sender.send((name, text));
+                        ctx.request_repaint();
+                    }
+                }
+                Err(_) => {}
+            }
+        });
     }
 
     fn save_file(&mut self, tab_idx: usize, storage: Option<&mut (dyn eframe::Storage + 'static)>) {
-        let tab = &mut self.tabs[tab_idx];
-        if let Some(path) = &tab.path {
-            let path_clone = path.clone(); // Clone to avoid borrow check issues if we needed it later, but here write takes reference
-            if let Err(err) = std::fs::write(&path_clone, &tab.code) {
-                self.last_error = Some(format!("Failed to save file: {}", err));
-            } else {
-                tab.is_dirty = false;
-            }
-        } else {
+        #[cfg(target_arch = "wasm32")]
+        {
+            // On Wasm, we always use "Save As" behavior because we can't write to disk silently
             if tab_idx == self.active_tab {
                 self.save_file_as(storage);
             } else {
-                self.last_error = Some("Cannot save untitled file in background".to_string());
+                // Switching tab on wasm needed? Or just ignore background saves?
+                // For now, only save active tab or ignore.
+                // Or temporarily switch active tab?
+                // Simpler to just warn.
+                self.last_error = Some("Can only save active file on web".to_string());
             }
             return;
         }
 
-        if let Some(path) = &self.tabs[tab_idx].path {
-            self.add_recent_file(path.clone());
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let tab = &mut self.tabs[tab_idx];
+            if let Some(path) = &tab.path {
+                let path_clone = path.clone(); // Clone to avoid borrow check issues if we needed it later, but here write takes reference
+                if let Err(err) = std::fs::write(&path_clone, &tab.code) {
+                    self.last_error = Some(format!("Failed to save file: {}", err));
+                } else {
+                    tab.is_dirty = false;
+                }
+            } else {
+                if tab_idx == self.active_tab {
+                    self.save_file_as(storage);
+                } else {
+                    self.last_error = Some("Cannot save untitled file in background".to_string());
+                }
+                return;
+            }
+
+            if let Some(path) = &self.tabs[tab_idx].path {
+                self.add_recent_file(path.clone());
+            }
+            self.save_to_storage(storage);
         }
-        self.save_to_storage(storage);
     }
 
     fn save_file_as(&mut self, storage: Option<&mut (dyn eframe::Storage + 'static)>) {
+        #[cfg(not(target_arch = "wasm32"))]
         if let Some(path) = rfd::FileDialog::new()
             .add_filter("Assembly", &["asm", "z80"])
             .save_file()
@@ -375,6 +504,22 @@ START:
                 self.add_recent_file(path);
                 self.save_to_storage(storage);
             }
+        }
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            let tab = &mut self.tabs[self.active_tab];
+            let name = tab
+                .path
+                .as_ref()
+                .and_then(|p| p.file_name())
+                .and_then(|n| n.to_str())
+                .unwrap_or("program.asm");
+
+            download_file(name, &tab.code);
+
+            tab.is_dirty = false;
+            self.save_to_storage(storage);
         }
     }
 
@@ -396,6 +541,56 @@ impl Default for Z80App {
         let memory: Rc<RefCell<dyn MemoryMapper>> = Rc::new(RefCell::new(Mem64k::new()));
         let cpu = Z80A::new(memory.clone());
 
+        #[cfg(target_arch = "wasm32")]
+        let (examples_sender, examples_receiver) = channel();
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            wasm_bindgen_futures::spawn_local(async move {
+                // Fetch examples.json
+                let location = web_sys::window().unwrap().location();
+                let origin = location.origin().unwrap();
+                let pathname = location.pathname().unwrap();
+                // Ensure pathname ends in slash or strip filename if present (basic heuristic)
+                let base_path = if pathname.ends_with('/') {
+                    pathname
+                } else if let Some(last_slash) = pathname.rfind('/') {
+                     pathname[0..=last_slash].to_string()
+                } else {
+                    "/".to_string()
+                };
+                
+                let url = format!("{}{}z80%20files/examples.json", origin, base_path);
+
+                match reqwest::get(&url).await {
+                    Ok(resp) => {
+                        if !resp.status().is_success() {
+                            web_sys::console::error_1(
+                                &format!("Failed to fetch {}: status {}", url, resp.status())
+                                    .into(),
+                            );
+                            return;
+                        }
+                        match resp.json::<Vec<String>>().await {
+                            Ok(list) => {
+                                let _ = examples_sender.send(list);
+                            }
+                            Err(e) => {
+                                web_sys::console::error_1(
+                                    &format!("Failed to parse examples.json: {}", e).into(),
+                                );
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        web_sys::console::error_1(
+                            &format!("Failed to request {}: {}", url, e).into(),
+                        );
+                    }
+                }
+            });
+        }
+
         Self {
             cpu,
             memory,
@@ -416,6 +611,11 @@ impl Default for Z80App {
             code_theme: highlighting::CodeTheme::one_dark_pro_vivid(),
             recent_files: Vec::new(),
             attached_devices: Vec::new(), // Initialized empty, populated in load_and_reset or attached manually
+            #[cfg(target_arch = "wasm32")]
+            file_receiver: None,
+            examples_list: Vec::new(),
+            #[cfg(target_arch = "wasm32")]
+            examples_receiver: Some(examples_receiver),
         }
     }
 }
@@ -427,6 +627,23 @@ impl eframe::App for Z80App {
     }
 
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        #[cfg(target_arch = "wasm32")]
+        {
+            if let Some(receiver) = self.file_receiver.take() {
+                while let Ok((name, content)) = receiver.try_recv() {
+                    self.load_file_content(PathBuf::from(name), content, frame.storage_mut());
+                }
+                self.file_receiver = Some(receiver);
+            }
+
+            if let Some(receiver) = self.examples_receiver.take() {
+                if let Ok(list) = receiver.try_recv() {
+                    self.examples_list = list;
+                }
+                self.examples_receiver = Some(receiver);
+            }
+        }
+
         // Handle window close request
         if ctx.input(|i| i.viewport().close_requested()) {
             let any_dirty = self.tabs.iter().any(|t| t.is_dirty);
@@ -537,6 +754,24 @@ impl eframe::App for Z80App {
                             if ui.checkbox(&mut open, name).changed() {
                                 dev_ref.set_window_open_state(open);
                             }
+                        }
+                    }
+                });
+
+                #[cfg(target_arch = "wasm32")]
+                ui.menu_button("Examples", |ui| {
+                    if self.examples_list.is_empty() {
+                        ui.label("No examples found");
+                    } else {
+                        let mut to_load = None;
+                        for ex in &self.examples_list {
+                            if ui.button(ex).clicked() {
+                                to_load = Some(ex.clone());
+                            }
+                        }
+                        if let Some(ex) = to_load {
+                            self.load_example(ex, ctx.clone());
+                            ui.close();
                         }
                     }
                 });

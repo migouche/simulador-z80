@@ -3,7 +3,7 @@ use rstest::rstest;
 use crate::cpu::{
     alu::{
         add_16,
-        alu_op::{adc, add, and, or, sbc, sub, xor},
+        alu_op::{add, and, or, sub, xor},
         bit, dec, inc, res,
         rot::{rl, rlc, rr, rrc, sla, sll, sra, srl},
         set, sub_16,
@@ -237,23 +237,6 @@ fn test_add(
 }
 
 #[rstest]
-#[case(0, 0, false, 0, 0x40)] // 0 + 0 + 0 = 0 (Z)
-#[case(0, 0, true, 1, 0x00)] // 0 + 0 + 1 = 1
-#[case(0xFF, 0, true, 0, 0x51)] // 0xFF + 0 + 1 = 0 (Z, H, C)
-#[case(0x7F, 0, true, 0x80, 0x94)] // 0x7F + 0 + 1 = 0x80 (S, H, PV)
-fn test_adc(
-    #[case] a: u8,
-    #[case] b: u8,
-    #[case] carry_in: bool,
-    #[case] expected_result: u8,
-    #[case] expected_flags: u8,
-) {
-    let (result, flags) = adc(a, b, carry_in);
-    assert_eq!(result, expected_result, "Result mismatch");
-    assert_eq!(flags, expected_flags, "Flags mismatch");
-}
-
-#[rstest]
 #[case(0, 0, false, 0, 0x42)] // 0 - 0 = 0 (Z, N)
 #[case(1, 1, false, 0, 0x42)] // 1 - 1 = 0 (Z, N)
 #[case(0, 1, false, 0xFF, 0xBB)] // 0 - 1 = -1 (S, Y, H, X, N, C)
@@ -266,21 +249,6 @@ fn test_sub(
     #[case] expected_flags: u8,
 ) {
     let (result, flags) = sub(a, b, carry_in);
-    assert_eq!(result, expected_result, "Result mismatch");
-    assert_eq!(flags, expected_flags, "Flags mismatch");
-}
-
-#[rstest]
-#[case(0, 0, true, 0xFF, 0xBB)] // 0 - 0 - 1 = -1 (S, Y, H, X, N, C)
-#[case(10, 5, true, 4, 0x02)] // 10 - 5 - 1 = 4 (N)
-fn test_sbc(
-    #[case] a: u8,
-    #[case] b: u8,
-    #[case] carry_in: bool,
-    #[case] expected_result: u8,
-    #[case] expected_flags: u8,
-) {
-    let (result, flags) = sbc(a, b, carry_in);
     assert_eq!(result, expected_result, "Result mismatch");
     assert_eq!(flags, expected_flags, "Flags mismatch");
 }

@@ -41,7 +41,6 @@ FIB_LOOP:
         ADD HL, DE     ; HL = fib0 + fib1
 
         ; Move bytes separately (LD DE, BC pseudo -> DE = Old HL)
-		HALT
         LD D, B        ; D = B
         LD E, C        ; E = C (Now DE = Old HL)
 

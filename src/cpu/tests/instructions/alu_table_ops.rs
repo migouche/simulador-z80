@@ -752,7 +752,7 @@ fn test_alu_op(
     #[case] expected_flags: u8,
 ) {
     let mut cpu = setup_cpu();
-    cpu.PC = pc;
+    cpu.pc = pc;
     cpu.set_register(crate::cpu::GPR::A, initial_a);
     cpu.set_flag(initial_carry, crate::cpu::Flag::C);
 

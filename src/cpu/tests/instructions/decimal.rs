@@ -92,8 +92,8 @@ fn test_daa_instruction(
     use crate::cpu::{Flag, GPR, tests::setup_cpu};
 
     let mut cpu = setup_cpu();
-    cpu.PC = 0x1000;
-    cpu.memory.borrow_mut().write(cpu.PC, DAA_OPCODE);
+    cpu.pc = 0x1000;
+    cpu.memory.borrow_mut().write(cpu.pc, DAA_OPCODE);
 
     // Setup initial state
     cpu.set_register(GPR::A, initial_a);

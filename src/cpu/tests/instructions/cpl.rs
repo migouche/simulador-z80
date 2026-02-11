@@ -23,8 +23,8 @@ fn test_cpl_instruction(
     cpu.set_register(GPR::A, initial_a);
     cpu.set_register(GPR::F, initial_f);
 
-    cpu.PC = 0x1000;
-    cpu.memory.borrow_mut().write(cpu.PC, CPL_OPCODE);
+    cpu.pc = 0x1000;
+    cpu.memory.borrow_mut().write(cpu.pc, CPL_OPCODE);
     cpu.tick();
 
     assert_eq!(

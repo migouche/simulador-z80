@@ -48,7 +48,7 @@ fn test_stack(
     }
 
     // 2. Set SP
-    cpu.SP = initial_sp;
+    cpu.sp = initial_sp;
 
     // 3. Run Operations
     for operation in operations {
@@ -69,8 +69,8 @@ fn test_stack(
 
     // 4. Final SP Check
     assert_eq!(
-        cpu.SP, expected_final_sp,
+        cpu.sp, expected_final_sp,
         "Final SP mismatch! Expected: 0x{:04X}, Got: 0x{:04X}",
-        expected_final_sp, cpu.SP
+        expected_final_sp, cpu.sp
     );
 }

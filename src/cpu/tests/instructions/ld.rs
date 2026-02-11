@@ -433,7 +433,7 @@ fn test_ld_gpr(
     #[case] expected_regs: [(GPR, u8); 2],
 ) {
     let mut cpu = setup_cpu();
-    cpu.PC = initial_pc;
+    cpu.pc = initial_pc;
     for (reg, val) in initial_regs.iter() {
         cpu.set_register(*reg, *val);
     }
@@ -473,7 +473,7 @@ fn test_ld_immediate(
     #[case] value: u8,
 ) {
     let mut cpu = setup_cpu();
-    cpu.PC = initial_pc;
+    cpu.pc = initial_pc;
     cpu.memory.borrow_mut().write(initial_pc, opcode);
     cpu.memory.borrow_mut().write(initial_pc + 1, value);
 
@@ -498,7 +498,7 @@ fn test_ld_indirect_hl(
     #[case] addr: u16,
 ) {
     let mut cpu = setup_cpu();
-    cpu.PC = initial_pc;
+    cpu.pc = initial_pc;
     cpu.memory.borrow_mut().write(initial_pc, opcode);
     cpu.set_register_pair(RegisterPair::HL, addr);
     cpu.memory.borrow_mut().write(addr, value);
@@ -524,7 +524,7 @@ fn test_ld_store_hl(
     #[case] addr: u16,
 ) {
     let mut cpu = setup_cpu();
-    cpu.PC = initial_pc;
+    cpu.pc = initial_pc;
     cpu.memory.borrow_mut().write(initial_pc, opcode);
     cpu.set_register(src_reg, value);
     cpu.set_register_pair(RegisterPair::HL, addr);
@@ -543,7 +543,7 @@ fn test_ld_store_immediate_hl(
     #[case] addr: u16,
 ) {
     let mut cpu = setup_cpu();
-    cpu.PC = initial_pc;
+    cpu.pc = initial_pc;
     cpu.memory.borrow_mut().write(initial_pc, opcode);
     cpu.memory.borrow_mut().write(initial_pc + 1, value);
     cpu.set_register_pair(RegisterPair::HL, addr);
@@ -564,7 +564,7 @@ fn test_ld_index_immediate_extended(
     #[case] value: u16,
 ) {
     let mut cpu = setup_cpu();
-    cpu.PC = initial_pc;
+    cpu.pc = initial_pc;
     cpu.memory.borrow_mut().write(initial_pc, prefix);
     cpu.memory.borrow_mut().write(initial_pc + 1, opcode);
     cpu.memory
@@ -593,7 +593,7 @@ fn test_ld_indexed_load(
     #[case] offset: i8,
 ) {
     let mut cpu = setup_cpu();
-    cpu.PC = initial_pc;
+    cpu.pc = initial_pc;
     cpu.memory.borrow_mut().write(initial_pc, prefix);
     cpu.memory.borrow_mut().write(initial_pc + 1, opcode);
     cpu.memory.borrow_mut().write(initial_pc + 2, offset as u8);
@@ -622,7 +622,7 @@ fn test_ld_a_indirect_pair(
     #[case] addr: u16,
 ) {
     let mut cpu = setup_cpu();
-    cpu.PC = initial_pc;
+    cpu.pc = initial_pc;
     cpu.memory.borrow_mut().write(initial_pc, opcode);
     if opcode == 0x0A {
         cpu.set_register_pair(RegisterPair::BC, addr);
@@ -646,7 +646,7 @@ fn test_ld_indirect_pair_a(
     #[case] addr: u16,
 ) {
     let mut cpu = setup_cpu();
-    cpu.PC = initial_pc;
+    cpu.pc = initial_pc;
     cpu.memory.borrow_mut().write(initial_pc, opcode);
     cpu.set_register(GPR::A, value);
     if opcode == 0x02 {
@@ -669,7 +669,7 @@ fn test_ld_a_absolute(
     #[case] addr: u16,
 ) {
     let mut cpu = setup_cpu();
-    cpu.PC = initial_pc;
+    cpu.pc = initial_pc;
     cpu.memory.borrow_mut().write(initial_pc, opcode);
     cpu.memory
         .borrow_mut()
@@ -693,7 +693,7 @@ fn test_ld_absolute_a(
     #[case] addr: u16,
 ) {
     let mut cpu = setup_cpu();
-    cpu.PC = initial_pc;
+    cpu.pc = initial_pc;
     cpu.memory.borrow_mut().write(initial_pc, opcode);
     cpu.memory
         .borrow_mut()
@@ -721,7 +721,7 @@ fn test_ld_index_parts_immediate(
     #[case] value: u8,
 ) {
     let mut cpu = setup_cpu();
-    cpu.PC = initial_pc;
+    cpu.pc = initial_pc;
     cpu.memory.borrow_mut().write(initial_pc, prefix);
     cpu.memory.borrow_mut().write(initial_pc + 1, opcode);
     cpu.memory.borrow_mut().write(initial_pc + 2, value);
@@ -743,7 +743,7 @@ fn test_ld_from_index_part(
     #[case] value: u8,
 ) {
     let mut cpu = setup_cpu();
-    cpu.PC = initial_pc;
+    cpu.pc = initial_pc;
     cpu.memory.borrow_mut().write(initial_pc, prefix);
     cpu.memory.borrow_mut().write(initial_pc + 1, opcode);
 
@@ -766,7 +766,7 @@ fn test_ld_to_index_part(
     #[case] value: u8,
 ) {
     let mut cpu = setup_cpu();
-    cpu.PC = initial_pc;
+    cpu.pc = initial_pc;
     cpu.memory.borrow_mut().write(initial_pc, prefix);
     cpu.memory.borrow_mut().write(initial_pc + 1, opcode);
 

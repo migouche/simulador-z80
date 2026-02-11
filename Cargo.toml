@@ -1,12 +1,28 @@
 [package]
 name = "simulador-z80"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 
 [dependencies]
 eframe = { version = "0.33.3", features = ["persistence", "default_fonts"] }
 rfd = "0.17.2"
 serde = { version = "1.0.228", features = ["derive"] }
+log = "0.4.29"
+
+# Native only dependencies
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tracing-subscriber = "0.3.22"
+
+# Web only dependencies
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen-futures = "0.4.58"
+getrandom = { version = "0.4.1", features = ["wasm_js"] }
+console_error_panic_hook = "0.1.7"
+tracing-wasm = "0.2.1"
+eframe = { version = "0.33.3", features = ["persistence", "default_fonts", "glow"] }
+wasm-bindgen = "0.2.108"
+web-sys = { version = "0.3.85", features = ["HtmlCanvasElement", "Window", "Document", "Element"] }
+reqwest = { version = "0.13.2", default-features = false, features = ["json"] }
 
 [dev-dependencies]
 rstest = "0.26.1"
@@ -14,7 +30,6 @@ egui_kittest = "0.33.3"
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage)'] }
-non_snake_case = "allow"
 
 [profile.release]
 opt-level = "z"
