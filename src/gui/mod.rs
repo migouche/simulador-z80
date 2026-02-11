@@ -415,12 +415,23 @@ START:
     }
 
     #[cfg(target_arch = "wasm32")]
-    fn load_example(&mut self, filename: String) {
+    fn load_example(&mut self, filename: String, ctx: egui::Context) {
         let (sender, receiver) = channel();
         self.file_receiver = Some(receiver);
 
-        let origin = web_sys::window().unwrap().location().origin().unwrap();
-        let url = format!("{}/z80%20files/{}", origin, filename);
+        let location = web_sys::window().unwrap().location();
+        let origin = location.origin().unwrap();
+        let pathname = location.pathname().unwrap();
+        // Ensure pathname ends in slash or strip filename if present (basic heuristic)
+        let base_path = if pathname.ends_with('/') {
+            pathname
+        } else if let Some(last_slash) = pathname.rfind('/') {
+             pathname[0..=last_slash].to_string()
+        } else {
+            "/".to_string()
+        };
+
+        let url = format!("{}{}z80%20files/{}", origin, base_path, filename);
         let name = filename;
 
         wasm_bindgen_futures::spawn_local(async move {
@@ -428,6 +439,7 @@ START:
                 Ok(resp) => {
                     if let Ok(text) = resp.text().await {
                         let _ = sender.send((name, text));
+                        ctx.request_repaint();
                     }
                 }
                 Err(_) => {}
@@ -536,8 +548,19 @@ impl Default for Z80App {
         {
             wasm_bindgen_futures::spawn_local(async move {
                 // Fetch examples.json
-                let origin = web_sys::window().unwrap().location().origin().unwrap();
-                let url = format!("{}/z80%20files/examples.json", origin);
+                let location = web_sys::window().unwrap().location();
+                let origin = location.origin().unwrap();
+                let pathname = location.pathname().unwrap();
+                // Ensure pathname ends in slash or strip filename if present (basic heuristic)
+                let base_path = if pathname.ends_with('/') {
+                    pathname
+                } else if let Some(last_slash) = pathname.rfind('/') {
+                     pathname[0..=last_slash].to_string()
+                } else {
+                    "/".to_string()
+                };
+                
+                let url = format!("{}{}z80%20files/examples.json", origin, base_path);
 
                 match reqwest::get(&url).await {
                     Ok(resp) => {
@@ -747,7 +770,7 @@ impl eframe::App for Z80App {
                             }
                         }
                         if let Some(ex) = to_load {
-                            self.load_example(ex);
+                            self.load_example(ex, ctx.clone());
                             ui.close();
                         }
                     }
