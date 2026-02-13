@@ -1,5 +1,6 @@
 use crate::assembler::{Operand, Token, assemble, parse_operands, tokenize};
 
+mod ddcb_fdcb;
 mod scripts;
 mod variables;
 // =================================================================================

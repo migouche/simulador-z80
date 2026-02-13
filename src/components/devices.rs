@@ -174,12 +174,14 @@ impl DeviceWithUi for Keypad {
                             ];
 
                             for row in keys {
-                                for (code, label) in row {
+                                let mut row_iter = row.into_iter();
+                                for (code, label) in row_iter {
                                     if ui
                                         .add(
                                             egui::Button::new(label)
                                                 .min_size(egui::vec2(30.0, 30.0)),
                                         )
+                                        .on_hover_cursor(egui::CursorIcon::PointingHand)
                                         .clicked()
                                     {
                                         self.press_key(code);
@@ -270,7 +272,11 @@ impl DeviceWithUi for GenericInterruptDevice {
 
                     ui.label(format!("Current Vector: 0x{:02X}", self.vector));
 
-                    if ui.button("TRIGGER INTERRUPT").clicked() {
+                    if ui
+                        .button("TRIGGER INTERRUPT")
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
+                        .clicked()
+                    {
                         self.trigger();
                     }
 

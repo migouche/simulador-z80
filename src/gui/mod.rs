@@ -426,7 +426,7 @@ START:
         let base_path = if pathname.ends_with('/') {
             pathname
         } else if let Some(last_slash) = pathname.rfind('/') {
-             pathname[0..=last_slash].to_string()
+            pathname[0..=last_slash].to_string()
         } else {
             "/".to_string()
         };
@@ -555,11 +555,11 @@ impl Default for Z80App {
                 let base_path = if pathname.ends_with('/') {
                     pathname
                 } else if let Some(last_slash) = pathname.rfind('/') {
-                     pathname[0..=last_slash].to_string()
+                    pathname[0..=last_slash].to_string()
                 } else {
                     "/".to_string()
                 };
-                
+
                 let url = format!("{}{}z80%20files/examples.json", origin, base_path);
 
                 match reqwest::get(&url).await {
@@ -657,11 +657,11 @@ impl eframe::App for Z80App {
 
         // Top Panel: Menu Bar and Control Toolbar
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            // Menu Bar
             egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui
                         .add(egui::Button::new("New").shortcut_text("Ctrl+N"))
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
                         .clicked()
                     {
                         action = Some(HeaderAction::NewFile);
@@ -669,6 +669,7 @@ impl eframe::App for Z80App {
                     }
                     if ui
                         .add(egui::Button::new("Open...").shortcut_text("Ctrl+O"))
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
                         .clicked()
                     {
                         action = Some(HeaderAction::OpenFileDialog);
@@ -681,7 +682,11 @@ impl eframe::App for Z80App {
                         } else {
                             let mut to_open = None;
                             for path in &self.recent_files {
-                                if ui.button(path.display().to_string()).clicked() {
+                                if ui
+                                    .button(path.display().to_string())
+                                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                    .clicked()
+                                {
                                     to_open = Some(path.clone());
                                 }
                             }
@@ -690,12 +695,15 @@ impl eframe::App for Z80App {
                                 ui.close();
                             }
                         }
-                    });
+                    })
+                    .response
+                    .on_hover_cursor(egui::CursorIcon::PointingHand);
 
                     ui.separator();
 
                     if ui
                         .add(egui::Button::new("Save").shortcut_text("Ctrl+S"))
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
                         .clicked()
                     {
                         action = Some(HeaderAction::SaveFile);
@@ -703,6 +711,7 @@ impl eframe::App for Z80App {
                     }
                     if ui
                         .add(egui::Button::new("Save As...").shortcut_text("Ctrl+Shift+S"))
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
                         .clicked()
                     {
                         action = Some(HeaderAction::SaveFileAs);
@@ -710,33 +719,55 @@ impl eframe::App for Z80App {
                     }
 
                     ui.separator();
-                    if ui.button("Quit").clicked() {
+                    if ui
+                        .button("Quit")
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
+                        .clicked()
+                    {
                         action = Some(HeaderAction::Quit);
                         ui.close();
                     }
-                });
+                })
+                .response
+                .on_hover_cursor(egui::CursorIcon::PointingHand);
 
                 ui.menu_button("Devices", |ui| {
-                    if ui.button("Add Keypad").clicked() {
+                    if ui
+                        .button("Add Keypad")
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
+                        .clicked()
+                    {
                         self.pending_modal =
                             Some(ModalType::AddDevice(DeviceType::Keypad, "1".to_string()));
                         ui.close();
                     }
-                    if ui.button("Add Display").clicked() {
+                    if ui
+                        .button("Add Display")
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
+                        .clicked()
+                    {
                         self.pending_modal = Some(ModalType::AddDevice(
                             DeviceType::SevenSegment,
                             "2".to_string(),
                         ));
                         ui.close();
                     }
-                    if ui.button("Add Interrupt Controller").clicked() {
+                    if ui
+                        .button("Add Interrupt Controller")
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
+                        .clicked()
+                    {
                         self.pending_modal = Some(ModalType::AddDevice(
                             DeviceType::GenericInterrupt,
                             "0".to_string(),
                         ));
                         ui.close();
                     }
-                    if ui.button("Add NMI Trigger").clicked() {
+                    if ui
+                        .button("Add NMI Trigger")
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
+                        .clicked()
+                    {
                         self.pending_modal = Some(ModalType::AddDevice(
                             DeviceType::NmiTrigger,
                             "0".to_string(),
@@ -756,7 +787,9 @@ impl eframe::App for Z80App {
                             }
                         }
                     }
-                });
+                })
+                .response
+                .on_hover_cursor(egui::CursorIcon::PointingHand);
 
                 #[cfg(target_arch = "wasm32")]
                 ui.menu_button("Examples", |ui| {
@@ -765,7 +798,11 @@ impl eframe::App for Z80App {
                     } else {
                         let mut to_load = None;
                         for ex in &self.examples_list {
-                            if ui.button(ex).clicked() {
+                            if ui
+                                .button(ex)
+                                .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                .clicked()
+                            {
                                 to_load = Some(ex.clone());
                             }
                         }
@@ -774,13 +811,19 @@ impl eframe::App for Z80App {
                             ui.close();
                         }
                     }
-                });
+                })
+                .response
+                .on_hover_cursor(egui::CursorIcon::PointingHand);
             });
             ui.separator();
 
             // Toolbar
             ui.horizontal(|ui| {
-                if ui.button("⟳ Load & Reset").clicked() {
+                if ui
+                    .button("⟳ Load & Reset")
+                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                    .clicked()
+                {
                     self.load_and_reset();
                 }
 
@@ -788,6 +831,7 @@ impl eframe::App for Z80App {
 
                 if ui
                     .add_enabled(self.last_error.is_none(), egui::Button::new("⏭ Step"))
+                    .on_hover_cursor(egui::CursorIcon::PointingHand)
                     .clicked()
                 {
                     self.is_running = false;
@@ -803,6 +847,7 @@ impl eframe::App for Z80App {
                 };
                 if ui
                     .add_enabled(self.last_error.is_none(), egui::Button::new(run_label))
+                    .on_hover_cursor(egui::CursorIcon::PointingHand)
                     .clicked()
                 {
                     if !self.is_running && !self.cpu.is_halted() {
@@ -832,7 +877,11 @@ impl eframe::App for Z80App {
                     ui.colored_label(egui::Color32::RED, format!("⚠ {}", err));
                 } else if self.cpu.is_halted() {
                     ui.colored_label(egui::Color32::RED, "HALTED");
-                    if ui.button("Resume").clicked() {
+                    if ui
+                        .button("Resume")
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
+                        .clicked()
+                    {
                         self.cpu.set_halted(false);
                         self.is_running = true;
                     }
@@ -1113,6 +1162,7 @@ impl eframe::App for Z80App {
                                                     )
                                                     .sense(egui::Sense::click()),
                                                 )
+                                                .on_hover_cursor(egui::CursorIcon::PointingHand)
                                                 .clicked()
                                             {
                                                 to_activate = Some(i);
@@ -1135,6 +1185,7 @@ impl eframe::App for Z80App {
                                                     )
                                                     .frame(false),
                                                 )
+                                                .on_hover_cursor(egui::CursorIcon::PointingHand)
                                                 .clicked()
                                             {
                                                 to_close = Some(i);
@@ -1202,7 +1253,11 @@ impl eframe::App for Z80App {
                                 )
                                 .sense(egui::Sense::click());
 
-                                if ui.add(label).clicked() {
+                                if ui
+                                    .add(label)
+                                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                    .clicked()
+                                {
                                     // Toggle breakpoint
                                     if is_bp {
                                         current_tab.breakpoints.remove(&i);
@@ -1317,7 +1372,11 @@ impl eframe::App for Z80App {
                             ui.text_edit_singleline(port_text);
 
                             ui.horizontal(|ui| {
-                                if ui.button("Add").clicked() {
+                                if ui
+                                    .button("Add")
+                                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                    .clicked()
+                                {
                                     // Parse port
                                     let port_res = u16::from_str_radix(port_text, 16);
                                     match port_res {
@@ -1347,7 +1406,11 @@ impl eframe::App for Z80App {
                                         }
                                     }
                                 }
-                                if ui.button("Cancel").clicked() {
+                                if ui
+                                    .button("Cancel")
+                                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                    .clicked()
+                                {
                                     should_close_modal = true;
                                 }
                             });
@@ -1369,7 +1432,11 @@ impl eframe::App for Z80App {
                             ui.label("Your changes will be lost if you don't save them.");
 
                             ui.horizontal(|ui| {
-                                if ui.button("Save").clicked() {
+                                if ui
+                                    .button("Save")
+                                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                    .clicked()
+                                {
                                     self.save_file(idx, frame.storage_mut());
 
                                     // Check if save succeeded (is_dirty false)
@@ -1378,14 +1445,22 @@ impl eframe::App for Z80App {
                                         should_close_modal = true;
                                     }
                                 }
-                                if ui.button("Don't Save").clicked() {
+                                if ui
+                                    .button("Don't Save")
+                                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                    .clicked()
+                                {
                                     if idx < self.tabs.len() {
                                         self.tabs[idx].is_dirty = false; // Forced clear
                                         self.close_tab(idx, frame.storage_mut());
                                     }
                                     should_close_modal = true;
                                 }
-                                if ui.button("Cancel").clicked() {
+                                if ui
+                                    .button("Cancel")
+                                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                    .clicked()
+                                {
                                     should_close_modal = true;
                                 }
                             });
@@ -1395,7 +1470,11 @@ impl eframe::App for Z80App {
                             ui.label("Do you want to save all changes before quitting?");
 
                             ui.horizontal(|ui| {
-                                if ui.button("Save All").clicked() {
+                                if ui
+                                    .button("Save All")
+                                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                    .clicked()
+                                {
                                     // Iterate and save all dirty tabs
                                     let prev_active = self.active_tab;
                                     for i in 0..self.tabs.len() {
@@ -1425,7 +1504,11 @@ impl eframe::App for Z80App {
                                         ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                                     }
                                 }
-                                if ui.button("Quit Without Saving").clicked() {
+                                if ui
+                                    .button("Quit Without Saving")
+                                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                    .clicked()
+                                {
                                     // Clear all dirty flags to bypass on_close_event check
                                     for tab in &mut self.tabs {
                                         tab.is_dirty = false;
@@ -1434,7 +1517,11 @@ impl eframe::App for Z80App {
                                     // self.pending_modal is already None
                                     ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                                 }
-                                if ui.button("Cancel").clicked() {
+                                if ui
+                                    .button("Cancel")
+                                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                    .clicked()
+                                {
                                     should_close_modal = true;
                                 }
                             });

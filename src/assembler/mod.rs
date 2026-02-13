@@ -568,6 +568,18 @@ fn parse_instruction(
         "CPI" => Ok(vec![0xED, 0xA1]),
         "CPIR" => Ok(vec![0xED, 0xB1]),
 
+        "RLC" => encode_rot_shift(0x00, &operands),
+        "RRC" => encode_rot_shift(0x08, &operands),
+        "RL" => encode_rot_shift(0x10, &operands),
+        "RR" => encode_rot_shift(0x18, &operands),
+        "SLA" => encode_rot_shift(0x20, &operands),
+        "SRA" => encode_rot_shift(0x28, &operands),
+        "SLL" => encode_rot_shift(0x30, &operands),
+        "SRL" => encode_rot_shift(0x38, &operands),
+        "BIT" => encode_bit_op(0x40, &operands),
+        "RES" => encode_bit_op(0x80, &operands),
+        "SET" => encode_bit_op(0xC0, &operands),
+
         _ => Err(format!("Unknown mnemonic: {}", mnemonic)),
     }
 }
@@ -1252,3 +1264,97 @@ fn encode_im(ops: &[Operand]) -> Result<Vec<u8>, String> {
 
 #[cfg(test)]
 mod tests;
+
+fn encode_rot_shift(base: u8, ops: &[Operand]) -> Result<Vec<u8>, String> {
+    if ops.len() == 1 {
+        match &ops[0] {
+            Operand::Register(r) => {
+                if let Some(rc) = get_r_code(r) {
+                    Ok(vec![0xCB, base | rc])
+                } else {
+                    Err("Invalid register for Rotate/Shift".to_string())
+                }
+            }
+            Operand::IndirectRegister(r) if r == "HL" => Ok(vec![0xCB, base | 6]),
+            Operand::IndirectIndex(idx, d) => {
+                let prefix = if idx == "IX" { 0xDD } else { 0xFD };
+                Ok(vec![prefix, 0xCB, *d as u8, base | 6])
+            }
+            _ => Err("Invalid operand for Rotate/Shift".to_string()),
+        }
+    } else if ops.len() == 2 {
+        // Handle undocumented (IX+d), r
+        if let (Operand::IndirectIndex(idx, d), Operand::Register(r)) = (&ops[0], &ops[1]) {
+            if let Some(rc) = get_r_code(r) {
+                let prefix = if idx == "IX" { 0xDD } else { 0xFD };
+                // Order: Prefix, CB, d, Opcode|r
+                Ok(vec![prefix, 0xCB, *d as u8, base | rc])
+            } else {
+                Err("Invalid register2 for Rotate/Shift".to_string())
+            }
+        } else {
+            Err("Invalid operands for Rotate/Shift (2 ops)".to_string())
+        }
+    } else {
+        Err("Rotate/Shift expects 1 or 2 operands".to_string())
+    }
+}
+
+fn encode_bit_op(base: u8, ops: &[Operand]) -> Result<Vec<u8>, String> {
+    if ops.len() < 2 || ops.len() > 3 {
+        return Err("Bit op expects 2 or 3 operands".to_string());
+    }
+
+    let b = match &ops[0] {
+        Operand::Immediate(n) => *n,
+        _ => return Err("Bit index must be a number".to_string()),
+    };
+
+    if b > 7 {
+        return Err("Bit index must be 0-7".to_string());
+    }
+
+    let opcode_base = base + ((b as u8) << 3);
+
+    match &ops[1] {
+        Operand::Register(r) => {
+            if ops.len() != 2 {
+                return Err("Too many operands for Register target".to_string());
+            }
+            if let Some(rc) = get_r_code(r) {
+                Ok(vec![0xCB, opcode_base | rc])
+            } else {
+                Err("Invalid register".to_string())
+            }
+        }
+        Operand::IndirectRegister(reg) if reg == "HL" => {
+            if ops.len() != 2 {
+                return Err("Too many operands for (HL)".to_string());
+            }
+            Ok(vec![0xCB, opcode_base | 6])
+        }
+        Operand::IndirectIndex(idx, d) => {
+            let prefix = if idx == "IX" { 0xDD } else { 0xFD };
+            if ops.len() == 2 {
+                Ok(vec![prefix, 0xCB, *d as u8, opcode_base | 6])
+            } else {
+                // 3 operands: SET b, (IX+d), r
+                // Only for SET/RES. BIT does not have this.
+                // BIT base is 0x40.
+                if base == 0x40 {
+                    return Err("BIT does not support 3 operands".to_string());
+                }
+                if let Operand::Register(r) = &ops[2] {
+                    if let Some(rc) = get_r_code(r) {
+                        Ok(vec![prefix, 0xCB, *d as u8, opcode_base | rc])
+                    } else {
+                        Err("Invalid register 2".to_string())
+                    }
+                } else {
+                    Err("Third operand must be register".to_string())
+                }
+            }
+        }
+        _ => Err("Invalid target operand".to_string()),
+    }
+}
