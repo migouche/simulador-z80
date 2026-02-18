@@ -1,4 +1,4 @@
-mod alu;
+pub mod alu;
 
 #[cfg(test)]
 use std::collections::VecDeque;
@@ -60,6 +60,197 @@ pub enum RegisterPair {
     SP,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum RegOps {
+    B,
+    C,
+    D,
+    E,
+    H,
+    L,
+    HLIndirect,
+    A,
+}
+
+impl TryFrom<u8> for RegOps {
+    type Error = String;
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(RegOps::B),
+            1 => Ok(RegOps::C),
+            2 => Ok(RegOps::D),
+            3 => Ok(RegOps::E),
+            4 => Ok(RegOps::H),
+            5 => Ok(RegOps::L),
+            6 => Ok(RegOps::HLIndirect),
+            7 => Ok(RegOps::A),
+            _ => Err(format!("Invalid RegOps value: {}", value)),
+        }
+    }
+}
+
+impl std::fmt::Display for RegOps {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RegOps::B => write!(f, "B"),
+            RegOps::C => write!(f, "C"),
+            RegOps::D => write!(f, "D"),
+            RegOps::E => write!(f, "E"),
+            RegOps::H => write!(f, "H"),
+            RegOps::L => write!(f, "L"),
+            RegOps::HLIndirect => write!(f, "(HL)"),
+            RegOps::A => write!(f, "A"),
+        }
+    }
+}
+
+impl std::str::FromStr for RegOps {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "B" => Ok(RegOps::B),
+            "C" => Ok(RegOps::C),
+            "D" => Ok(RegOps::D),
+            "E" => Ok(RegOps::E),
+            "H" => Ok(RegOps::H),
+            "L" => Ok(RegOps::L),
+            "(HL)" => Ok(RegOps::HLIndirect),
+            "A" => Ok(RegOps::A),
+            _ => Err(format!("Invalid register: {}", s)),
+        }
+    }
+}
+
+impl From<RegOps> for AddressingMode {
+    fn from(op: RegOps) -> Self {
+        match op {
+            RegOps::B => AddressingMode::Register(GPR::B),
+            RegOps::C => AddressingMode::Register(GPR::C),
+            RegOps::D => AddressingMode::Register(GPR::D),
+            RegOps::E => AddressingMode::Register(GPR::E),
+            RegOps::H => AddressingMode::Register(GPR::H),
+            RegOps::L => AddressingMode::Register(GPR::L),
+            RegOps::HLIndirect => AddressingMode::RegisterIndirect(RegisterPair::HL),
+            RegOps::A => AddressingMode::Register(GPR::A),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum RpOps {
+    BC,
+    DE,
+    HL,
+    SP,
+}
+
+impl TryFrom<u8> for RpOps {
+    type Error = String;
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(RpOps::BC),
+            1 => Ok(RpOps::DE),
+            2 => Ok(RpOps::HL),
+            3 => Ok(RpOps::SP),
+            _ => Err(format!("Invalid Rp value: {}", value)),
+        }
+    }
+}
+
+impl std::fmt::Display for RpOps {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RpOps::BC => write!(f, "BC"),
+            RpOps::DE => write!(f, "DE"),
+            RpOps::HL => write!(f, "HL"),
+            RpOps::SP => write!(f, "SP"),
+        }
+    }
+}
+
+impl std::str::FromStr for RpOps {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "BC" => Ok(RpOps::BC),
+            "DE" => Ok(RpOps::DE),
+            "HL" => Ok(RpOps::HL),
+            "SP" => Ok(RpOps::SP),
+            _ => Err(format!("Invalid register pair: {}", s)),
+        }
+    }
+}
+
+impl From<RpOps> for RegisterPair {
+    fn from(rp: RpOps) -> Self {
+        match rp {
+            RpOps::BC => RegisterPair::BC,
+            RpOps::DE => RegisterPair::DE,
+            RpOps::HL => RegisterPair::HL,
+            RpOps::SP => RegisterPair::SP,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Rp2Ops {
+    BC,
+    DE,
+    HL,
+    AF,
+}
+
+impl TryFrom<u8> for Rp2Ops {
+    type Error = String;
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(Rp2Ops::BC),
+            1 => Ok(Rp2Ops::DE),
+            2 => Ok(Rp2Ops::HL),
+            3 => Ok(Rp2Ops::AF),
+            _ => Err(format!("Invalid Rp2 value: {}", value)),
+        }
+    }
+}
+
+impl std::fmt::Display for Rp2Ops {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Rp2Ops::BC => write!(f, "BC"),
+            Rp2Ops::DE => write!(f, "DE"),
+            Rp2Ops::HL => write!(f, "HL"),
+            Rp2Ops::AF => write!(f, "AF"),
+        }
+    }
+}
+
+impl std::str::FromStr for Rp2Ops {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "BC" => Ok(Rp2Ops::BC),
+            "DE" => Ok(Rp2Ops::DE),
+            "HL" => Ok(Rp2Ops::HL),
+            "AF" => Ok(Rp2Ops::AF),
+            _ => Err(format!("Invalid register pair 2: {}", s)),
+        }
+    }
+}
+
+impl From<Rp2Ops> for RegisterPair {
+    fn from(rp: Rp2Ops) -> Self {
+        match rp {
+            Rp2Ops::BC => RegisterPair::BC,
+            Rp2Ops::DE => RegisterPair::DE,
+            Rp2Ops::HL => RegisterPair::HL,
+            Rp2Ops::AF => RegisterPair::AF,
+        }
+    }
+}
+
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum Flag {
     C,
@@ -108,7 +299,7 @@ enum AddressingMode {
 }
 
 #[derive(PartialEq, Clone, Copy, Debug)]
-enum Condition {
+pub enum Condition {
     NZ,
     Z,
     NC,
@@ -117,6 +308,57 @@ enum Condition {
     PE,
     P,
     M,
+}
+
+impl TryFrom<u8> for Condition {
+    type Error = String;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(Condition::NZ),
+            1 => Ok(Condition::Z),
+            2 => Ok(Condition::NC),
+            3 => Ok(Condition::C),
+            4 => Ok(Condition::PO),
+            5 => Ok(Condition::PE),
+            6 => Ok(Condition::P),
+            7 => Ok(Condition::M),
+            _ => Err(format!("Invalid Condition value: {}", value)),
+        }
+    }
+}
+
+impl std::fmt::Display for Condition {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Condition::NZ => write!(f, "NZ"),
+            Condition::Z => write!(f, "Z"),
+            Condition::NC => write!(f, "NC"),
+            Condition::C => write!(f, "C"),
+            Condition::PO => write!(f, "PO"),
+            Condition::PE => write!(f, "PE"),
+            Condition::P => write!(f, "P"),
+            Condition::M => write!(f, "M"),
+        }
+    }
+}
+
+impl std::str::FromStr for Condition {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "NZ" => Ok(Condition::NZ),
+            "Z" => Ok(Condition::Z),
+            "NC" => Ok(Condition::NC),
+            "C" => Ok(Condition::C),
+            "PO" => Ok(Condition::PO),
+            "PE" => Ok(Condition::PE),
+            "P" => Ok(Condition::P),
+            "M" => Ok(Condition::M),
+            _ => Err(format!("Invalid condition: {}", s)),
+        }
+    }
 }
 
 enum BlockInstruction {
@@ -146,7 +388,7 @@ enum PrefixAddressing {
 }
 
 #[derive(PartialEq, Clone, Copy, Debug)]
-enum ALUOperation {
+pub enum ALUOperation {
     ADD,
     ADC,
     SUB,
@@ -155,6 +397,57 @@ enum ALUOperation {
     XOR,
     OR,
     CP,
+}
+
+impl TryFrom<u8> for ALUOperation {
+    type Error = String;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(ALUOperation::ADD),
+            1 => Ok(ALUOperation::ADC),
+            2 => Ok(ALUOperation::SUB),
+            3 => Ok(ALUOperation::SBC),
+            4 => Ok(ALUOperation::AND),
+            5 => Ok(ALUOperation::XOR),
+            6 => Ok(ALUOperation::OR),
+            7 => Ok(ALUOperation::CP),
+            _ => Err(format!("Invalid ALU operation value: {}", value)),
+        }
+    }
+}
+
+impl std::fmt::Display for ALUOperation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ALUOperation::ADD => write!(f, "ADD"),
+            ALUOperation::ADC => write!(f, "ADC"),
+            ALUOperation::SUB => write!(f, "SUB"),
+            ALUOperation::SBC => write!(f, "SBC"),
+            ALUOperation::AND => write!(f, "AND"),
+            ALUOperation::XOR => write!(f, "XOR"),
+            ALUOperation::OR => write!(f, "OR"),
+            ALUOperation::CP => write!(f, "CP"),
+        }
+    }
+}
+
+impl std::str::FromStr for ALUOperation {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "ADD" => Ok(ALUOperation::ADD),
+            "ADC" => Ok(ALUOperation::ADC),
+            "SUB" => Ok(ALUOperation::SUB),
+            "SBC" => Ok(ALUOperation::SBC),
+            "AND" => Ok(ALUOperation::AND),
+            "XOR" => Ok(ALUOperation::XOR),
+            "OR" => Ok(ALUOperation::OR),
+            "CP" => Ok(ALUOperation::CP),
+            _ => Err(format!("Invalid ALU operation: {}", s)),
+        }
+    }
 }
 
 #[derive(Default, Clone, Copy, Debug)]
@@ -634,79 +927,23 @@ impl Z80A {
 
     // TABLES FROM http://www.z80.info/decoding.htm
 
-    fn table_r(&mut self, p: u8) -> AddressingMode {
-        match p {
-            0 => {
-                test_log!(self, "B");
-                AddressingMode::Register(GPR::B)
+    fn table_r(&mut self, p: u8) -> RegOps {
+        match RegOps::try_from(p) {
+            Ok(r) => {
+                test_log!(self, "{}", r);
+                r
             }
-            1 => {
-                test_log!(self, "C");
-                AddressingMode::Register(GPR::C)
-            }
-            2 => {
-                test_log!(self, "D");
-                AddressingMode::Register(GPR::D)
-            }
-            3 => {
-                test_log!(self, "E");
-                AddressingMode::Register(GPR::E)
-            }
-            4 => {
-                test_log!(self, "H");
-                AddressingMode::Register(GPR::H)
-            }
-            5 => {
-                test_log!(self, "L");
-                AddressingMode::Register(GPR::L)
-            }
-            6 => {
-                test_log!(self, "(HL)");
-                AddressingMode::RegisterIndirect(RegisterPair::HL)
-            }
-            7 => {
-                test_log!(self, "A");
-                AddressingMode::Register(GPR::A)
-            }
-            _ => unreachable!("Invalid p value"), // should never happen
+            Err(e) => panic!("{}", e),
         }
     }
 
     fn table_alu(&mut self, y: u8) -> ALUOperation {
-        match y {
-            0 => {
-                test_log!(self, "ADD A");
-                ALUOperation::ADD
+        match ALUOperation::try_from(y) {
+            Ok(op) => {
+                test_log!(self, "{} A", op);
+                op
             }
-            1 => {
-                test_log!(self, "ADC A");
-                ALUOperation::ADC
-            }
-            2 => {
-                test_log!(self, "SUB A");
-                ALUOperation::SUB
-            }
-            3 => {
-                test_log!(self, "SBC A");
-                ALUOperation::SBC
-            }
-            4 => {
-                test_log!(self, "AND A");
-                ALUOperation::AND
-            }
-            5 => {
-                test_log!(self, "XOR A");
-                ALUOperation::XOR
-            }
-            6 => {
-                test_log!(self, "OR A");
-                ALUOperation::OR
-            }
-            7 => {
-                test_log!(self, "CP A");
-                ALUOperation::CP
-            }
-            _ => unreachable!("Invalid y value"), // should never happen
+            Err(e) => panic!("{}", e),
         }
     }
 
@@ -821,85 +1058,33 @@ impl Z80A {
         self.write_16(dest, result);
     }
 
-    fn table_rp(&mut self, p: u8) -> AddressingMode {
-        match p {
-            0 => {
-                test_log!(self, "BC");
-                AddressingMode::RegisterPair(RegisterPair::BC)
+    fn table_rp(&mut self, p: u8) -> RegisterPair {
+        match RpOps::try_from(p) {
+            Ok(rp) => {
+                test_log!(self, "{}", rp);
+                rp.into()
             }
-            1 => {
-                test_log!(self, "DE");
-                AddressingMode::RegisterPair(RegisterPair::DE)
-            }
-            2 => {
-                test_log!(self, "HL");
-                AddressingMode::RegisterPair(RegisterPair::HL)
-            }
-            3 => {
-                test_log!(self, "SP");
-                AddressingMode::RegisterPair(RegisterPair::SP)
-            }
-            _ => panic!("Invalid p value"), // should never happen
+            Err(e) => panic!("{}", e),
         }
     }
 
-    fn table_rp2(&mut self, p: u8) -> AddressingMode {
-        match p {
-            0 => {
-                test_log!(self, "BC");
-                AddressingMode::RegisterPair(RegisterPair::BC)
+    fn table_rp2(&mut self, p: u8) -> RegisterPair {
+        match Rp2Ops::try_from(p) {
+            Ok(rp) => {
+                test_log!(self, "{}", rp);
+                rp.into()
             }
-            1 => {
-                test_log!(self, "DE");
-                AddressingMode::RegisterPair(RegisterPair::DE)
-            }
-            2 => {
-                test_log!(self, "HL");
-                AddressingMode::RegisterPair(RegisterPair::HL)
-            }
-            3 => {
-                test_log!(self, "AF");
-                AddressingMode::RegisterPair(RegisterPair::AF)
-            }
-            _ => unreachable!("Invalid p value"), // should never happen
+            Err(e) => panic!("{}", e),
         }
     }
 
     fn table_cc(&mut self, y: u8) -> Condition {
-        match y {
-            0 => {
-                test_log!(self, "NZ");
-                Condition::NZ
+        match Condition::try_from(y) {
+            Ok(c) => {
+                test_log!(self, "{}", c);
+                c
             }
-            1 => {
-                test_log!(self, "Z");
-                Condition::Z
-            }
-            2 => {
-                test_log!(self, "NC");
-                Condition::NC
-            }
-            3 => {
-                test_log!(self, "C");
-                Condition::C
-            }
-            4 => {
-                test_log!(self, "PO");
-                Condition::PO
-            }
-            5 => {
-                test_log!(self, "PE");
-                Condition::PE
-            }
-            6 => {
-                test_log!(self, "P");
-                Condition::P
-            }
-            7 => {
-                test_log!(self, "M");
-                Condition::M
-            }
-            _ => unreachable!("Invalid y value"), // should never happen
+            Err(e) => panic!("{}", e),
         }
     }
 
@@ -1291,7 +1476,8 @@ impl Z80A {
                             addressing,
                         );
                         let rp = self.table_rp(p);
-                        let src = self.transform_register(rp, addressing);
+                        let src =
+                            self.transform_register(AddressingMode::RegisterPair(rp), addressing);
                         self.add_16_op(dest, src, false);
                     } else {
                         // 16-bit load immediate/add
@@ -1299,7 +1485,8 @@ impl Z80A {
                         test_log!(self, "LD rp[p], nn");
                         let nn = self.fetch_word();
                         let rp = self.table_rp(p);
-                        let src = self.transform_register(rp, addressing);
+                        let src =
+                            self.transform_register(AddressingMode::RegisterPair(rp), addressing);
                         self.ld_16(src, AddressingMode::ImmediateExtended(nn));
                     }
                 }
@@ -1376,12 +1563,14 @@ impl Z80A {
                         // 16-bit INC/DEC
                         test_log!(self, "INC rp[p]");
                         let rp = self.table_rp(p);
-                        let dest = self.transform_register(rp, addressing);
+                        let dest =
+                            self.transform_register(AddressingMode::RegisterPair(rp), addressing);
                         self.inc_16_op(dest);
                     } else {
                         test_log!(self, "DEC rp[p]");
                         let rp = self.table_rp(p);
-                        let dest = self.transform_register(rp, addressing);
+                        let dest =
+                            self.transform_register(AddressingMode::RegisterPair(rp), addressing);
                         self.dec_16_op(dest);
                     }
                 }
@@ -1389,20 +1578,20 @@ impl Z80A {
                 4 => {
                     test_log!(self, "INC r[y]");
                     let reg = self.table_r(y);
-                    let dest = self.transform_register(reg, addressing);
+                    let dest = self.transform_register(reg.into(), addressing);
                     self.inc_op(dest);
                 }
                 5 => {
                     test_log!(self, "DEC r[y]");
                     let reg = self.table_r(y);
-                    let dest = self.transform_register(reg, addressing);
+                    let dest = self.transform_register(reg.into(), addressing);
                     self.dec_op(dest);
                 }
                 6 => {
                     test_log!(self, "LD r[y], n");
                     let n = self.fetch();
                     let reg = self.table_r(y);
-                    let dest = self.transform_register(reg, addressing);
+                    let dest = self.transform_register(reg.into(), addressing);
                     self.ld(dest, AddressingMode::Immediate(n))
                 } //  LD r[y], n (still have to transform r[y] if IX/IY prefixed)
                 7 => {
@@ -1512,9 +1701,9 @@ impl Z80A {
                 } else {
                     test_log!(self, "LD r[y], r[z]");
                     let reg = self.table_r(y);
-                    let dest = self.transform_register(reg, addressing);
+                    let dest = self.transform_register(reg.into(), addressing);
                     let reg = self.table_r(z);
-                    let src = self.transform_register(reg, addressing);
+                    let src = self.transform_register(reg.into(), addressing);
                     self.ld(dest, src); // LD r[y], r[z] (still have to transform r[y] and r[z] if IX/IY prefixed)
                 }
             }
@@ -1524,7 +1713,7 @@ impl Z80A {
                 test_log!(self, "ALU[y] r[z]"); // TODO: exhaustive tests for these
                 let alu_op = self.table_alu(y);
                 let reg = self.table_r(z);
-                let src = self.transform_register(reg, addressing);
+                let src = self.transform_register(reg.into(), addressing);
                 let value = self.read_8(src);
                 self.alu_op(alu_op, value);
             }
@@ -1544,7 +1733,8 @@ impl Z80A {
                         // POP rp2[p]
                         test_log!(self, "POP rp2[p]");
                         let rp = self.table_rp2(p);
-                        let dest = self.transform_register(rp, addressing);
+                        let dest =
+                            self.transform_register(AddressingMode::RegisterPair(rp), addressing);
                         let value = self.pop();
                         self.ld_16(dest, AddressingMode::ImmediateExtended(value));
                     }
@@ -1666,7 +1856,8 @@ impl Z80A {
                         // PUSH rp2[p]
                         test_log!(self, "PUSH rp2[p]");
                         let rp = self.table_rp2(p);
-                        let src = self.transform_register(rp, addressing);
+                        let src =
+                            self.transform_register(AddressingMode::RegisterPair(rp), addressing);
                         let value = self.read_16(src);
                         self.push(value);
                     }
@@ -1715,19 +1906,19 @@ impl Z80A {
                 test_log!(self, "BIT y, r[z]");
                 test_log!(self, "{}", y);
                 let reg = self.table_r(z);
-                self.bit(y, reg)
+                self.bit(y, reg.into())
             } // NOTE: BIT y, r[z]
             2 => {
                 test_log!(self, "RES y, r[z]");
                 test_log!(self, "{}", y);
                 let reg = self.table_r(z);
-                self.res(y, reg)
+                self.res(y, reg.into())
             } // NOTE: RES y, r[z]
             3 => {
                 test_log!(self, "SET y, r[z]");
                 test_log!(self, "{}", y);
                 let reg = self.table_r(z);
-                self.set(y, reg)
+                self.set(y, reg.into())
             } // NOTE: SET y, r[z]
             _ => unreachable!("Invalid x value"), // should never happen
         }
@@ -1765,7 +1956,7 @@ impl Z80A {
                         let b = self.get_register(GPR::B);
                         let port = ((b as u16) << 8) | (c as u16);
                         let val = self.read_io(port);
-                        self.write_8(reg, val);
+                        self.write_8(reg.into(), val);
 
                         self.set_flag((val & flags::SIGN) != 0, Flag::S);
                         self.set_flag(val == 0, Flag::Z);
@@ -1786,7 +1977,7 @@ impl Z80A {
                     } else if y < 8 {
                         test_log!(self, "OUT (C), r[y]");
                         let reg = self.table_r(y);
-                        let value = self.read_8(reg);
+                        let value = self.read_8(reg.into());
                         let c = self.get_register(GPR::C);
                         let b = self.get_register(GPR::B);
                         let port = ((b as u16) << 8) | (c as u16);
@@ -1801,13 +1992,13 @@ impl Z80A {
                         test_log!(self, "SBC HL, rp[p]");
                         let dest = AddressingMode::RegisterPair(RegisterPair::HL);
                         let rp = self.table_rp(p);
-                        self.sub_16_op(dest, rp, true) // SBC HL, rp[p]
+                        self.sub_16_op(dest, AddressingMode::RegisterPair(rp), true) // SBC HL, rp[p]
                     } else {
                         // ADC HL, rp[p]
                         test_log!(self, "ADC HL, rp[p]");
                         let dest = AddressingMode::RegisterPair(RegisterPair::HL);
                         let rp = self.table_rp(p);
-                        self.add_16_op(dest, rp, true) // ADC HL, rp[p]
+                        self.add_16_op(dest, AddressingMode::RegisterPair(rp), true) // ADC HL, rp[p]
                     }
                 }
                 3 => {
@@ -1815,12 +2006,18 @@ impl Z80A {
                         test_log!(self, "LD (nn), rp[p]");
                         let addr = self.fetch_word();
                         let src = self.table_rp(p);
-                        self.ld_16(AddressingMode::Absolute(addr), src) // LD (nn), rp[p]
+                        self.ld_16(
+                            AddressingMode::Absolute(addr),
+                            AddressingMode::RegisterPair(src),
+                        ) // LD (nn), rp[p]
                     } else {
                         test_log!(self, "LD rp[p], (nn)");
                         let addr = self.fetch_word();
                         let dest = self.table_rp(p);
-                        self.ld_16(dest, AddressingMode::Absolute(addr)) // LD rp[p], (nn)
+                        self.ld_16(
+                            AddressingMode::RegisterPair(dest),
+                            AddressingMode::Absolute(addr),
+                        ) // LD rp[p], (nn)
                     }
                 }
                 /*
@@ -2069,7 +2266,7 @@ impl Z80A {
                 // Undocumented: copy result to register if z != 6
                 if z != 6 {
                     let dest_reg = self.table_r(z);
-                    self.write_8(dest_reg, result);
+                    self.write_8(dest_reg.into(), result);
                 }
             }
             1 => {
@@ -2088,7 +2285,7 @@ impl Z80A {
                 // Undocumented: copy result to register if z != 6
                 if z != 6 {
                     let dest_reg = self.table_r(z);
-                    self.write_8(dest_reg, result);
+                    self.write_8(dest_reg.into(), result);
                 }
             }
             3 => {
@@ -2101,7 +2298,7 @@ impl Z80A {
                 // Undocumented: copy result to register if z != 6
                 if z != 6 {
                     let dest_reg = self.table_r(z);
-                    self.write_8(dest_reg, result);
+                    self.write_8(dest_reg.into(), result);
                 }
             }
             _ => unreachable!("Invalid x value"), // should never happen
@@ -2149,47 +2346,19 @@ impl Z80A {
     }
 
     fn table_rot(&mut self, y: u8) -> RotOperation {
-        match y {
-            0 => {
-                test_log!(self, "RLC");
-                RotOperation::RLC
+        match RotOperation::try_from(y) {
+            Ok(op) => {
+                test_log!(self, "{}", op);
+                op
             }
-            1 => {
-                test_log!(self, "RRC");
-                RotOperation::RRC
-            }
-            2 => {
-                test_log!(self, "RL");
-                RotOperation::RL
-            }
-            3 => {
-                test_log!(self, "RR");
-                RotOperation::RR
-            }
-            4 => {
-                test_log!(self, "SLA");
-                RotOperation::SLA
-            }
-            5 => {
-                test_log!(self, "SRA");
-                RotOperation::SRA
-            }
-            6 => {
-                test_log!(self, "SLL");
-                RotOperation::SLL
-            }
-            7 => {
-                test_log!(self, "SRL");
-                RotOperation::SRL
-            }
-            _ => unreachable!("Invalid y value"), // should never happen
+            Err(e) => panic!("{}", e),
         }
     }
 
     fn rot(&mut self, y: u8, z: u8) {
         let operation = self.table_rot(y);
         let reg = self.table_r(z);
-        let value = self.read_8(reg);
+        let value = self.read_8(reg.into());
 
         let (result, flags) = match operation {
             RotOperation::RLC => rot::rlc(value),
@@ -2201,8 +2370,9 @@ impl Z80A {
             RotOperation::SLL => rot::sll(value),
             RotOperation::SRL => rot::srl(value),
         };
+        self.set_register(GPR::A, flags); // Wait, flags in F? Yes. set_register(GPR::F, flags) likely.
         self.set_register(GPR::F, flags);
-        self.write_8(reg, result);
+        self.write_8(reg.into(), result);
     }
 
     fn bit(&mut self, y: u8, reg: AddressingMode) {

@@ -1,4 +1,8 @@
 use std::collections::HashMap;
+use std::str::FromStr;
+
+use crate::cpu::alu::rot::RotOperation;
+use crate::cpu::{ALUOperation, Condition, RegOps, Rp2Ops, RpOps};
 
 pub mod keywords;
 
@@ -501,13 +505,13 @@ fn parse_instruction(
         "INC" => encode_alu_uni(0x04, &operands),
         "DEC" => encode_alu_uni(0x05, &operands),
         "ADD" => encode_add(&operands, labels, is_dry_run),
-        "ADC" => encode_alu_bin(0x88, 0xCE, &operands, labels, is_dry_run),
-        "SUB" => encode_alu_bin(0x90, 0xD6, &operands, labels, is_dry_run),
+        "ADC" => encode_alu_op(ALUOperation::ADC, &operands, labels, is_dry_run),
+        "SUB" => encode_alu_op(ALUOperation::SUB, &operands, labels, is_dry_run),
         "SBC" => encode_sbc(&operands, labels, is_dry_run),
-        "AND" => encode_alu_bin(0xA0, 0xE6, &operands, labels, is_dry_run),
-        "XOR" => encode_alu_bin(0xA8, 0xEE, &operands, labels, is_dry_run),
-        "OR" => encode_alu_bin(0xB0, 0xF6, &operands, labels, is_dry_run),
-        "CP" => encode_alu_bin(0xB8, 0xFE, &operands, labels, is_dry_run),
+        "AND" => encode_alu_op(ALUOperation::AND, &operands, labels, is_dry_run),
+        "XOR" => encode_alu_op(ALUOperation::XOR, &operands, labels, is_dry_run),
+        "OR" => encode_alu_op(ALUOperation::OR, &operands, labels, is_dry_run),
+        "CP" => encode_alu_op(ALUOperation::CP, &operands, labels, is_dry_run),
 
         "HALT" => Ok(vec![0x76]),
         "NOP" => Ok(vec![0x00]),
@@ -649,14 +653,14 @@ fn parse_instruction(
         "OUTD" => Ok(vec![0xED, 0xAB]),
         "OTDR" => Ok(vec![0xED, 0xBB]),
 
-        "RLC" => encode_rot_shift(0x00, &operands),
-        "RRC" => encode_rot_shift(0x08, &operands),
-        "RL" => encode_rot_shift(0x10, &operands),
-        "RR" => encode_rot_shift(0x18, &operands),
-        "SLA" => encode_rot_shift(0x20, &operands),
-        "SRA" => encode_rot_shift(0x28, &operands),
-        "SLL" => encode_rot_shift(0x30, &operands),
-        "SRL" => encode_rot_shift(0x38, &operands),
+        "RLC" => encode_rot_op(RotOperation::RLC, &operands),
+        "RRC" => encode_rot_op(RotOperation::RRC, &operands),
+        "RL" => encode_rot_op(RotOperation::RL, &operands),
+        "RR" => encode_rot_op(RotOperation::RR, &operands),
+        "SLA" => encode_rot_op(RotOperation::SLA, &operands),
+        "SRA" => encode_rot_op(RotOperation::SRA, &operands),
+        "SLL" => encode_rot_op(RotOperation::SLL, &operands),
+        "SRL" => encode_rot_op(RotOperation::SRL, &operands),
         "BIT" => encode_bit_op(0x40, &operands),
         "RES" => encode_bit_op(0x80, &operands),
         "SET" => encode_bit_op(0xC0, &operands),
@@ -668,36 +672,15 @@ fn parse_instruction(
 // --- Encoders ---
 
 fn get_r_code(reg: &str) -> Option<u8> {
-    match reg {
-        "B" => Some(0),
-        "C" => Some(1),
-        "D" => Some(2),
-        "E" => Some(3),
-        "H" => Some(4),
-        "L" => Some(5),
-        "A" => Some(7),
-        _ => None,
-    }
+    RegOps::from_str(reg).ok().map(|r| r as u8)
 }
 
 fn get_rp_code(reg: &str) -> Option<u8> {
-    match reg {
-        "BC" => Some(0),
-        "DE" => Some(1),
-        "HL" => Some(2),
-        "SP" => Some(3),
-        _ => None,
-    }
+    RpOps::from_str(reg).ok().map(|rp| rp as u8)
 }
 
 fn get_rp2_code(reg: &str) -> Option<u8> {
-    match reg {
-        "BC" => Some(0),
-        "DE" => Some(1),
-        "HL" => Some(2),
-        "AF" => Some(3),
-        _ => None,
-    }
+    Rp2Ops::from_str(reg).ok().map(|rp| rp as u8)
 }
 
 fn encode_ld(ops: &[Operand], labels: &HashMap<String, u16>, dry: bool) -> Result<Vec<u8>, String> {
@@ -924,16 +907,7 @@ fn encode_add(
             }
         }
     }
-    if ops.len() == 2 {
-        if let Operand::Register(r) = &ops[0] {
-            if r == "A" {
-                return encode_alu_bin(0x80, 0xC6, &ops[1..], labels, dry);
-            }
-        }
-    } else if ops.len() == 1 {
-        return encode_alu_bin(0x80, 0xC6, ops, labels, dry);
-    }
-    Err("Invalid ADD inputs".to_string())
+    encode_alu_op(ALUOperation::ADD, ops, labels, dry)
 }
 
 fn encode_sbc(
@@ -952,14 +926,24 @@ fn encode_sbc(
             }
         }
     }
-    if ops.len() == 2 {
-        if let Operand::Register(r) = &ops[0] {
-            if r == "A" {
-                return encode_alu_bin(0x98, 0xDE, &ops[1..], labels, dry);
-            }
-        }
-    }
-    encode_alu_bin(0x98, 0xDE, ops, labels, dry)
+    encode_alu_op(ALUOperation::SBC, ops, labels, dry)
+}
+
+fn encode_alu_op(
+    op: ALUOperation,
+    ops: &[Operand],
+    labels: &HashMap<String, u16>,
+    dry: bool,
+) -> Result<Vec<u8>, String> {
+    let op_code = op as u8;
+    let base_r = 0x80 | (op_code << 3);
+    let base_n = 0xC6 | (op_code << 3);
+    encode_alu_bin(base_r, base_n, ops, labels, dry)
+}
+
+fn encode_rot_op(op: RotOperation, ops: &[Operand]) -> Result<Vec<u8>, String> {
+    let base = (op as u8) << 3;
+    encode_rot_shift(base, ops)
 }
 
 fn encode_alu_bin(
@@ -970,6 +954,20 @@ fn encode_alu_bin(
     dry: bool,
 ) -> Result<Vec<u8>, String> {
     if ops.len() != 1 {
+        // If 2 operands and first is A, strip it?
+        // No, encode_alu_bin assumes the caller handled it if necessary.
+        // But wait, parse_instruction called it with &operands for ADC etc.
+        // If encode_alu_bin fails on len != 1, then parse_instruction handles len=2 specially?
+        // No, parse_instruction just called encode_alu_bin for ADC...
+        // Ah, I missed looking at parse_instruction completely for ADC/SUB.
+        // Let's assume encode_alu_bin handles 2 operands if the first is A.
+        if ops.len() == 2 {
+            if let Operand::Register(r) = &ops[0] {
+                if r == "A" {
+                    return encode_alu_bin(base_r, base_n, &ops[1..], labels, dry);
+                }
+            }
+        }
         return Err("ALU ops count error".to_string());
     }
     match &ops[0] {
@@ -998,17 +996,7 @@ fn encode_alu_bin(
 }
 
 fn get_condition_code(s: &str) -> Option<u8> {
-    match s {
-        "NZ" => Some(0),
-        "Z" => Some(1),
-        "NC" => Some(2),
-        "C" => Some(3),
-        "PO" => Some(4),
-        "PE" => Some(5),
-        "P" => Some(6),
-        "M" => Some(7),
-        _ => None,
-    }
+    Condition::from_str(s).ok().map(|c| c as u8)
 }
 
 fn encode_jp(ops: &[Operand], labels: &HashMap<String, u16>, dry: bool) -> Result<Vec<u8>, String> {
