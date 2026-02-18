@@ -50,6 +50,7 @@ enum HeaderAction {
 enum DeviceType {
     Keypad,
     SevenSegment,
+    LcdDisplay,
     GenericInterrupt,
     NmiTrigger,
 }
@@ -59,6 +60,14 @@ enum ModalType {
     CloseTab(usize),
     Quit,
     AddDevice(DeviceType, String),
+}
+
+#[derive(Clone, Copy, PartialEq, serde::Deserialize, serde::Serialize)]
+enum SymbolDisplayFormat {
+    Default,
+    String,
+    HexBytes,
+    HexWords,
 }
 
 #[derive(serde::Deserialize, serde::Serialize, Clone)]
@@ -89,6 +98,10 @@ pub struct Z80App {
     address_to_line: HashMap<u16, usize>,
     #[serde(skip)]
     line_to_address: HashMap<usize, u16>,
+
+    #[serde(default)]
+    symbol_display_prefs: HashMap<String, SymbolDisplayFormat>,
+
     #[serde(skip)]
     is_running: bool,
     #[serde(skip)]
@@ -426,7 +439,7 @@ START:
         let base_path = if pathname.ends_with('/') {
             pathname
         } else if let Some(last_slash) = pathname.rfind('/') {
-             pathname[0..=last_slash].to_string()
+            pathname[0..=last_slash].to_string()
         } else {
             "/".to_string()
         };
@@ -555,11 +568,11 @@ impl Default for Z80App {
                 let base_path = if pathname.ends_with('/') {
                     pathname
                 } else if let Some(last_slash) = pathname.rfind('/') {
-                     pathname[0..=last_slash].to_string()
+                    pathname[0..=last_slash].to_string()
                 } else {
                     "/".to_string()
                 };
-                
+
                 let url = format!("{}{}z80%20files/examples.json", origin, base_path);
 
                 match reqwest::get(&url).await {
@@ -605,6 +618,7 @@ impl Default for Z80App {
             symbol_table: HashMap::new(),
             address_to_line: HashMap::new(),
             line_to_address: HashMap::new(),
+            symbol_display_prefs: HashMap::new(),
             is_running: false,
             pending_modal: None,
             loaded_file_name: "Untitled".to_string(),
@@ -657,11 +671,11 @@ impl eframe::App for Z80App {
 
         // Top Panel: Menu Bar and Control Toolbar
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            // Menu Bar
             egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui
                         .add(egui::Button::new("New").shortcut_text("Ctrl+N"))
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
                         .clicked()
                     {
                         action = Some(HeaderAction::NewFile);
@@ -669,6 +683,7 @@ impl eframe::App for Z80App {
                     }
                     if ui
                         .add(egui::Button::new("Open...").shortcut_text("Ctrl+O"))
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
                         .clicked()
                     {
                         action = Some(HeaderAction::OpenFileDialog);
@@ -681,7 +696,11 @@ impl eframe::App for Z80App {
                         } else {
                             let mut to_open = None;
                             for path in &self.recent_files {
-                                if ui.button(path.display().to_string()).clicked() {
+                                if ui
+                                    .button(path.display().to_string())
+                                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                    .clicked()
+                                {
                                     to_open = Some(path.clone());
                                 }
                             }
@@ -690,12 +709,15 @@ impl eframe::App for Z80App {
                                 ui.close();
                             }
                         }
-                    });
+                    })
+                    .response
+                    .on_hover_cursor(egui::CursorIcon::PointingHand);
 
                     ui.separator();
 
                     if ui
                         .add(egui::Button::new("Save").shortcut_text("Ctrl+S"))
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
                         .clicked()
                     {
                         action = Some(HeaderAction::SaveFile);
@@ -703,6 +725,7 @@ impl eframe::App for Z80App {
                     }
                     if ui
                         .add(egui::Button::new("Save As...").shortcut_text("Ctrl+Shift+S"))
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
                         .clicked()
                     {
                         action = Some(HeaderAction::SaveFileAs);
@@ -710,33 +733,66 @@ impl eframe::App for Z80App {
                     }
 
                     ui.separator();
-                    if ui.button("Quit").clicked() {
+                    if ui
+                        .button("Quit")
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
+                        .clicked()
+                    {
                         action = Some(HeaderAction::Quit);
                         ui.close();
                     }
-                });
+                })
+                .response
+                .on_hover_cursor(egui::CursorIcon::PointingHand);
 
                 ui.menu_button("Devices", |ui| {
-                    if ui.button("Add Keypad").clicked() {
+                    if ui
+                        .button("Add Keypad")
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
+                        .clicked()
+                    {
                         self.pending_modal =
                             Some(ModalType::AddDevice(DeviceType::Keypad, "1".to_string()));
                         ui.close();
                     }
-                    if ui.button("Add Display").clicked() {
+                    if ui
+                        .button("Add Display")
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
+                        .clicked()
+                    {
                         self.pending_modal = Some(ModalType::AddDevice(
                             DeviceType::SevenSegment,
                             "2".to_string(),
                         ));
                         ui.close();
                     }
-                    if ui.button("Add Interrupt Controller").clicked() {
+                    if ui
+                        .button("Add LCD Display")
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
+                        .clicked()
+                    {
+                        self.pending_modal = Some(ModalType::AddDevice(
+                            DeviceType::LcdDisplay,
+                            "3".to_string(), // Default port 3
+                        ));
+                        ui.close();
+                    }
+                    if ui
+                        .button("Add Interrupt Controller")
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
+                        .clicked()
+                    {
                         self.pending_modal = Some(ModalType::AddDevice(
                             DeviceType::GenericInterrupt,
                             "0".to_string(),
                         ));
                         ui.close();
                     }
-                    if ui.button("Add NMI Trigger").clicked() {
+                    if ui
+                        .button("Add NMI Trigger")
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
+                        .clicked()
+                    {
                         self.pending_modal = Some(ModalType::AddDevice(
                             DeviceType::NmiTrigger,
                             "0".to_string(),
@@ -756,7 +812,9 @@ impl eframe::App for Z80App {
                             }
                         }
                     }
-                });
+                })
+                .response
+                .on_hover_cursor(egui::CursorIcon::PointingHand);
 
                 #[cfg(target_arch = "wasm32")]
                 ui.menu_button("Examples", |ui| {
@@ -765,7 +823,11 @@ impl eframe::App for Z80App {
                     } else {
                         let mut to_load = None;
                         for ex in &self.examples_list {
-                            if ui.button(ex).clicked() {
+                            if ui
+                                .button(ex)
+                                .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                .clicked()
+                            {
                                 to_load = Some(ex.clone());
                             }
                         }
@@ -774,13 +836,19 @@ impl eframe::App for Z80App {
                             ui.close();
                         }
                     }
-                });
+                })
+                .response
+                .on_hover_cursor(egui::CursorIcon::PointingHand);
             });
             ui.separator();
 
             // Toolbar
             ui.horizontal(|ui| {
-                if ui.button("⟳ Load & Reset").clicked() {
+                if ui
+                    .button("⟳ Load & Reset")
+                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                    .clicked()
+                {
                     self.load_and_reset();
                 }
 
@@ -788,6 +856,7 @@ impl eframe::App for Z80App {
 
                 if ui
                     .add_enabled(self.last_error.is_none(), egui::Button::new("⏭ Step"))
+                    .on_hover_cursor(egui::CursorIcon::PointingHand)
                     .clicked()
                 {
                     self.is_running = false;
@@ -803,6 +872,7 @@ impl eframe::App for Z80App {
                 };
                 if ui
                     .add_enabled(self.last_error.is_none(), egui::Button::new(run_label))
+                    .on_hover_cursor(egui::CursorIcon::PointingHand)
                     .clicked()
                 {
                     if !self.is_running && !self.cpu.is_halted() {
@@ -832,7 +902,11 @@ impl eframe::App for Z80App {
                     ui.colored_label(egui::Color32::RED, format!("⚠ {}", err));
                 } else if self.cpu.is_halted() {
                     ui.colored_label(egui::Color32::RED, "HALTED");
-                    if ui.button("Resume").clicked() {
+                    if ui
+                        .button("Resume")
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
+                        .clicked()
+                    {
                         self.cpu.set_halted(false);
                         self.is_running = true;
                     }
@@ -1008,22 +1082,227 @@ impl eframe::App for Z80App {
 
                                     let addr = symbol.address;
 
-                                    ui.label(*name);
+                                    // Determine display format
+                                    let format = self.symbol_display_prefs.get(*name).cloned().unwrap_or(SymbolDisplayFormat::Default);
+
+                                    // Context menu for format selection
+                                    let label_resp = ui.label(*name);
+                                    label_resp.context_menu(|ui| {
+                                        ui.label(egui::RichText::new("Display Format").strong());
+
+                                        // "Default" implies removing the override
+                                        if ui.button("Default").clicked() {
+                                            self.symbol_display_prefs.remove(*name);
+                                            ui.close();
+                                        }
+
+                                        // Always offer String and Array/Hex options regardless of defined type, as requested
+                                        if ui.button("String").clicked() {
+                                            self.symbol_display_prefs.insert(name.to_string(), SymbolDisplayFormat::String);
+                                            ui.close();
+                                        }
+                                        if ui.button("Hex Bytes").clicked() {
+                                            self.symbol_display_prefs.insert(name.to_string(), SymbolDisplayFormat::HexBytes);
+                                            ui.close();
+                                        }
+                                        if ui.button("Hex Words").clicked() {
+                                            self.symbol_display_prefs.insert(name.to_string(), SymbolDisplayFormat::HexWords);
+                                            ui.close();
+                                        }
+                                    });
+
                                     ui.monospace(format!("0x{:04X}", addr));
 
-                                    match symbol.kind {
-                                        SymbolType::Byte => {
-                                            let val = self.memory.borrow().read(addr);
-                                            ui.monospace(format!("0x{:02X}", val));
+                                    // Render based on format
+                                    match format {
+                                        SymbolDisplayFormat::Default => {
+                                            match symbol.kind {
+                                                SymbolType::Byte => {
+                                                    let val = self.memory.borrow().read(addr);
+                                                    ui.monospace(format!("0x{:02X}", val));
+                                                }
+                                                SymbolType::Word => {
+                                                    let low = self.memory.borrow().read(addr);
+                                                    let high = self.memory.borrow().read(addr.wrapping_add(1));
+                                                    let val = (low as u16) | ((high as u16) << 8);
+                                                    ui.monospace(format!("0x{:04X}", val));
+                                                }
+                                                SymbolType::String(len) => {
+                                                    // Default String render
+                                                    let mut bytes = Vec::new();
+                                                    // Read at most 20 chars for preview, but check for null terminator
+                                                    let display_len = len.min(20);
+                                                    for i in 0..display_len {
+                                                        let b = self.memory.borrow().read(addr.wrapping_add(i as u16));
+                                                        if b == 0 { break; }
+                                                        bytes.push(b);
+                                                    }
+                                                    let s: String = bytes.iter()
+                                                        .map(|&b| if b >= 32 && b <= 126 { b as char } else { '.' })
+                                                        .collect();
+
+                                                        // If we hit a null or length is long, check full content for tooltip
+                                                    if len > 20 || bytes.len() < len.min(20) {
+                                                        // Read full content for tooltip
+                                                        let mut full_bytes = Vec::new();
+                                                        for i in 0..len {
+                                                            let b = self.memory.borrow().read(addr.wrapping_add(i as u16));
+                                                            if b == 0 { break; }
+                                                            full_bytes.push(b);
+                                                        }
+                                                        let full_s: String = full_bytes.iter()
+                                                            .map(|&b| if b >= 32 && b <= 126 { b as char } else { '.' })
+                                                            .collect();
+
+                                                        if bytes.len() < full_bytes.len() {
+                                                             ui.monospace(format!("\"{}\"...", s))
+                                                                .on_hover_text(format!("Length: {}\nFull: \"{}\"", len, full_s));
+                                                        } else {
+                                                             ui.monospace(format!("\"{}\"", s));
+                                                        }
+                                                    } else {
+                                                        ui.monospace(format!("\"{}\"", s));
+                                                    }
+                                                }
+                                                SymbolType::Array(len) => {
+                                                    // Default Array render (Hex Bytes)
+                                                    let mut bytes = Vec::new();
+                                                    let display_len = len.min(8);
+                                                    for i in 0..display_len {
+                                                        bytes.push(self.memory.borrow().read(addr.wrapping_add(i as u16)));
+                                                    }
+                                                    let hex_str: Vec<String> = bytes.iter().map(|b| format!("{:02X}", b)).collect();
+                                                    if len > 8 {
+                                                        // Read full content for tooltip
+                                                        let mut full_bytes = Vec::new();
+                                                        for i in 0..len {
+                                                            full_bytes.push(self.memory.borrow().read(addr.wrapping_add(i as u16)));
+                                                        }
+                                                        let full_hex: Vec<String> = full_bytes.iter().map(|b| format!("{:02X}", b)).collect();
+
+                                                        ui.monospace(format!("[{}...]", hex_str.join(" ")))
+                                                            .on_hover_text(format!("Length: {}\nFull: [{}]", len, full_hex.join(" ")));
+                                                    } else {
+                                                        ui.monospace(format!("[{}]", hex_str.join(" ")));
+                                                    }
+                                                }
+                                                _ => { ui.label(""); }
+                                            }
+                                        },
+                                        SymbolDisplayFormat::String => {
+                                            let len = match symbol.kind {
+                                                SymbolType::String(l) | SymbolType::Array(l) => l,
+                                                SymbolType::Word => 2,
+                                                _ => 1,
+                                            };
+
+                                            let max_scan_len = if len > 1 { len } else { 40 };
+                                            let display_limit = max_scan_len.min(40);
+
+                                            let mut bytes = Vec::new();
+                                            for i in 0..display_limit {
+                                                let b = self.memory.borrow().read(addr.wrapping_add(i as u16));
+                                                if b == 0 { break; }
+                                                bytes.push(b);
+                                            }
+
+                                            let s: String = bytes.iter()
+                                                .map(|&b| if b >= 32 && b <= 126 { b as char } else { '.' })
+                                                .collect();
+
+                                            // Determine if we need to show truncation or tooltip with full content
+                                            // bytes.len() is the effective string length (stopped at null or limit)
+
+                                            // If we stopped at the display limit (40) but allocated size is larger, it might be truncated.
+                                            let truncated_visual = bytes.len() == 40 && max_scan_len > 40;
+
+                                            // Read full string for tooltip only if visually truncated
+                                            let mut full_s = s.clone();
+                                            if truncated_visual {
+                                                 let mut full_bytes = Vec::new();
+                                                 // Scan up to max_scan_len (which is allocated length)
+                                                 for i in 0..max_scan_len {
+                                                     let b = self.memory.borrow().read(addr.wrapping_add(i as u16));
+                                                     if b == 0 { break; }
+                                                     full_bytes.push(b);
+                                                 }
+                                                 full_s = full_bytes.iter()
+                                                    .map(|&b| if b >= 32 && b <= 126 { b as char } else { '.' })
+                                                    .collect();
+                                            }
+
+                                            if truncated_visual {
+                                                ui.monospace(format!("\"{}\"...", s))
+                                                    .on_hover_text(format!("Allocated: {}\nString: \"{}\"", len, full_s));
+                                            } else {
+                                                // Not truncated visually, so 's' is the full string (or at least as much as fits in allocated)
+                                                ui.monospace(format!("\"{}\"", s))
+                                                    .on_hover_text(format!("Allocated: {}\nString: \"{}\"", len, s));
+                                            }
+                                        },
+                                        SymbolDisplayFormat::HexBytes => {
+                                            let len = match symbol.kind {
+                                                SymbolType::String(l) | SymbolType::Array(l) => l,
+                                                SymbolType::Word => 2,
+                                                _ => 1,
+                                            };
+                                            let mut bytes = Vec::new();
+                                            let display_len = len.min(8).max(1); // At least 1 byte
+                                            for i in 0..display_len {
+                                                bytes.push(self.memory.borrow().read(addr.wrapping_add(i as u16)));
+                                            }
+                                            let hex_str: Vec<String> = bytes.iter().map(|b| format!("{:02X}", b)).collect();
+                                            if len > 8 {
+                                                 let mut full_bytes = Vec::new();
+                                                 for i in 0..len {
+                                                     full_bytes.push(self.memory.borrow().read(addr.wrapping_add(i as u16)));
+                                                 }
+                                                 let full_hex: Vec<String> = full_bytes.iter().map(|b| format!("{:02X}", b)).collect();
+                                                ui.monospace(format!("[{}...]", hex_str.join(" ")))
+                                                    .on_hover_text(format!("Length: {}\nFull: [{}]", len, full_hex.join(" ")));
+                                            } else {
+                                                ui.monospace(format!("[{}]", hex_str.join(" ")))
+                                                    .on_hover_text(format!("Length: {}\nFull: [{}]", len, hex_str.join(" ")));
+                                            }
+                                        },
+                                        SymbolDisplayFormat::HexWords => {
+                                            let len = match symbol.kind {
+                                                SymbolType::String(l) | SymbolType::Array(l) => l,
+                                                SymbolType::Word => 2,
+                                                _ => 1,
+                                            };
+                                            // If length is odd, maybe show up to last even?
+                                            let word_count = len / 2;
+                                            if word_count == 0 {
+                                                 // Fallback for single byte if forced?
+                                                 let val = self.memory.borrow().read(addr);
+                                                 ui.monospace(format!("[00{:02X}:inv]", val))
+                                                    .on_hover_text("Odd length, cannot display as words correctly");
+                                            } else {
+                                                let mut words = Vec::new();
+                                                let display_count = word_count.min(4);
+                                                for i in 0..display_count {
+                                                    let offset = (i * 2) as u16;
+                                                    let low = self.memory.borrow().read(addr.wrapping_add(offset));
+                                                    let high = self.memory.borrow().read(addr.wrapping_add(offset + 1));
+                                                    words.push(format!("{:04X}", (low as u16) | ((high as u16) << 8)));
+                                                }
+                                                if word_count > 4 {
+                                                     let mut full_words = Vec::new();
+                                                     for i in 0..word_count {
+                                                         let offset = (i * 2) as u16;
+                                                         let low = self.memory.borrow().read(addr.wrapping_add(offset));
+                                                         let high = self.memory.borrow().read(addr.wrapping_add(offset + 1));
+                                                         full_words.push(format!("{:04X}", (low as u16) | ((high as u16) << 8)));
+                                                     }
+                                                    ui.monospace(format!("[{}...]", words.join(" ")))
+                                                        .on_hover_text(format!("Length: {} bytes\nFull: [{}]", len, full_words.join(" ")));
+                                                } else {
+                                                    ui.monospace(format!("[{}]", words.join(" ")))
+                                                        .on_hover_text(format!("Length: {} bytes\nFull: [{}]", len, words.join(" ")));
+                                                }
+                                            }
                                         }
-                                        SymbolType::Word => {
-                                            let low = self.memory.borrow().read(addr);
-                                            let high =
-                                                self.memory.borrow().read(addr.wrapping_add(1));
-                                            let val = (low as u16) | ((high as u16) << 8);
-                                            ui.monospace(format!("0x{:04X}", val));
-                                        }
-                                        _ => {}
                                     }
                                     ui.end_row();
                                 }
@@ -1113,6 +1392,7 @@ impl eframe::App for Z80App {
                                                     )
                                                     .sense(egui::Sense::click()),
                                                 )
+                                                .on_hover_cursor(egui::CursorIcon::PointingHand)
                                                 .clicked()
                                             {
                                                 to_activate = Some(i);
@@ -1135,6 +1415,7 @@ impl eframe::App for Z80App {
                                                     )
                                                     .frame(false),
                                                 )
+                                                .on_hover_cursor(egui::CursorIcon::PointingHand)
                                                 .clicked()
                                             {
                                                 to_close = Some(i);
@@ -1202,7 +1483,11 @@ impl eframe::App for Z80App {
                                 )
                                 .sense(egui::Sense::click());
 
-                                if ui.add(label).clicked() {
+                                if ui
+                                    .add(label)
+                                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                    .clicked()
+                                {
                                     // Toggle breakpoint
                                     if is_bp {
                                         current_tab.breakpoints.remove(&i);
@@ -1311,13 +1596,17 @@ impl eframe::App for Z80App {
                     match &mut modal_type {
                         ModalType::AddDevice(dev_type, port_text) => {
                             use crate::components::devices::{
-                                GenericInterruptDevice, Keypad, SevenSegmentDisplay,
+                                GenericInterruptDevice, Keypad, LcdDisplay, SevenSegmentDisplay,
                             };
                             ui.label("Enter Port Number (Hex):");
                             ui.text_edit_singleline(port_text);
 
                             ui.horizontal(|ui| {
-                                if ui.button("Add").clicked() {
+                                if ui
+                                    .button("Add")
+                                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                    .clicked()
+                                {
                                     // Parse port
                                     let port_res = u16::from_str_radix(port_text, 16);
                                     match port_res {
@@ -1330,6 +1619,9 @@ impl eframe::App for Z80App {
                                                 DeviceType::SevenSegment => Rc::new(RefCell::new(
                                                     SevenSegmentDisplay::new(port),
                                                 )),
+                                                DeviceType::LcdDisplay => {
+                                                    Rc::new(RefCell::new(LcdDisplay::new(port)))
+                                                }
                                                 DeviceType::GenericInterrupt => Rc::new(
                                                     RefCell::new(GenericInterruptDevice::new(port)),
                                                 ),
@@ -1347,7 +1639,11 @@ impl eframe::App for Z80App {
                                         }
                                     }
                                 }
-                                if ui.button("Cancel").clicked() {
+                                if ui
+                                    .button("Cancel")
+                                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                    .clicked()
+                                {
                                     should_close_modal = true;
                                 }
                             });
@@ -1369,7 +1665,11 @@ impl eframe::App for Z80App {
                             ui.label("Your changes will be lost if you don't save them.");
 
                             ui.horizontal(|ui| {
-                                if ui.button("Save").clicked() {
+                                if ui
+                                    .button("Save")
+                                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                    .clicked()
+                                {
                                     self.save_file(idx, frame.storage_mut());
 
                                     // Check if save succeeded (is_dirty false)
@@ -1378,14 +1678,22 @@ impl eframe::App for Z80App {
                                         should_close_modal = true;
                                     }
                                 }
-                                if ui.button("Don't Save").clicked() {
+                                if ui
+                                    .button("Don't Save")
+                                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                    .clicked()
+                                {
                                     if idx < self.tabs.len() {
                                         self.tabs[idx].is_dirty = false; // Forced clear
                                         self.close_tab(idx, frame.storage_mut());
                                     }
                                     should_close_modal = true;
                                 }
-                                if ui.button("Cancel").clicked() {
+                                if ui
+                                    .button("Cancel")
+                                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                    .clicked()
+                                {
                                     should_close_modal = true;
                                 }
                             });
@@ -1395,7 +1703,11 @@ impl eframe::App for Z80App {
                             ui.label("Do you want to save all changes before quitting?");
 
                             ui.horizontal(|ui| {
-                                if ui.button("Save All").clicked() {
+                                if ui
+                                    .button("Save All")
+                                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                    .clicked()
+                                {
                                     // Iterate and save all dirty tabs
                                     let prev_active = self.active_tab;
                                     for i in 0..self.tabs.len() {
@@ -1425,7 +1737,11 @@ impl eframe::App for Z80App {
                                         ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                                     }
                                 }
-                                if ui.button("Quit Without Saving").clicked() {
+                                if ui
+                                    .button("Quit Without Saving")
+                                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                    .clicked()
+                                {
                                     // Clear all dirty flags to bypass on_close_event check
                                     for tab in &mut self.tabs {
                                         tab.is_dirty = false;
@@ -1434,7 +1750,11 @@ impl eframe::App for Z80App {
                                     // self.pending_modal is already None
                                     ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                                 }
-                                if ui.button("Cancel").clicked() {
+                                if ui
+                                    .button("Cancel")
+                                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                    .clicked()
+                                {
                                     should_close_modal = true;
                                 }
                             });

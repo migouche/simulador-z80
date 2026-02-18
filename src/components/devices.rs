@@ -174,12 +174,14 @@ impl DeviceWithUi for Keypad {
                             ];
 
                             for row in keys {
-                                for (code, label) in row {
+                                let mut row_iter = row.into_iter();
+                                for (code, label) in row_iter {
                                     if ui
                                         .add(
                                             egui::Button::new(label)
                                                 .min_size(egui::vec2(30.0, 30.0)),
                                         )
+                                        .on_hover_cursor(egui::CursorIcon::PointingHand)
                                         .clicked()
                                     {
                                         self.press_key(code);
@@ -270,7 +272,11 @@ impl DeviceWithUi for GenericInterruptDevice {
 
                     ui.label(format!("Current Vector: 0x{:02X}", self.vector));
 
-                    if ui.button("TRIGGER INTERRUPT").clicked() {
+                    if ui
+                        .button("TRIGGER INTERRUPT")
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
+                        .clicked()
+                    {
                         self.trigger();
                     }
 
@@ -280,6 +286,102 @@ impl DeviceWithUi for GenericInterruptDevice {
                         ui.label("Idle");
                     }
                 });
+            });
+        self.is_open = open;
+    }
+}
+
+pub struct LcdDisplay {
+    port: u16,
+    display_buffer: Vec<char>,
+    input_buffer: Vec<u8>,
+    input_index: usize,
+    is_open: bool,
+}
+
+impl LcdDisplay {
+    pub fn new(port: u16) -> Self {
+        LcdDisplay {
+            port,
+            display_buffer: Vec::new(),
+            input_buffer: b"Hello Input".to_vec(),
+            input_index: 0,
+            is_open: true,
+        }
+    }
+}
+
+impl IODevice for LcdDisplay {
+    fn read_in(&mut self, port: u16) -> Option<u8> {
+        if (port & 0xFF) == (self.port & 0xFF) {
+            let val = if self.input_index < self.input_buffer.len() {
+                let v = self.input_buffer[self.input_index];
+                self.input_index += 1;
+                v
+            } else {
+                0
+            };
+            Some(val)
+        } else {
+            None
+        }
+    }
+
+    fn write_out(&mut self, port: u16, data: u8) -> bool {
+        if (port & 0xFF) == (self.port & 0xFF) {
+            let ch = data as char;
+            if ch == '\n' || (ch >= ' ' && ch <= '~') {
+                self.display_buffer.push(ch);
+            } else {
+                self.display_buffer.push('.');
+            }
+            true
+        } else {
+            false
+        }
+    }
+}
+
+impl DeviceWithUi for LcdDisplay {
+    fn get_name(&self) -> String {
+        format!("LCD Display (Port 0x{:02X})", self.port)
+    }
+
+    fn get_window_open_state(&self) -> bool {
+        self.is_open
+    }
+
+    fn set_window_open_state(&mut self, open: bool) {
+        self.is_open = open;
+    }
+
+    fn draw(&mut self, ctx: &egui::Context) {
+        let mut open = self.is_open;
+        egui::Window::new(self.get_name())
+            .open(&mut open)
+            .min_width(300.0)
+            .show(ctx, |ui| {
+                ui.label("Sent from CPU:");
+
+                let text: String = self.display_buffer.iter().collect();
+                egui::ScrollArea::vertical()
+                    .max_height(200.0)
+                    .show(ui, |ui| {
+                        ui.add(
+                            egui::TextEdit::multiline(&mut text.as_str())
+                                .font(egui::TextStyle::Monospace)
+                                .desired_width(f32::INFINITY)
+                                .interactive(false), // Read-only
+                        );
+                    });
+
+                if ui.button("Clear").clicked() {
+                    self.display_buffer.clear();
+                    self.input_index = 0; // Reset input too maybe?
+                }
+
+                ui.separator();
+                ui.label(format!("Input Index: {}", self.input_index));
             });
         self.is_open = open;
     }

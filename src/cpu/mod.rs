@@ -975,6 +975,112 @@ impl Z80A {
 
     fn execute_block_instruction(&mut self, instruction: BlockInstruction) {
         match instruction {
+            BlockInstruction::LDI => {
+                let hl = self.get_register_pair(RegisterPair::HL);
+                let de = self.get_register_pair(RegisterPair::DE);
+                let bc = self.get_register_pair(RegisterPair::BC);
+                let val = self.memory.borrow().read(hl);
+                self.memory.borrow_mut().write(de, val);
+
+                self.set_register_pair(RegisterPair::HL, hl.wrapping_add(1));
+                self.set_register_pair(RegisterPair::DE, de.wrapping_add(1));
+                let next_bc = bc.wrapping_sub(1);
+                self.set_register_pair(RegisterPair::BC, next_bc);
+
+                self.set_flag(false, Flag::H);
+                self.set_flag(false, Flag::N);
+                self.set_flag(next_bc != 0, Flag::PV);
+                // X (3) and Y (5) from (A + (HL))? Manual says:
+                // Bit 5 is bit 1 of (A + (HL)), Bit 3 is bit 3 of (A + (HL)) -- wait
+                // "The contents of DE, HL, and BC are incremented/decremented... P/V is set if BC-1 is not 0..."
+                // Z80 User Manual p. 195 (LDI):
+                // S, Z, C not affected.
+                // H, N reset.
+                // P/V set if BC not 0.
+            }
+            BlockInstruction::LDIR => {
+                self.execute_block_instruction(BlockInstruction::LDI);
+                if self.get_register_pair(RegisterPair::BC) != 0 {
+                    self.pc = self.pc.wrapping_sub(2);
+                }
+            }
+            BlockInstruction::LDD => {
+                let hl = self.get_register_pair(RegisterPair::HL);
+                let de = self.get_register_pair(RegisterPair::DE);
+                let bc = self.get_register_pair(RegisterPair::BC);
+                let val = self.memory.borrow().read(hl);
+                self.memory.borrow_mut().write(de, val);
+
+                self.set_register_pair(RegisterPair::HL, hl.wrapping_sub(1));
+                self.set_register_pair(RegisterPair::DE, de.wrapping_sub(1));
+                let next_bc = bc.wrapping_sub(1);
+                self.set_register_pair(RegisterPair::BC, next_bc);
+
+                self.set_flag(false, Flag::H);
+                self.set_flag(false, Flag::N);
+                self.set_flag(next_bc != 0, Flag::PV);
+            }
+            BlockInstruction::LDDR => {
+                self.execute_block_instruction(BlockInstruction::LDD);
+                if self.get_register_pair(RegisterPair::BC) != 0 {
+                    self.pc = self.pc.wrapping_sub(2);
+                }
+            }
+            BlockInstruction::CPI => {
+                let a = self.get_register(GPR::A);
+                let hl = self.get_register_pair(RegisterPair::HL);
+                let bc = self.get_register_pair(RegisterPair::BC);
+                let val = self.memory.borrow().read(hl);
+
+                let res = a.wrapping_sub(val);
+
+                let next_bc = bc.wrapping_sub(1);
+                self.set_register_pair(RegisterPair::HL, hl.wrapping_add(1));
+                self.set_register_pair(RegisterPair::BC, next_bc);
+
+                self.set_flag(res == 0, Flag::Z);
+                self.set_flag((res & 0x80) != 0, Flag::S);
+                // H is set if borrow from bit 4. (a & 0xF) < (val & 0xF)
+                let h_borrow = (a & 0x0F) < (val & 0x0F);
+                self.set_flag(h_borrow, Flag::H);
+                self.set_flag(next_bc != 0, Flag::PV);
+                self.set_flag(true, Flag::N);
+            }
+            BlockInstruction::CPIR => {
+                self.execute_block_instruction(BlockInstruction::CPI);
+                let bc = self.get_register_pair(RegisterPair::BC);
+                let z = self.get_flag(Flag::Z);
+                if bc != 0 && !z {
+                    self.pc = self.pc.wrapping_sub(2);
+                }
+            }
+            BlockInstruction::CPD => {
+                let a = self.get_register(GPR::A);
+                let hl = self.get_register_pair(RegisterPair::HL);
+                let bc = self.get_register_pair(RegisterPair::BC);
+                let val = self.memory.borrow().read(hl);
+
+                let res = a.wrapping_sub(val);
+
+                let next_bc = bc.wrapping_sub(1);
+                self.set_register_pair(RegisterPair::HL, hl.wrapping_sub(1));
+                self.set_register_pair(RegisterPair::BC, next_bc);
+
+                self.set_flag(res == 0, Flag::Z);
+                self.set_flag((res & 0x80) != 0, Flag::S);
+                let h_borrow = (a & 0x0F) < (val & 0x0F);
+                self.set_flag(h_borrow, Flag::H);
+                self.set_flag(next_bc != 0, Flag::PV);
+                self.set_flag(true, Flag::N);
+            }
+            BlockInstruction::CPDR => {
+                self.execute_block_instruction(BlockInstruction::CPD);
+                let bc = self.get_register_pair(RegisterPair::BC);
+                let z = self.get_flag(Flag::Z);
+                if bc != 0 && !z {
+                    self.pc = self.pc.wrapping_sub(2);
+                }
+            }
             BlockInstruction::INI => {
                 let b = self.get_register(GPR::B);
                 let c = self.get_register(GPR::C);
@@ -1064,9 +1170,6 @@ impl Z80A {
                 if self.get_register(GPR::B) != 0 {
                     self.pc = self.pc.wrapping_sub(2);
                 }
-            }
-            _ => {
-                // Not implemented
             }
         }
     }
@@ -1535,7 +1638,6 @@ impl Z80A {
                         self.set_register_pair(RegisterPair::DE, hl);
                         self.set_register_pair(RegisterPair::HL, de);
                     }
-                    // TODO: will do interrupts later
                     6 => {
                         test_log!(self, "DI");
                         self.iff1 = false;
@@ -1907,7 +2009,6 @@ impl Z80A {
                 self.decode(next_opcode)
             }
             0xCB => {
-                test_log!(self, "CB prefix");
                 let displacement = self.fetch();
                 let op = self.fetch();
                 self.decode_ddcb_fdcb(op, IndexRegister::IX, displacement)
@@ -1926,7 +2027,6 @@ impl Z80A {
                 self.decode(next_opcode)
             }
             0xCB => {
-                test_log!(self, "CB prefix");
                 let displacement = self.fetch();
                 let op = self.fetch();
                 self.decode_ddcb_fdcb(op, IndexRegister::IY, displacement)
@@ -1940,34 +2040,68 @@ impl Z80A {
             IndexRegister::IX => test_log!(self, "decode_ddcb"),
             IndexRegister::IY => test_log!(self, "decode_fdcb"),
         }
-        let (x, y, z, p, q) = decode_opcode(opcode);
+        let (x, y, z, _p, _q) = decode_opcode(opcode);
+        let addressing_mode = AddressingMode::Indexed(indexing, displacement as i8);
+
         match x {
             0 => {
-                if z == 6 {
-                    test_log!(self, "rot[y] (IX+d)"); // TODO: rot[y] (IX+d)
-                } else if z < 8 {
-                    test_log!(self, "LD r[z], rot[y] (IX+d)"); // TODO: LD r[z], rot[y] (IX+d)
-                } else {
-                    unreachable!("Invalid z value") // should never happen
+                // rot[y] (IX/IY+d)
+                test_log!(self, "rot[y] ({:?} + d)", indexing);
+                // Fetch value from (IX/IY+d)
+                let value = self.read_8(addressing_mode);
+                let operation = self.table_rot(y);
+
+                // Perform rotation
+                let (result, flags) = match operation {
+                    RotOperation::RLC => rot::rlc(value),
+                    RotOperation::RRC => rot::rrc(value),
+                    RotOperation::RL => rot::rl(value, self.get_flag(Flag::C)),
+                    RotOperation::RR => rot::rr(value, self.get_flag(Flag::C)),
+                    RotOperation::SLA => rot::sla(value),
+                    RotOperation::SRA => rot::sra(value),
+                    RotOperation::SLL => rot::sll(value),
+                    RotOperation::SRL => rot::srl(value),
+                };
+
+                self.set_register(GPR::F, flags);
+                self.write_8(addressing_mode, result);
+
+                // Undocumented: copy result to register if z != 6
+                if z != 6 {
+                    let dest_reg = self.table_r(z);
+                    self.write_8(dest_reg, result);
                 }
             }
-            1 => test_log!(self, "BIT y, (IX+d)"), // TODO: BIT y, (IX+d)
+            1 => {
+                test_log!(self, "BIT y, ({:?} + d)", indexing);
+                // Standard BIT instruction on (IX/IY+d)
+                // z is ignored (typically 6, but others behave same)
+                self.bit(y, addressing_mode);
+            }
             2 => {
-                if z == 6 {
-                    test_log!(self, "RES y, (IX+d)"); // TODO: RES y, (IX+d)
-                } else if z < 8 {
-                    test_log!(self, "LD r[z], RES y, (IX+d)"); // TODO: LD r[z], RES y, (IX+d)
-                } else {
-                    unreachable!("Invalid z value") // should never happen
+                test_log!(self, "RES y, ({:?} + d)", indexing);
+                // Perform RES on (IX/IY+d)
+                let value = self.read_8(addressing_mode);
+                let result = res(value, y);
+                self.write_8(addressing_mode, result);
+
+                // Undocumented: copy result to register if z != 6
+                if z != 6 {
+                    let dest_reg = self.table_r(z);
+                    self.write_8(dest_reg, result);
                 }
             }
             3 => {
-                if z == 6 {
-                    test_log!(self, "SET y, (IX+d)"); // TODO: SET y, (IX+d)
-                } else if z < 8 {
-                    test_log!(self, "LD r[z], SET y, (IX+d)"); // TODO: LD r[z], SET y, (IX+d)
-                } else {
-                    unreachable!("Invalid z value") // should never happen
+                test_log!(self, "SET y, ({:?} + d)", indexing);
+                // Perform SET on (IX/IY+d)
+                let value = self.read_8(addressing_mode);
+                let result = set(value, y);
+                self.write_8(addressing_mode, result);
+
+                // Undocumented: copy result to register if z != 6
+                if z != 6 {
+                    let dest_reg = self.table_r(z);
+                    self.write_8(dest_reg, result);
                 }
             }
             _ => unreachable!("Invalid x value"), // should never happen

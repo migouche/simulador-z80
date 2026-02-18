@@ -30,9 +30,11 @@ pub enum Operand {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SymbolType {
-    Label, // Code label
-    Byte,  // DB/DEFB
-    Word,  // DW/DEFW
+    Label,         // Code label
+    Byte,          // DB/DEFB (single byte)
+    Word,          // DW/DEFW (single word)
+    String(usize), // Length
+    Array(usize),  // Length (for DS or multi-byte DB)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -72,12 +74,15 @@ pub fn assemble(
             continue;
         }
 
+        let mut current_label: Option<String> = None;
+
         // Label Def
         if tokens.len() >= 2 {
             if let (Token::Identifier(name), Token::Colon) = (&tokens[0], &tokens[1]) {
                 if labels.contains_key(name) {
                     return Err(format!("Line {}: Duplicate label '{}'", line_idx + 1, name));
                 }
+                current_label = Some(name.clone());
 
                 // Determine symbol type based on what follows
                 let mut sym_kind = SymbolType::Label;
@@ -86,6 +91,7 @@ pub fn assemble(
                         match next_mnemonic.as_str() {
                             "DB" | "DEFB" => sym_kind = SymbolType::Byte,
                             "DW" | "DEFW" => sym_kind = SymbolType::Word,
+                            "DS" | "DEFS" => sym_kind = SymbolType::Array(0),
                             _ => {}
                         }
                     }
@@ -108,6 +114,55 @@ pub fn assemble(
 
         let bytes = parse_instruction(&tokens, current_pc, &HashMap::new(), true)
             .map_err(|e| format!("Line {}: {}", line_idx + 1, e))?;
+
+        // Update symbol kind with size if applicable
+        if let Some(label) = current_label {
+            if let Some(sym) = labels.get_mut(&label) {
+                // Check if it was identified as Byte or Array or Word
+                // If it's a DB string -> String(len)
+                // If it's a DB multiple bytes -> Array(len)
+                // If it's a DS -> Array(len)
+
+                if let Token::Identifier(mnemonic) = &tokens[0] {
+                    match mnemonic.as_str() {
+                        "DB" | "DEFB" => {
+                            // Check if operands contain a string literal
+                            if tokens.len() > 1 {
+                                // Simple check for string literal as first operand
+                                // But parsing operands is better.
+                                // Since parse_instruction succeeded, we know operands are valid structure.
+                                // Let's assume passed bytes.len() is correct size.
+
+                                // If instruction size > 1, it's either string or array of bytes.
+                                if bytes.len() > 1 {
+                                    // Check if it is a string literal
+                                    // parse_operands again? It's cheap enough here.
+                                    if let Ok(ops) = parse_operands(&tokens[1..]) {
+                                        if ops.len() == 1 {
+                                            if let Operand::StringLiteral(_) = ops[0] {
+                                                sym.kind = SymbolType::String(bytes.len());
+                                            } else {
+                                                sym.kind = SymbolType::Array(bytes.len());
+                                            }
+                                        } else {
+                                            // Multiple operands: DB 1, 2, 3
+                                            sym.kind = SymbolType::Array(bytes.len());
+                                        }
+                                    }
+                                } else {
+                                    // Single byte, keep as Byte
+                                    sym.kind = SymbolType::Byte;
+                                }
+                            }
+                        }
+                        "DS" | "DEFS" => {
+                            sym.kind = SymbolType::Array(bytes.len());
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
 
         instructions.push((line_idx, current_pc, tokens));
         current_pc += bytes.len() as u16;
@@ -397,13 +452,12 @@ fn resolve_immediate(
     match op {
         Operand::Immediate(n) => Ok(*n),
         Operand::Label(s) => {
-            if is_dry_run {
+            if let Some(val) = labels.get(s) {
+                Ok(*val)
+            } else if is_dry_run {
                 Ok(0)
             } else {
-                labels
-                    .get(s)
-                    .cloned()
-                    .ok_or_else(|| format!("Label not found: {}", s))
+                Err(format!("Label not found: {}", s))
             }
         }
         _ => Err("Not an immediate".to_string()),
@@ -418,13 +472,12 @@ fn resolve_indirect(
     match op {
         Operand::IndirectImmediate(n) => Ok(*n),
         Operand::IndirectLabel(s) => {
-            if is_dry_run {
+            if let Some(val) = labels.get(s) {
+                Ok(*val)
+            } else if is_dry_run {
                 Ok(0)
             } else {
-                labels
-                    .get(s)
-                    .cloned()
-                    .ok_or_else(|| format!("Label not found: {}", s))
+                Err(format!("Label not found: {}", s))
             }
         }
         _ => Err("Not an indirect address".to_string()),
@@ -563,10 +616,50 @@ fn parse_instruction(
             Ok(bytes)
         }
 
+        "DS" | "DEFS" => {
+            if operands.is_empty() {
+                return Err("DS requires at least one operand (count)".to_string());
+            }
+
+            let count = resolve_immediate(&operands[0], labels, is_dry_run)?;
+
+            let fill_value = if operands.len() >= 2 {
+                (resolve_immediate(&operands[1], labels, is_dry_run)? & 0xFF) as u8
+            } else {
+                0
+            };
+
+            Ok(vec![fill_value; count as usize])
+        }
+
         "LDI" => Ok(vec![0xED, 0xA0]),
         "LDIR" => Ok(vec![0xED, 0xB0]),
+        "LDD" => Ok(vec![0xED, 0xA8]),
+        "LDDR" => Ok(vec![0xED, 0xB8]),
         "CPI" => Ok(vec![0xED, 0xA1]),
         "CPIR" => Ok(vec![0xED, 0xB1]),
+        "CPD" => Ok(vec![0xED, 0xA9]),
+        "CPDR" => Ok(vec![0xED, 0xB9]),
+        "INI" => Ok(vec![0xED, 0xA2]),
+        "INIR" => Ok(vec![0xED, 0xB2]),
+        "IND" => Ok(vec![0xED, 0xAA]),
+        "INDR" => Ok(vec![0xED, 0xBA]),
+        "OUTI" => Ok(vec![0xED, 0xA3]),
+        "OTIR" => Ok(vec![0xED, 0xB3]),
+        "OUTD" => Ok(vec![0xED, 0xAB]),
+        "OTDR" => Ok(vec![0xED, 0xBB]),
+
+        "RLC" => encode_rot_shift(0x00, &operands),
+        "RRC" => encode_rot_shift(0x08, &operands),
+        "RL" => encode_rot_shift(0x10, &operands),
+        "RR" => encode_rot_shift(0x18, &operands),
+        "SLA" => encode_rot_shift(0x20, &operands),
+        "SRA" => encode_rot_shift(0x28, &operands),
+        "SLL" => encode_rot_shift(0x30, &operands),
+        "SRL" => encode_rot_shift(0x38, &operands),
+        "BIT" => encode_bit_op(0x40, &operands),
+        "RES" => encode_bit_op(0x80, &operands),
+        "SET" => encode_bit_op(0xC0, &operands),
 
         _ => Err(format!("Unknown mnemonic: {}", mnemonic)),
     }
@@ -1252,3 +1345,97 @@ fn encode_im(ops: &[Operand]) -> Result<Vec<u8>, String> {
 
 #[cfg(test)]
 mod tests;
+
+fn encode_rot_shift(base: u8, ops: &[Operand]) -> Result<Vec<u8>, String> {
+    if ops.len() == 1 {
+        match &ops[0] {
+            Operand::Register(r) => {
+                if let Some(rc) = get_r_code(r) {
+                    Ok(vec![0xCB, base | rc])
+                } else {
+                    Err("Invalid register for Rotate/Shift".to_string())
+                }
+            }
+            Operand::IndirectRegister(r) if r == "HL" => Ok(vec![0xCB, base | 6]),
+            Operand::IndirectIndex(idx, d) => {
+                let prefix = if idx == "IX" { 0xDD } else { 0xFD };
+                Ok(vec![prefix, 0xCB, *d as u8, base | 6])
+            }
+            _ => Err("Invalid operand for Rotate/Shift".to_string()),
+        }
+    } else if ops.len() == 2 {
+        // Handle undocumented (IX+d), r
+        if let (Operand::IndirectIndex(idx, d), Operand::Register(r)) = (&ops[0], &ops[1]) {
+            if let Some(rc) = get_r_code(r) {
+                let prefix = if idx == "IX" { 0xDD } else { 0xFD };
+                // Order: Prefix, CB, d, Opcode|r
+                Ok(vec![prefix, 0xCB, *d as u8, base | rc])
+            } else {
+                Err("Invalid register2 for Rotate/Shift".to_string())
+            }
+        } else {
+            Err("Invalid operands for Rotate/Shift (2 ops)".to_string())
+        }
+    } else {
+        Err("Rotate/Shift expects 1 or 2 operands".to_string())
+    }
+}
+
+fn encode_bit_op(base: u8, ops: &[Operand]) -> Result<Vec<u8>, String> {
+    if ops.len() < 2 || ops.len() > 3 {
+        return Err("Bit op expects 2 or 3 operands".to_string());
+    }
+
+    let b = match &ops[0] {
+        Operand::Immediate(n) => *n,
+        _ => return Err("Bit index must be a number".to_string()),
+    };
+
+    if b > 7 {
+        return Err("Bit index must be 0-7".to_string());
+    }
+
+    let opcode_base = base + ((b as u8) << 3);
+
+    match &ops[1] {
+        Operand::Register(r) => {
+            if ops.len() != 2 {
+                return Err("Too many operands for Register target".to_string());
+            }
+            if let Some(rc) = get_r_code(r) {
+                Ok(vec![0xCB, opcode_base | rc])
+            } else {
+                Err("Invalid register".to_string())
+            }
+        }
+        Operand::IndirectRegister(reg) if reg == "HL" => {
+            if ops.len() != 2 {
+                return Err("Too many operands for (HL)".to_string());
+            }
+            Ok(vec![0xCB, opcode_base | 6])
+        }
+        Operand::IndirectIndex(idx, d) => {
+            let prefix = if idx == "IX" { 0xDD } else { 0xFD };
+            if ops.len() == 2 {
+                Ok(vec![prefix, 0xCB, *d as u8, opcode_base | 6])
+            } else {
+                // 3 operands: SET b, (IX+d), r
+                // Only for SET/RES. BIT does not have this.
+                // BIT base is 0x40.
+                if base == 0x40 {
+                    return Err("BIT does not support 3 operands".to_string());
+                }
+                if let Operand::Register(r) = &ops[2] {
+                    if let Some(rc) = get_r_code(r) {
+                        Ok(vec![prefix, 0xCB, *d as u8, opcode_base | rc])
+                    } else {
+                        Err("Invalid register 2".to_string())
+                    }
+                } else {
+                    Err("Third operand must be register".to_string())
+                }
+            }
+        }
+        _ => Err("Invalid target operand".to_string()),
+    }
+}

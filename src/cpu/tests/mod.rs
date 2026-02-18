@@ -3,6 +3,8 @@ use std::{cell::RefCell, rc::Rc};
 use crate::{cpu::Z80A, traits::MemoryMapper};
 
 pub mod alu_tests;
+pub mod block_instructions;
+pub mod ddcb_fdcb;
 pub mod decoding;
 pub mod instructions;
 pub mod interrupts;

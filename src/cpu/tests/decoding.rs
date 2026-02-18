@@ -881,6 +881,464 @@ use crate::cpu::tests::setup_cpu;
 #[case::fd_ld_a_iyl(0x29f9, &[0xfd, 0x7D], &["decode_fd", "LD r[y], r[z]", "A", "L", "IYL"])] // LD A, IYL
 #[case::fd_ld_a_iyd(0x29f9, &[0xfd, 0x7E, 0x05], &["decode_fd", "LD r[y], r[z]", "A", "(HL)", "(IY + d)"])] // LD A, (IY + d)
 #[case::fd_ld_a_a(0x29f9, &[0xfd, 0x7F], &["decode_fd", "LD r[y], r[z]", "A", "A"])] // LD A, A
+#[case::fd_add_a_b(0x29f9, &[0xfd, 0x80], &["decode_fd", "ALU[y] r[z]", "ADD A", "B"])] // ADD A, B
+#[case::fd_add_a_c(0x29f9, &[0xfd, 0x81], &["decode_fd", "ALU[y] r[z]", "ADD A", "C"])] // ADD A, C
+#[case::fd_add_a_d(0x29f9, &[0xfd, 0x82], &["decode_fd", "ALU[y] r[z]", "ADD A", "D"])] // ADD A, D
+#[case::fd_add_a_e(0x29f9, &[0xfd, 0x83], &["decode_fd", "ALU[y] r[z]", "ADD A", "E"])] // ADD A, E
+#[case::fd_add_a_iyh(0x29f9, &[0xfd, 0x84], &["decode_fd", "ALU[y] r[z]", "ADD A", "H", "IYH"])] // ADD A, IYH
+#[case::fd_add_a_iyl(0x29f9, &[0xfd, 0x85], &["decode_fd", "ALU[y] r[z]", "ADD A", "L", "IYL"])] // ADD A, IYL
+#[case::fd_add_a_iyd(0x29f9, &[0xfd, 0x86, 0x05], &["decode_fd", "ALU[y] r[z]", "ADD A", "(HL)", "(IY + d)"])] // ADD A, (IY + d)
+#[case::fd_add_a_a(0x29f9, &[0xfd, 0x87], &["decode_fd", "ALU[y] r[z]", "ADD A", "A"])] // ADD A, A
+#[case::fd_adc_a_b(0x29f9, &[0xfd, 0x88], &["decode_fd", "ALU[y] r[z]", "ADC A", "B"])] // ADC A, B
+#[case::fd_adc_a_c(0x29f9, &[0xfd, 0x89], &["decode_fd", "ALU[y] r[z]", "ADC A", "C"])] // ADC A, C
+#[case::fd_adc_a_d(0x29f9, &[0xfd, 0x8A], &["decode_fd", "ALU[y] r[z]", "ADC A", "D"])] // ADC A, D
+#[case::fd_adc_a_e(0x29f9, &[0xfd, 0x8B], &["decode_fd", "ALU[y] r[z]", "ADC A", "E"])] // ADC A, E
+#[case::fd_adc_a_iyh(0x29f9, &[0xfd, 0x8C], &["decode_fd", "ALU[y] r[z]", "ADC A", "H", "IYH"])] // ADC A, IYH
+#[case::fd_adc_a_iyl(0x29f9, &[0xfd, 0x8D], &["decode_fd", "ALU[y] r[z]", "ADC A", "L", "IYL"])] // ADC A, IYL
+#[case::fd_adc_a_iyd(0x29f9, &[0xfd, 0x8E, 0x05], &["decode_fd", "ALU[y] r[z]", "ADC A", "(HL)", "(IY + d)"])] // ADC A, (IY + d)
+#[case::fd_adc_a_a(0x29f9, &[0xfd, 0x8F], &["decode_fd", "ALU[y] r[z]", "ADC A", "A"])] // ADC A, A
+#[case::fd_sub_a_b(0x29f9, &[0xfd, 0x90], &["decode_fd", "ALU[y] r[z]", "SUB A", "B"])] // SUB A, B
+#[case::fd_sub_a_c(0x29f9, &[0xfd, 0x91], &["decode_fd", "ALU[y] r[z]", "SUB A", "C"])] // SUB A, C
+#[case::fd_sub_a_d(0x29f9, &[0xfd, 0x92], &["decode_fd", "ALU[y] r[z]", "SUB A", "D"])] // SUB A, D
+#[case::fd_sub_a_e(0x29f9, &[0xfd, 0x93], &["decode_fd", "ALU[y] r[z]", "SUB A", "E"])] // SUB A, E
+#[case::fd_sub_a_iyh(0x29f9, &[0xfd, 0x94], &["decode_fd", "ALU[y] r[z]", "SUB A", "H", "IYH"])] // SUB A, IYH
+#[case::fd_sub_a_iyl(0x29f9, &[0xfd, 0x95], &["decode_fd", "ALU[y] r[z]", "SUB A", "L", "IYL"])] // SUB A, IYL
+#[case::fd_sub_a_iyd(0x29f9, &[0xfd, 0x96, 0x05], &["decode_fd", "ALU[y] r[z]", "SUB A", "(HL)", "(IY + d)"])] // SUB A, (IY + d)
+#[case::fd_sub_a_a(0x29f9, &[0xfd, 0x97], &["decode_fd", "ALU[y] r[z]", "SUB A", "A"])] // SUB A, A
+#[case::fd_sbc_a_b(0x29f9, &[0xfd, 0x98], &["decode_fd", "ALU[y] r[z]", "SBC A", "B"])] // SBC A, B
+#[case::fd_sbc_a_c(0x29f9, &[0xfd, 0x99], &["decode_fd", "ALU[y] r[z]", "SBC A", "C"])] // SBC A, C
+#[case::fd_sbc_a_d(0x29f9, &[0xfd, 0x9A], &["decode_fd", "ALU[y] r[z]", "SBC A", "D"])] // SBC A, D
+#[case::fd_sbc_a_e(0x29f9, &[0xfd, 0x9B], &["decode_fd", "ALU[y] r[z]", "SBC A", "E"])] // SBC A, E
+#[case::fd_sbc_a_iyh(0x29f9, &[0xfd, 0x9C], &["decode_fd", "ALU[y] r[z]", "SBC A", "H", "IYH"])] // SBC A, IYH
+#[case::fd_sbc_a_iyl(0x29f9, &[0xfd, 0x9D], &["decode_fd", "ALU[y] r[z]", "SBC A", "L", "IYL"])] // SBC A, IYL
+#[case::fd_sbc_a_iyd(0x29f9, &[0xfd, 0x9E, 0x05], &["decode_fd", "ALU[y] r[z]", "SBC A", "(HL)", "(IY + d)"])] // SBC A, (IY + d)
+#[case::fd_sbc_a_a(0x29f9, &[0xfd, 0x9F], &["decode_fd", "ALU[y] r[z]", "SBC A", "A"])] // SBC A, A
+#[case::fd_and_a_b(0x29f9, &[0xfd, 0xA0], &["decode_fd", "ALU[y] r[z]", "AND A", "B"])] // AND A, B
+#[case::fd_and_a_c(0x29f9, &[0xfd, 0xA1], &["decode_fd", "ALU[y] r[z]", "AND A", "C"])] // AND A, C
+#[case::fd_and_a_d(0x29f9, &[0xfd, 0xA2], &["decode_fd", "ALU[y] r[z]", "AND A", "D"])] // AND A, D
+#[case::fd_and_a_e(0x29f9, &[0xfd, 0xA3], &["decode_fd", "ALU[y] r[z]", "AND A", "E"])] // AND A, E
+#[case::fd_and_a_iyh(0x29f9, &[0xfd, 0xA4], &["decode_fd", "ALU[y] r[z]", "AND A", "H", "IYH"])] // AND A, IYH
+#[case::fd_and_a_iyl(0x29f9, &[0xfd, 0xA5], &["decode_fd", "ALU[y] r[z]", "AND A", "L", "IYL"])] // AND A, IYL
+#[case::fd_and_a_iyd(0x29f9, &[0xfd, 0xA6, 0x05], &["decode_fd", "ALU[y] r[z]", "AND A", "(HL)", "(IY + d)"])] // AND A, (IY + d)
+#[case::fd_and_a_a(0x29f9, &[0xfd, 0xA7], &["decode_fd", "ALU[y] r[z]", "AND A", "A"])] // AND A, A
+#[case::fd_xor_a_b(0x29f9, &[0xfd, 0xA8], &["decode_fd", "ALU[y] r[z]", "XOR A", "B"])] // XOR A, B
+#[case::fd_xor_a_c(0x29f9, &[0xfd, 0xA9], &["decode_fd", "ALU[y] r[z]", "XOR A", "C"])] // XOR A, C
+#[case::fd_xor_a_d(0x29f9, &[0xfd, 0xAA], &["decode_fd", "ALU[y] r[z]", "XOR A", "D"])] // XOR A, D
+#[case::fd_xor_a_e(0x29f9, &[0xfd, 0xAB], &["decode_fd", "ALU[y] r[z]", "XOR A", "E"])] // XOR A, E
+#[case::fd_xor_a_iyh(0x29f9, &[0xfd, 0xAC], &["decode_fd", "ALU[y] r[z]", "XOR A", "H", "IYH"])] // XOR A, IYH
+#[case::fd_xor_a_iyl(0x29f9, &[0xfd, 0xAD], &["decode_fd", "ALU[y] r[z]", "XOR A", "L", "IYL"])] // XOR A, IYL
+#[case::fd_xor_a_iyd(0x29f9, &[0xfd, 0xAE, 0x05], &["decode_fd", "ALU[y] r[z]", "XOR A", "(HL)", "(IY + d)"])] // XOR A, (IY + d)
+#[case::fd_xor_a_a(0x29f9, &[0xfd, 0xAF], &["decode_fd", "ALU[y] r[z]", "XOR A", "A"])] // XOR A, A
+#[case::fd_or_a_b(0x29f9, &[0xfd, 0xB0], &["decode_fd", "ALU[y] r[z]", "OR A", "B"])] // OR A, B
+#[case::fd_or_a_c(0x29f9, &[0xfd, 0xB1], &["decode_fd", "ALU[y] r[z]", "OR A", "C"])] // OR A, C
+#[case::fd_or_a_d(0x29f9, &[0xfd, 0xB2], &["decode_fd", "ALU[y] r[z]", "OR A", "D"])] // OR A, D
+#[case::fd_or_a_e(0x29f9, &[0xfd, 0xB3], &["decode_fd", "ALU[y] r[z]", "OR A", "E"])] // OR A, E
+#[case::fd_or_a_iyh(0x29f9, &[0xfd, 0xB4], &["decode_fd", "ALU[y] r[z]", "OR A", "H", "IYH"])] // OR A, IYH
+#[case::fd_or_a_iyl(0x29f9, &[0xfd, 0xB5], &["decode_fd", "ALU[y] r[z]", "OR A", "L", "IYL"])] // OR A, IYL
+#[case::fd_or_a_iyd(0x29f9, &[0xfd, 0xB6, 0x05], &["decode_fd", "ALU[y] r[z]", "OR A", "(HL)", "(IY + d)"])] // OR A, (IY + d)
+#[case::fd_or_a_a(0x29f9, &[0xfd, 0xB7], &["decode_fd", "ALU[y] r[z]", "OR A", "A"])] // OR A, A
+#[case::fd_cp_a_b(0x29f9, &[0xfd, 0xB8], &["decode_fd", "ALU[y] r[z]", "CP A", "B"])] // CP A, B
+#[case::fd_cp_a_c(0x29f9, &[0xfd, 0xB9], &["decode_fd", "ALU[y] r[z]", "CP A", "C"])] // CP A, C
+#[case::fd_cp_a_d(0x29f9, &[0xfd, 0xBA], &["decode_fd", "ALU[y] r[z]", "CP A", "D"])] // CP A, D
+#[case::fd_cp_a_e(0x29f9, &[0xfd, 0xBB], &["decode_fd", "ALU[y] r[z]", "CP A", "E"])] // CP A, E
+#[case::fd_cp_a_iyh(0x29f9, &[0xfd, 0xBC], &["decode_fd", "ALU[y] r[z]", "CP A", "H", "IYH"])] // CP A, IYH
+#[case::fd_cp_a_iyl(0x29f9, &[0xfd, 0xBD], &["decode_fd", "ALU[y] r[z]", "CP A", "L", "IYL"])] // CP A, IYL
+#[case::fd_cp_a_iyd(0x29f9, &[0xfd, 0xBE, 0x05], &["decode_fd", "ALU[y] r[z]", "CP A", "(HL)", "(IY + d)"])] // CP A, (IY + d)
+#[case::fd_cp_a_a(0x29f9, &[0xfd, 0xBF], &["decode_fd", "ALU[y] r[z]", "CP A", "A"])] // CP A, A
+#[case::fd_pop_iy(0x29f9, &[0xfd, 0xe1], &["decode_fd", "POP rp2[p]", "HL", "IY"])] // POP IY
+#[case::fd_ex_sp_iy(0x29f9, &[0xfd, 0xe3], &["decode_fd", "EX (SP), HL/IX/IY", "IY"])] // EX (SP), IY
+#[case::fd_push_iy(0x29f9, &[0xfd, 0xe5], &["decode_fd", "PUSH rp2[p]", "HL", "IY"])] // PUSH IY
+#[case::fd_jp_iy(0x29f9, &[0xfd, 0xe9], &["decode_fd", "JP HL", "IY"])] // JP (IY)
+#[case::fd_ld_sp_iy(0x29f9, &[0xfd, 0xf9], &["decode_fd", "LD SP, HL", "IY"])] // LD SP, IY
+// DOUBLE PREFIXED
+// DDCB
+#[case::ddcb_rlc_ixd_b(0x29f9, &[0xdd, 0xcb, 0x05, 0x00], &["decode_ddcb", "rot[y] (IX + d)", "RLC", "B"])] // RLC (IX + d), B
+#[case::ddcb_rlc_ixd_c(0x29f9, &[0xdd, 0xcb, 0x05, 0x01], &["decode_ddcb", "rot[y] (IX + d)", "RLC", "C"])] // RLC (IX + d), C
+#[case::ddcb_rlc_ixd_d(0x29f9, &[0xdd, 0xcb, 0x05, 0x02], &["decode_ddcb", "rot[y] (IX + d)", "RLC", "D"])] // RLC (IX + d), D
+#[case::ddcb_rlc_ixd_e(0x29f9, &[0xdd, 0xcb, 0x05, 0x03], &["decode_ddcb", "rot[y] (IX + d)", "RLC", "E"])] // RLC (IX + d), E
+#[case::ddcb_rlc_ixd_h(0x29f9, &[0xdd, 0xcb, 0x05, 0x04], &["decode_ddcb", "rot[y] (IX + d)", "RLC", "H"])] // RLC (IX + d), H
+#[case::ddcb_rlc_ixd_l(0x29f9, &[0xdd, 0xcb, 0x05, 0x05], &["decode_ddcb", "rot[y] (IX + d)", "RLC", "L"])] // RLC (IX + d), L
+#[case::ddcb_rlc_ixd(0x29f9, &[0xdd, 0xcb, 0x05, 0x06], &["decode_ddcb", "rot[y] (IX + d)", "RLC"])] // RLC (IX + d)
+#[case::ddcb_rlc_ixd_a(0x29f9, &[0xdd, 0xcb, 0x05, 0x07], &["decode_ddcb", "rot[y] (IX + d)", "RLC", "A"])] // RLC (IX + d), A
+#[case::ddcb_rrc_ixd_b(0x29f9, &[0xdd, 0xcb, 0x05, 0x08], &["decode_ddcb", "rot[y] (IX + d)", "RRC", "B"])] // RRC (IX + d), B
+#[case::ddcb_rrc_ixd_c(0x29f9, &[0xdd, 0xcb, 0x05, 0x09], &["decode_ddcb", "rot[y] (IX + d)", "RRC", "C"])] // RRC (IX + d), C
+#[case::ddcb_rrc_ixd_d(0x29f9, &[0xdd, 0xcb, 0x05, 0x0A], &["decode_ddcb", "rot[y] (IX + d)", "RRC", "D"])] // RRC (IX + d), D
+#[case::ddcb_rrc_ixd_e(0x29f9, &[0xdd, 0xcb, 0x05, 0x0B], &["decode_ddcb", "rot[y] (IX + d)", "RRC", "E"])] // RRC (IX + d), E
+#[case::ddcb_rrc_ixd_h(0x29f9, &[0xdd, 0xcb, 0x05, 0x0C], &["decode_ddcb", "rot[y] (IX + d)", "RRC", "H"])] // RRC (IX + d), H
+#[case::ddcb_rrc_ixd_l(0x29f9, &[0xdd, 0xcb, 0x05, 0x0D], &["decode_ddcb", "rot[y] (IX + d)", "RRC", "L"])] // RRC (IX + d), L
+#[case::ddcb_rrc_ixd(0x29f9, &[0xdd, 0xcb, 0x15, 0x0E], &["decode_ddcb", "rot[y] (IX + d)", "RRC"])] // RRC (IX + d)
+#[case::ddcb_rrc_ixd_a(0x29f9, &[0xdd, 0xcb, 0x15, 0x0F], &["decode_ddcb", "rot[y] (IX + d)", "RRC", "A"])] // RRC (IX + d), A
+#[case::ddcb_rl_ixd_b(0x29f9, &[0xdd, 0xcb, 0x05, 0x10], &["decode_ddcb", "rot[y] (IX + d)", "RL", "B"])] // RL (IX + d), B
+#[case::ddcb_rl_ixd_c(0x29f9, &[0xdd, 0xcb, 0x05, 0x11], &["decode_ddcb", "rot[y] (IX + d)", "RL", "C"])] // RL (IX + d), C
+#[case::ddcb_rl_ixd_d(0x29f9, &[0xdd, 0xcb, 0x05, 0x12], &["decode_ddcb", "rot[y] (IX + d)", "RL", "D"])] // RL (IX + d), D
+#[case::ddcb_rl_ixd_e(0x29f9, &[0xdd, 0xcb, 0x05, 0x13], &["decode_ddcb", "rot[y] (IX + d)", "RL", "E"])] // RL (IX + d), E
+#[case::ddcb_rl_ixd_h(0x29f9, &[0xdd, 0xcb, 0x05, 0x14], &["decode_ddcb", "rot[y] (IX + d)", "RL", "H"])] // RL (IX + d), H
+#[case::ddcb_rl_ixd_l(0x29f9, &[0xdd, 0xcb, 0x05, 0x15], &["decode_ddcb", "rot[y] (IX + d)", "RL", "L"])] // RL (IX + d), L
+#[case::ddcb_rl_ixd(0x29f9, &[0xdd, 0xcb, 0x15, 0x16], &["decode_ddcb", "rot[y] (IX + d)", "RL"])] // RL (IX + d)
+#[case::ddcb_rl_ixd_a(0x29f9, &[0xdd, 0xcb, 0x15, 0x17], &["decode_ddcb", "rot[y] (IX + d)", "RL", "A"])] // RL (IX + d), A
+#[case::ddcb_rr_ixd_b(0x29f9, &[0xdd, 0xcb, 0x05, 0x18], &["decode_ddcb", "rot[y] (IX + d)", "RR", "B"])] // RR (IX + d), B
+#[case::ddcb_rr_ixd_c(0x29f9, &[0xdd, 0xcb, 0x05, 0x19], &["decode_ddcb", "rot[y] (IX + d)", "RR", "C"])] // RR (IX + d), C
+#[case::ddcb_rr_ixd_d(0x29f9, &[0xdd, 0xcb, 0x05, 0x1A], &["decode_ddcb", "rot[y] (IX + d)", "RR", "D"])] // RR (IX + d), D
+#[case::ddcb_rr_ixd_e(0x29f9, &[0xdd, 0xcb, 0x05, 0x1B], &["decode_ddcb", "rot[y] (IX + d)", "RR", "E"])] // RR (IX + d), E
+#[case::ddcb_rr_ixd_h(0x29f9, &[0xdd, 0xcb, 0x05, 0x1C], &["decode_ddcb", "rot[y] (IX + d)", "RR", "H"])] // RR (IX + d), H
+#[case::ddcb_rr_ixd_l(0x29f9, &[0xdd, 0xcb, 0x05, 0x1D], &["decode_ddcb", "rot[y] (IX + d)", "RR", "L"])] // RR (IX + d), L
+#[case::ddcb_rr_ixd(0x29f9, &[0xdd, 0xcb, 0x15, 0x1E], &["decode_ddcb", "rot[y] (IX + d)", "RR"])] // RR (IX + d)
+#[case::ddcb_rr_ixd_a(0x29f9, &[0xdd, 0xcb, 0x15, 0x1F], &["decode_ddcb", "rot[y] (IX + d)", "RR", "A"])] // RR (IX + d), A
+#[case::ddcb_sla_ixd_b(0x29f9, &[0xdd, 0xcb, 0x05, 0x20], &["decode_ddcb", "rot[y] (IX + d)", "SLA", "B"])] // SLA (IX + d), B
+#[case::ddcb_sla_ixd_c(0x29f9, &[0xdd, 0xcb, 0x05, 0x21], &["decode_ddcb", "rot[y] (IX + d)", "SLA", "C"])] // SLA (IX + d), C
+#[case::ddcb_sla_ixd_d(0x29f9, &[0xdd, 0xcb, 0x05, 0x22], &["decode_ddcb", "rot[y] (IX + d)", "SLA", "D"])] // SLA (IX + d), D
+#[case::ddcb_sla_ixd_e(0x29f9, &[0xdd, 0xcb, 0x05, 0x23], &["decode_ddcb", "rot[y] (IX + d)", "SLA", "E"])] // SLA (IX + d), E
+#[case::ddcb_sla_ixd_h(0x29f9, &[0xdd, 0xcb, 0x05, 0x24], &["decode_ddcb", "rot[y] (IX + d)", "SLA", "H"])] // SLA (IX + d), H
+#[case::ddcb_sla_ixd_l(0x29f9, &[0xdd, 0xcb, 0x05, 0x25], &["decode_ddcb", "rot[y] (IX + d)", "SLA", "L"])] // SLA (IX + d), L
+#[case::ddcb_sla_ixd(0x29f9, &[0xdd, 0xcb, 0x15, 0x26], &["decode_ddcb", "rot[y] (IX + d)", "SLA"])] // SLA (IX + d)
+#[case::ddcb_sla_ixd_a(0x29f9, &[0xdd, 0xcb, 0x15, 0x27], &["decode_ddcb", "rot[y] (IX + d)", "SLA", "A"])] // SLA (IX + d), A
+#[case::ddcb_sra_ixd_b(0x29f9, &[0xdd, 0xcb, 0x05, 0x28], &["decode_ddcb", "rot[y] (IX + d)", "SRA", "B"])] // SRA (IX + d), B
+#[case::ddcb_sra_ixd_c(0x29f9, &[0xdd, 0xcb, 0x05, 0x29], &["decode_ddcb", "rot[y] (IX + d)", "SRA", "C"])] // SRA (IX + d), C
+#[case::ddcb_sra_ixd_d(0x29f9, &[0xdd, 0xcb, 0x05, 0x2A], &["decode_ddcb", "rot[y] (IX + d)", "SRA", "D"])] // SRA (IX + d), D
+#[case::ddcb_sra_ixd_e(0x29f9, &[0xdd, 0xcb, 0x05, 0x2B], &["decode_ddcb", "rot[y] (IX + d)", "SRA", "E"])] // SRA (IX + d), E
+#[case::ddcb_sra_ixd_h(0x29f9, &[0xdd, 0xcb, 0x05, 0x2C], &["decode_ddcb", "rot[y] (IX + d)", "SRA", "H"])] // SRA (IX + d), H
+#[case::ddcb_sra_ixd_l(0x29f9, &[0xdd, 0xcb, 0x05, 0x2D], &["decode_ddcb", "rot[y] (IX + d)", "SRA", "L"])] // SRA (IX + d), L
+#[case::ddcb_sra_ixd(0x29f9, &[0xdd, 0xcb, 0x15, 0x2E], &["decode_ddcb", "rot[y] (IX + d)", "SRA"])] // SRA (IX + d)
+#[case::ddcb_sra_ixd_a(0x29f9, &[0xdd, 0xcb, 0x15, 0x2F], &["decode_ddcb", "rot[y] (IX + d)", "SRA", "A"])] // SRA (IX + d), A
+#[case::ddcb_sll_ixd_b(0x29f9, &[0xdd, 0xcb, 0x05, 0x30], &["decode_ddcb", "rot[y] (IX + d)", "SLL", "B"])] // SLL (IX + d), B
+#[case::ddcb_sll_ixd_c(0x29f9, &[0xdd, 0xcb, 0x05, 0x31], &["decode_ddcb", "rot[y] (IX + d)", "SLL", "C"])] // SLL (IX + d), C
+#[case::ddcb_sll_ixd_d(0x29f9, &[0xdd, 0xcb, 0x05, 0x32], &["decode_ddcb", "rot[y] (IX + d)", "SLL", "D"])] // SLL (IX + d), D
+#[case::ddcb_sll_ixd_e(0x29f9, &[0xdd, 0xcb, 0x05, 0x33], &["decode_ddcb", "rot[y] (IX + d)", "SLL", "E"])] // SLL (IX + d), E
+#[case::ddcb_sll_ixd_h(0x29f9, &[0xdd, 0xcb, 0x05, 0x34], &["decode_ddcb", "rot[y] (IX + d)", "SLL", "H"])] // SLL (IX + d), H
+#[case::ddcb_sll_ixd_l(0x29f9, &[0xdd, 0xcb, 0x05, 0x35], &["decode_ddcb", "rot[y] (IX + d)", "SLL", "L"])] // SLL (IX + d), L
+#[case::ddcb_sll_ixd(0x29f9, &[0xdd, 0xcb, 0x15, 0x36], &["decode_ddcb", "rot[y] (IX + d)", "SLL"])] // SLL (IX + d)
+#[case::ddcb_sll_ixd_a(0x29f9, &[0xdd, 0xcb, 0x15, 0x37], &["decode_ddcb", "rot[y] (IX + d)", "SLL", "A"])] // SLL (IX + d), A
+#[case::ddcb_srl_ixd_b(0x29f9, &[0xdd, 0xcb, 0x05, 0x38], &["decode_ddcb", "rot[y] (IX + d)", "SRL", "B"])] // SRL (IX + d), B
+#[case::ddcb_srl_ixd_c(0x29f9, &[0xdd, 0xcb, 0x05, 0x39], &["decode_ddcb", "rot[y] (IX + d)", "SRL", "C"])] // SRL (IX + d), C
+#[case::ddcb_srl_ixd_d(0x29f9, &[0xdd, 0xcb, 0x05, 0x3A], &["decode_ddcb", "rot[y] (IX + d)", "SRL", "D"])] // SRL (IX + d), D
+#[case::ddcb_srl_ixd_e(0x29f9, &[0xdd, 0xcb, 0x05, 0x3B], &["decode_ddcb", "rot[y] (IX + d)", "SRL", "E"])] // SRL (IX + d), E
+#[case::ddcb_srl_ixd_h(0x29f9, &[0xdd, 0xcb, 0x05, 0x3C], &["decode_ddcb", "rot[y] (IX + d)", "SRL", "H"])] // SRL (IX + d), H
+#[case::ddcb_srl_ixd_l(0x29f9, &[0xdd, 0xcb, 0x05, 0x3D], &["decode_ddcb", "rot[y] (IX + d)", "SRL", "L"])] // SRL (IX + d), L
+#[case::ddcb_srl_ixd(0x29f9, &[0xdd, 0xcb, 0x15, 0x3E], &["decode_ddcb", "rot[y] (IX + d)", "SRL"])] // SRL (IX + d)
+#[case::ddcb_srl_ixd_a(0x29f9, &[0xdd, 0xcb, 0x15, 0x3F], &["decode_ddcb", "rot[y] (IX + d)", "SRL", "A"])] // SRL (IX + d), A
+// BITS ARE IN RANGES
+#[case::ddcb_res_0_ixd_b(0x29f9, &[0xdd, 0xcb, 0x05, 0x80], &["decode_ddcb", "RES y, (IX + d)", "B"])] // RES 0, (IX + d), B
+#[case::ddcb_res_0_ixd_c(0x29f9, &[0xdd, 0xcb, 0x05, 0x81], &["decode_ddcb", "RES y, (IX + d)", "C"])] // RES 0, (IX + d), C
+#[case::ddcb_res_0_ixd_d(0x29f9, &[0xdd, 0xcb, 0x05, 0x82], &["decode_ddcb", "RES y, (IX + d)", "D"])] // RES 0, (IX + d), D
+#[case::ddcb_res_0_ixd_e(0x29f9, &[0xdd, 0xcb, 0x05, 0x83], &["decode_ddcb", "RES y, (IX + d)", "E"])] // RES 0, (IX + d), E
+#[case::ddcb_res_0_ixd_h(0x29f9, &[0xdd, 0xcb, 0x15, 0x84], &["decode_ddcb", "RES y, (IX + d)", "H"])] // RES 0, (IX + d), H
+#[case::ddcb_res_0_ixd_l(0x29f9, &[0xdd, 0xcb, 0x15, 0x85], &["decode_ddcb", "RES y, (IX + d)", "L"])] // RES 0, (IX + d), L
+#[case::ddcb_res_0_ixd(0x29f9, &[0xdd, 0xcb, 0x05, 0x86], &["decode_ddcb", "RES y, (IX + d)"])] // RES 0, (IX + d)
+#[case::ddcb_res_0_ixd_a(0x29f9, &[0xdd, 0xcb, 0x05, 0x87], &["decode_ddcb", "RES y, (IX + d)", "A"])] // RES 0, (IX + d), A
+#[case::ddcb_res_1_ixd_b(0x29f9, &[0xdd, 0xcb, 0x05, 0x88], &["decode_ddcb", "RES y, (IX + d)", "B"])] // RES 1, (IX + d), B
+#[case::ddcb_res_1_ixd_c(0x29f9, &[0xdd, 0xcb, 0x05, 0x89], &["decode_ddcb", "RES y, (IX + d)", "C"])] // RES 1, (IX + d), C
+#[case::ddcb_res_1_ixd_d(0x29f9, &[0xdd, 0xcb, 0x05, 0x8A], &["decode_ddcb", "RES y, (IX + d)", "D"])] // RES 1, (IX + d), D
+#[case::ddcb_res_1_ixd_e(0x29f9, &[0xdd, 0xcb, 0x05, 0x8B], &["decode_ddcb", "RES y, (IX + d)", "E"])] // RES 1, (IX + d), E
+#[case::ddcb_res_1_ixd_h(0x29f9, &[0xdd, 0xcb, 0x05, 0x8C], &["decode_ddcb", "RES y, (IX + d)", "H"])] // RES 1, (IX + d), H
+#[case::ddcb_res_1_ixd_l(0x29f9, &[0xdd, 0xcb, 0x05, 0x8D], &["decode_ddcb", "RES y, (IX + d)", "L"])] // RES 1, (IX + d), L
+#[case::ddcb_res_1_ixd(0x29f9, &[0xdd, 0xcb, 0x05, 0x8E], &["decode_ddcb", "RES y, (IX + d)"])] // RES 1, (IX + d)
+#[case::ddcb_res_1_ixd_a(0x29f9, &[0xdd, 0xcb, 0x15, 0x8F], &["decode_ddcb", "RES y, (IX + d)", "A"])] // RES 1,( IX + d), A
+#[case::ddcb_res_2_ixd_b(0x29f9, &[0xdd, 0xcb, 0x05, 0x90], &["decode_ddcb", "RES y, (IX + d)", "B"])] // RES 2, (IX + d), B
+#[case::ddcb_res_2_ixd_c(0x29f9, &[0xdd, 0xcb, 0x05, 0x91], &["decode_ddcb", "RES y, (IX + d)", "C"])] // RES 2, (IX + d), C
+#[case::ddcb_res_2_ixd_d(0x29f9, &[0xdd, 0xcb, 0x05, 0x92], &["decode_ddcb", "RES y, (IX + d)", "D"])] // RES 2, (IX + d), D
+#[case::ddcb_res_2_ixd_e(0x29f9, &[0xdd, 0xcb, 0x05, 0x93], &["decode_ddcb", "RES y, (IX + d)", "E"])] // RES 2, (IX + d), E
+#[case::ddcb_res_2_ixd_h(0x29f9, &[0xdd, 0xcb, 0x05, 0x94], &["decode_ddcb", "RES y, (IX + d)", "H"])] // RES 2, (IX + d), H
+#[case::ddcb_res_2_ixd_l(0x29f9, &[0xdd, 0xcb, 0x05, 0x95], &["decode_ddcb", "RES y, (IX + d)", "L"])] // RES 2, (IX + d), L
+#[case::ddcb_res_2_ixd(0x29f9, &[0xdd, 0xcb, 0x05, 0x96], &["decode_ddcb", "RES y, (IX + d)"])] // RES 2, (IX + d)
+#[case::ddcb_res_2_ixd_a(0x29f9, &[0xdd, 0xcb, 0x05, 0x97], &["decode_ddcb", "RES y, (IX + d)", "A"])] // RES 2, (IX + d), A
+#[case::ddcb_res_3_ixd_b(0x29f9, &[0xdd, 0xcb, 0x05, 0x98], &["decode_ddcb", "RES y, (IX + d)", "B"])] // RES 3, (IX + d), B
+#[case::ddcb_res_3_ixd_c(0x29f9, &[0xdd, 0xcb, 0x05, 0x99], &["decode_ddcb", "RES y, (IX + d)", "C"])] // RES 3, (IX + d), C
+#[case::ddcb_res_3_ixd_d(0x29f9, &[0xdd, 0xcb, 0x05, 0x9A], &["decode_ddcb", "RES y, (IX + d)", "D"])] // RES 3, (IX + d), D
+#[case::ddcb_res_3_ixd_e(0x29f9, &[0xdd, 0xcb, 0x05, 0x9B], &["decode_ddcb", "RES y, (IX + d)", "E"])] // RES 3, (IX + d), E
+#[case::ddcb_res_3_ixd_h(0x29f9, &[0xdd, 0xcb, 0x05, 0x9C], &["decode_ddcb", "RES y, (IX + d)", "H"])] // RES 3, (IX + d), H
+#[case::ddcb_res_3_ixd_l(0x29f9, &[0xdd, 0xcb, 0x05, 0x9D], &["decode_ddcb", "RES y, (IX + d)", "L"])] // RES 3, (IX + d), L
+#[case::ddcb_res_3_ixd(0x29f9, &[0xdd, 0xcb, 0x05, 0x9E], &["decode_ddcb", "RES y, (IX + d)"])] // RES 3, (IX + d)
+#[case::ddcb_res_3_ixd_a(0x29f9, &[0xdd, 0xcb, 0x15, 0x9F], &["decode_ddcb", "RES y, (IX + d)", "A"])] // RES 3, (IX + d)
+#[case::ddcb_res_4_ixd_b(0x29f9, &[0xdd, 0xcb, 0x05, 0xA0], &["decode_ddcb", "RES y, (IX + d)", "B"])] // RES 4, (IX + d), B
+#[case::ddcb_res_4_ixd_c(0x29f9, &[0xdd, 0xcb, 0x05, 0xA1], &["decode_ddcb", "RES y, (IX + d)", "C"])] // RES 4, (IX + d), C
+#[case::ddcb_res_4_ixd_d(0x29f9, &[0xdd, 0xcb, 0x05, 0xA2], &["decode_ddcb", "RES y, (IX + d)", "D"])] // RES 4, (IX + d), D
+#[case::ddcb_res_4_ixd_e(0x29f9, &[0xdd, 0xcb, 0x05, 0xA3], &["decode_ddcb", "RES y, (IX + d)", "E"])] // RES 4, (IX + d), E
+#[case::ddcb_res_4_ixd_h(0x29f9, &[0xdd, 0xcb, 0x05, 0xA4], &["decode_ddcb", "RES y, (IX + d)", "H"])] // RES 4, (IX + d), H
+#[case::ddcb_res_4_ixd_l(0x29f9, &[0xdd, 0xcb, 0x05, 0xA5], &["decode_ddcb", "RES y, (IX + d)", "L"])] // RES 4, (IX + d), L
+#[case::ddcb_res_4_ixd(0x29f9, &[0xdd, 0xcb, 0x05, 0xA6], &["decode_ddcb", "RES y, (IX + d)"])] // RES 4, (IX + d)
+#[case::ddcb_res_4_ixd_a(0x29f9, &[0xdd, 0xcb, 0x05, 0xA7], &["decode_ddcb", "RES y, (IX + d)", "A"])] // RES 4, (IX + d), A
+#[case::ddcb_res_5_ixd_b(0x29f9, &[0xdd, 0xcb, 0x05, 0xA8], &["decode_ddcb", "RES y, (IX + d)", "B"])] // RES 5, (IX + d), B
+#[case::ddcb_res_5_ixd_c(0x29f9, &[0xdd, 0xcb, 0x05, 0xA9], &["decode_ddcb", "RES y, (IX + d)", "C"])] // RES 5, (IX + d), C
+#[case::ddcb_res_5_ixd_d(0x29f9, &[0xdd, 0xcb, 0x05, 0xAA], &["decode_ddcb", "RES y, (IX + d)", "D"])] // RES 5, (IX + d), D
+#[case::ddcb_res_5_ixd_e(0x29f9, &[0xdd, 0xcb, 0x05, 0xAB], &["decode_ddcb", "RES y, (IX + d)", "E"])] // RES 5, (IX + d), E
+#[case::ddcb_res_5_ixd_h(0x29f9, &[0xdd, 0xcb, 0x05, 0xAC], &["decode_ddcb", "RES y, (IX + d)", "H"])] // RES 5, (IX + d), H
+#[case::ddcb_res_5_ixd_l(0x29f9, &[0xdd, 0xcb, 0x05, 0xAD], &["decode_ddcb", "RES y, (IX + d)", "L"])] // RES 5, (IX + d), L
+#[case::ddcb_res_5_ixd(0x29f9, &[0xdd, 0xcb, 0x05, 0xAE], &["decode_ddcb", "RES y, (IX + d)"])] // RES 5, (IX + d)
+#[case::ddcb_res_5_ixd_a(0x29f9, &[0xdd, 0xcb, 0x05, 0xAF], &["decode_ddcb", "RES y, (IX + d)", "A"])] // RES 5, (IX + d), A
+#[case::ddcb_res_6_ixd_b(0x29f9, &[0xdd, 0xcb, 0x05, 0xB0], &["decode_ddcb", "RES y, (IX + d)", "B"])] // RES 6, (IX + d), B
+#[case::ddcb_res_6_ixd_c(0x29f9, &[0xdd, 0xcb, 0x05, 0xB1], &["decode_ddcb", "RES y, (IX + d)", "C"])] // RES 6, (IX + d), C
+#[case::ddcb_res_6_ixd_d(0x29f9, &[0xdd, 0xcb, 0x05, 0xB2], &["decode_ddcb", "RES y, (IX + d)", "D"])] // RES 6, (IX + d), D
+#[case::ddcb_res_6_ixd_e(0x29f9, &[0xdd, 0xcb, 0x05, 0xB3], &["decode_ddcb", "RES y, (IX + d)", "E"])] // RES 6, (IX + d), E
+#[case::ddcb_res_6_ixd_h(0x29f9, &[0xdd, 0xcb, 0x05, 0xB4], &["decode_ddcb", "RES y, (IX + d)", "H"])] // RES 6, (IX + d), H
+#[case::ddcb_res_6_ixd_l(0x29f9, &[0xdd, 0xcb, 0x05, 0xB5], &["decode_ddcb", "RES y, (IX + d)", "L"])] // RES 6, (IX + d), L
+#[case::ddcb_res_6_ixd(0x29f9, &[0xdd, 0xcb, 0x05, 0xB6], &["decode_ddcb", "RES y, (IX + d)"])] // RES 6, (IX + d)
+#[case::ddcb_res_6_ixd_a(0x29f9, &[0xdd, 0xcb, 0x05, 0xB7], &["decode_ddcb", "RES y, (IX + d)", "A"])] // RES 6, (IX + d), A
+#[case::ddcb_res_7_ixd_b(0x29f9, &[0xdd, 0xcb, 0x05, 0xB8], &["decode_ddcb", "RES y, (IX + d)", "B"])] // RES 7, (IX + d), B
+#[case::ddcb_res_7_ixd_c(0x29f9, &[0xdd, 0xcb, 0x05, 0xB9], &["decode_ddcb", "RES y, (IX + d)", "C"])] // RES 7, (IX + d), C
+#[case::ddcb_res_7_ixd_d(0x29f9, &[0xdd, 0xcb, 0x05, 0xBA], &["decode_ddcb", "RES y, (IX + d)", "D"])] // RES 7, (IX + d), D
+#[case::ddcb_res_7_ixd_e(0x29f9, &[0xdd, 0xcb, 0x05, 0xBB], &["decode_ddcb", "RES y, (IX + d)", "E"])] // RES 7, (IX + d), E
+#[case::ddcb_res_7_ixd_h(0x29f9, &[0xdd, 0xcb, 0x05, 0xBC], &["decode_ddcb", "RES y, (IX + d)", "H"])] // RES 7, (IX + d), H
+#[case::ddcb_res_7_ixd_l(0x29f9, &[0xdd, 0xcb, 0x05, 0xBD], &["decode_ddcb", "RES y, (IX + d)", "L"])] // RES 7, (IX + d), L
+#[case::ddcb_res_7_ixd(0x29f9, &[0xdd, 0xcb, 0x05, 0xBE], &["decode_ddcb", "RES y, (IX + d)"])] // RES 7, (IX + d)
+#[case::ddcb_res_7_ixd_a(0x29f9, &[0xdd, 0xcb, 0x05, 0xBF], &["decode_ddcb", "RES y, (IX + d)", "A"])] // RES 7, (IX + d), A
+#[case::ddcb_set_0_ixd_b(0x29f9, &[0xdd, 0xcb, 0x05, 0xC0], &["decode_ddcb", "SET y, (IX + d)", "B"])] // SET 0, (IX + d), B
+#[case::ddcb_set_0_ixd_c(0x29f9, &[0xdd, 0xcb, 0x05, 0xC1], &["decode_ddcb", "SET y, (IX + d)", "C"])] // SET 0, (IX + d), C
+#[case::ddcb_set_0_ixd_d(0x29f9, &[0xdd, 0xcb, 0x05, 0xC2], &["decode_ddcb", "SET y, (IX + d)", "D"])] // SET 0, (IX + d), D
+#[case::ddcb_set_0_ixd_e(0x29f9, &[0xdd, 0xcb, 0x05, 0xC3], &["decode_ddcb", "SET y, (IX + d)", "E"])] // SET 0, (IX + d), E
+#[case::ddcb_set_0_ixd_h(0x29f9, &[0xdd, 0xcb, 0x05, 0xC4], &["decode_ddcb", "SET y, (IX + d)", "H"])] // SET 0, (IX + d), H
+#[case::ddcb_set_0_ixd_l(0x29f9, &[0xdd, 0xcb, 0x05, 0xC5], &["decode_ddcb", "SET y, (IX + d)", "L"])] // SET 0, (IX + d), L
+#[case::ddcb_set_0_ixd(0x29f9, &[0xdd, 0xcb, 0x05, 0xC6], &["decode_ddcb", "SET y, (IX + d)"])] // SET 0, (IX + d)
+#[case::ddcb_set_0_ixd_a(0x29f9, &[0xdd, 0xcb, 0x05, 0xC7], &["decode_ddcb", "SET y, (IX + d)", "A"])] // SET 0, (IX + d), A
+#[case::ddcb_set_1_ixd_b(0x29f9, &[0xdd, 0xcb, 0x05, 0xC8], &["decode_ddcb", "SET y, (IX + d)", "B"])] // SET 1, (IX + d), B
+#[case::ddcb_set_1_ixd_c(0x29f9, &[0xdd, 0xcb, 0x05, 0xC9], &["decode_ddcb", "SET y, (IX + d)", "C"])] // SET 1, (IX + d), C
+#[case::ddcb_set_1_ixd_d(0x29f9, &[0xdd, 0xcb, 0x05, 0xCA], &["decode_ddcb", "SET y, (IX + d)", "D"])] // SET 1, (IX + d), D
+#[case::ddcb_set_1_ixd_e(0x29f9, &[0xdd, 0xcb, 0x05, 0xCB], &["decode_ddcb", "SET y, (IX + d)", "E"])] // SET 1, (IX + d), E
+#[case::ddcb_set_1_ixd_h(0x29f9, &[0xdd, 0xcb, 0x05, 0xCC], &["decode_ddcb", "SET y, (IX + d)", "H"])] // SET 1, (IX + d), H
+#[case::ddcb_set_1_ixd_l(0x29f9, &[0xdd, 0xcb, 0x05, 0xCD], &["decode_ddcb", "SET y, (IX + d)", "L"])] // SET 1, (IX + d), L
+#[case::ddcb_set_1_ixd(0x29f9, &[0xdd, 0xcb, 0x05, 0xCE], &["decode_ddcb", "SET y, (IX + d)"])] // SET 1, (IX + d)
+#[case::ddcb_set_1_ixd_a(0x29f9, &[0xdd, 0xcb, 0x15, 0xCF], &["decode_ddcb", "SET y, (IX + d)", "A"])] // SET 1, (IX + d), A
+#[case::ddcb_set_2_ixd_b(0x29f9, &[0xdd, 0xcb, 0x05, 0xD0], &["decode_ddcb", "SET y, (IX + d)", "B"])] // SET 2, (IX + d), B
+#[case::ddcb_set_2_ixd_c(0x29f9, &[0xdd, 0xcb, 0x05, 0xD1], &["decode_ddcb", "SET y, (IX + d)", "C"])] // SET 2, (IX + d), C
+#[case::ddcb_set_2_ixd_d(0x29f9, &[0xdd, 0xcb, 0x05, 0xD2], &["decode_ddcb", "SET y, (IX + d)", "D"])] // SET 2, (IX + d), D
+#[case::ddcb_set_2_ixd_e(0x29f9, &[0xdd, 0xcb, 0x05, 0xD3], &["decode_ddcb", "SET y, (IX + d)", "E"])] // SET 2, (IX + d), E
+#[case::ddcb_set_2_ixd_h(0x29f9, &[0xdd, 0xcb, 0x05, 0xD4], &["decode_ddcb", "SET y, (IX + d)", "H"])] // SET 2, (IX + d), H
+#[case::ddcb_set_2_ixd_l(0x29f9, &[0xdd, 0xcb, 0x05, 0xD5], &["decode_ddcb", "SET y, (IX + d)", "L"])] // SET 2, (IX + d), L
+#[case::ddcb_set_2_ixd(0x29f9, &[0xdd, 0xcb, 0x05, 0xD6], &["decode_ddcb", "SET y, (IX + d)"])] // SET 2, (IX + d)
+#[case::ddcb_set_2_ixd_a(0x29f9, &[0xdd, 0xcb, 0x05, 0xD7], &["decode_ddcb", "SET y, (IX + d)", "A"])] // SET 2, (IX + d), A
+#[case::ddcb_set_3_ixd_b(0x29f9, &[0xdd, 0xcb, 0x05, 0xD8], &["decode_ddcb", "SET y, (IX + d)", "B"])] // SET 3, (IX + d), B
+#[case::ddcb_set_3_ixd_c(0x29f9, &[0xdd, 0xcb, 0x05, 0xD9], &["decode_ddcb", "SET y, (IX + d)", "C"])] // SET 3, (IX + d), C
+#[case::ddcb_set_3_ixd_d(0x29f9, &[0xdd, 0xcb, 0x05, 0xDA], &["decode_ddcb", "SET y, (IX + d)", "D"])] // SET 3, (IX + d), D
+#[case::ddcb_set_3_ixd_e(0x29f9, &[0xdd, 0xcb, 0x05, 0xDB], &["decode_ddcb", "SET y, (IX + d)", "E"])] // SET 3, (IX + d), E
+#[case::ddcb_set_3_ixd_h(0x29f9, &[0xdd, 0xcb, 0x05, 0xDC], &["decode_ddcb", "SET y, (IX + d)", "H"])] // SET 3, (IX + d), H
+#[case::ddcb_set_3_ixd_l(0x29f9, &[0xdd, 0xcb, 0x05, 0xDD], &["decode_ddcb", "SET y, (IX + d)", "L"])] // SET 3, (IX + d), L
+#[case::ddcb_set_3_ixd(0x29f9, &[0xdd, 0xcb, 0x05, 0xDE], &["decode_ddcb", "SET y, (IX + d)"])] // SET 3, (IX + d)
+#[case::ddcb_set_3_ixd_a(0x29f9, &[0xdd, 0xcb, 0x15, 0xDF], &["decode_ddcb", "SET y, (IX + d)", "A"])] // SET 3, (IX + d), A
+#[case::ddcb_set_4_ixd_b(0x29f9, &[0xdd, 0xcb, 0x05, 0xE0], &["decode_ddcb", "SET y, (IX + d)", "B"])] // SET 4, (IX + d), B
+#[case::ddcb_set_4_ixd_c(0x29f9, &[0xdd, 0xcb, 0x05, 0xE1], &["decode_ddcb", "SET y, (IX + d)", "C"])] // SET 4, (IX + d), C
+#[case::ddcb_set_4_ixd_d(0x29f9, &[0xdd, 0xcb, 0x05, 0xE2], &["decode_ddcb", "SET y, (IX + d)", "D"])] // SET 4, (IX + d), D
+#[case::ddcb_set_4_ixd_e(0x29f9, &[0xdd, 0xcb, 0x05, 0xE3], &["decode_ddcb", "SET y, (IX + d)", "E"])] // SET 4, (IX + d), E
+#[case::ddcb_set_4_ixd_h(0x29f9, &[0xdd, 0xcb, 0x05, 0xE4], &["decode_ddcb", "SET y, (IX + d)", "H"])] // SET 4, (IX + d), H
+#[case::ddcb_set_4_ixd_l(0x29f9, &[0xdd, 0xcb, 0x05, 0xE5], &["decode_ddcb", "SET y, (IX + d)", "L"])] // SET 4, (IX + d), L
+#[case::ddcb_set_4_ixd(0x29f9, &[0xdd, 0xcb, 0x05, 0xE6], &["decode_ddcb", "SET y, (IX + d)"])] // SET 4, (IX + d)
+#[case::ddcb_set_4_ixd_a(0x29f9, &[0xdd, 0xcb, 0x05, 0xE7], &["decode_ddcb", "SET y, (IX + d)", "A"])] // SET 4, (IX + d), A
+#[case::ddcb_set_5_ixd_b(0x29f9, &[0xdd, 0xcb, 0x05, 0xE8], &["decode_ddcb", "SET y, (IX + d)", "B"])] // SET 5, (IX + d), B
+#[case::ddcb_set_5_ixd_c(0x29f9, &[0xdd, 0xcb, 0x05, 0xE9], &["decode_ddcb", "SET y, (IX + d)", "C"])] // SET 5, (IX + d), C
+#[case::ddcb_set_5_ixd_d(0x29f9, &[0xdd, 0xcb, 0x05, 0xEA], &["decode_ddcb", "SET y, (IX + d)", "D"])] // SET 5, (IX + d), D
+#[case::ddcb_set_5_ixd_e(0x29f9, &[0xdd, 0xcb, 0x05, 0xEB], &["decode_ddcb", "SET y, (IX + d)", "E"])] // SET 5, (IX + d), E
+#[case::ddcb_set_5_ixd_h(0x29f9, &[0xdd, 0xcb, 0x05, 0xEC], &["decode_ddcb", "SET y, (IX + d)", "H"])] // SET 5, (IX + d), H
+#[case::ddcb_set_5_ixd_l(0x29f9, &[0xdd, 0xcb, 0x05, 0xED], &["decode_ddcb", "SET y, (IX + d)", "L"])] // SET 5, (IX + d), L
+#[case::ddcb_set_5_ixd(0x29f9, &[0xdd, 0xcb, 0x05, 0xEE], &["decode_ddcb", "SET y, (IX + d)"])] // SET 5, (IX + d)
+#[case::ddcb_set_5_ixd_a(0x29f9, &[0xdd, 0xcb, 0x05, 0xEF], &["decode_ddcb", "SET y, (IX + d)", "A"])] // SET 5, (IX + d), A
+#[case::ddcb_set_6_ixd_b(0x29f9, &[0xdd, 0xcb, 0x05, 0xF0], &["decode_ddcb", "SET y, (IX + d)", "B"])] // SET 6, (IX + d), B
+#[case::ddcb_set_6_ixd_c(0x29f9, &[0xdd, 0xcb, 0x05, 0xF1], &["decode_ddcb", "SET y, (IX + d)", "C"])] // SET 6, (IX + d), C
+#[case::ddcb_set_6_ixd_d(0x29f9, &[0xdd, 0xcb, 0x05, 0xF2], &["decode_ddcb", "SET y, (IX + d)", "D"])] // SET 6, (IX + d), D
+#[case::ddcb_set_6_ixd_e(0x29f9, &[0xdd, 0xcb, 0x05, 0xF3], &["decode_ddcb", "SET y, (IX + d)", "E"])] // SET 6, (IX + d), E
+#[case::ddcb_set_6_ixd_h(0x29f9, &[0xdd, 0xcb, 0x05, 0xF4], &["decode_ddcb", "SET y, (IX + d)", "H"])] // SET 6, (IX + d), H
+#[case::ddcb_set_6_ixd_l(0x29f9, &[0xdd, 0xcb, 0x05, 0xF5], &["decode_ddcb", "SET y, (IX + d)", "L"])] // SET 6, (IX + d), L
+#[case::ddcb_set_6_ixd(0x29f9, &[0xdd, 0xcb, 0x05, 0xF6], &["decode_ddcb", "SET y, (IX + d)"])] // SET 6, (IX + d)
+#[case::ddcb_set_6_ixd_a(0x29f9, &[0xdd, 0xcb, 0x05, 0xF7], &["decode_ddcb", "SET y, (IX + d)", "A"])] // SET 6, (IX + d), A
+#[case::ddcb_set_7_ixd_b(0x29f9, &[0xdd, 0xcb, 0x05, 0xF8], &["decode_ddcb", "SET y, (IX + d)", "B"])] // SET 7, (IX + d), B
+#[case::ddcb_set_7_ixd_c(0x29f9, &[0xdd, 0xcb, 0x05, 0xF9], &["decode_ddcb", "SET y, (IX + d)", "C"])] // SET 7, (IX + d), C
+#[case::ddcb_set_7_ixd_d(0x29f9, &[0xdd, 0xcb, 0x05, 0xFA], &["decode_ddcb", "SET y, (IX + d)", "D"])] // SET 7, (IX + d), D
+#[case::ddcb_set_7_ixd_e(0x29f9, &[0xdd, 0xcb, 0x05, 0xFB], &["decode_ddcb", "SET y, (IX + d)", "E"])] // SET 7, (IX + d), E
+#[case::ddcb_set_7_ixd_h(0x29f9, &[0xdd, 0xcb, 0x05, 0xFC], &["decode_ddcb", "SET y, (IX + d)", "H"])] // SET 7, (IX + d), H
+#[case::ddcb_set_7_ixd_l(0x29f9, &[0xdd, 0xcb, 0x05, 0xFD], &["decode_ddcb", "SET y, (IX + d)", "L"])] // SET 7, (IX + d), L
+#[case::ddcb_set_7_ixd(0x29f9, &[0xdd, 0xcb, 0x05, 0xFE], &["decode_ddcb", "SET y, (IX + d)"])] // SET 7, (IX + d)
+#[case::ddcb_set_7_ixd_a(0x29f9, &[0xdd, 0xcb, 0x05, 0xFF], &["decode_ddcb", "SET y, (IX + d)", "A"])] // SET 7, (IX + d), A
+// FDCB
+#[case::fdcb_rlc_iyd_b(0x29f9, &[0xfd, 0xcb, 0x05, 0x00], &["decode_fdcb", "rot[y] (IY + d)", "RLC", "B"])] // RLC (IY + d), B
+#[case::fdcb_rlc_iyd_c(0x29f9, &[0xfd, 0xcb, 0x05, 0x01], &["decode_fdcb", "rot[y] (IY + d)", "RLC", "C"])] // RLC (IY + d), C
+#[case::fdcb_rlc_iyd_d(0x29f9, &[0xfd, 0xcb, 0x05, 0x02], &["decode_fdcb", "rot[y] (IY + d)", "RLC", "D"])] // RLC (IY + d), D
+#[case::fdcb_rlc_iyd_e(0x29f9, &[0xfd, 0xcb, 0x05, 0x03], &["decode_fdcb", "rot[y] (IY + d)", "RLC", "E"])] // RLC (IY + d), E
+#[case::fdcb_rlc_iyd_h(0x29f9, &[0xfd, 0xcb, 0x05, 0x04], &["decode_fdcb", "rot[y] (IY + d)", "RLC", "H"])] // RLC (IY + d), H
+#[case::fdcb_rlc_iyd_l(0x29f9, &[0xfd, 0xcb, 0x05, 0x05], &["decode_fdcb", "rot[y] (IY + d)", "RLC", "L"])] // RLC (IY + d), L
+#[case::fdcb_rlc_iyd(0x29f9, &[0xfd, 0xcb, 0x05, 0x06], &["decode_fdcb", "rot[y] (IY + d)", "RLC"])] // RLC (IY + d)
+#[case::fdcb_rlc_iyd_a(0x29f9, &[0xfd, 0xcb, 0x05, 0x07], &["decode_fdcb", "rot[y] (IY + d)", "RLC", "A"])] // RLC (IY + d), A
+#[case::fdcb_rrc_iyd_b(0x29f9, &[0xfd, 0xcb, 0x05, 0x08], &["decode_fdcb", "rot[y] (IY + d)", "RRC", "B"])] // RRC (IY + d), B
+#[case::fdcb_rrc_iyd_c(0x29f9, &[0xfd, 0xcb, 0x05, 0x09], &["decode_fdcb", "rot[y] (IY + d)", "RRC", "C"])] // RRC (IY + d), C
+#[case::fdcb_rrc_iyd_d(0x29f9, &[0xfd, 0xcb, 0x05, 0x0A], &["decode_fdcb", "rot[y] (IY + d)", "RRC", "D"])] // RRC (IY + d), D
+#[case::fdcb_rrc_iyd_e(0x29f9, &[0xfd, 0xcb, 0x05, 0x0B], &["decode_fdcb", "rot[y] (IY + d)", "RRC", "E"])] // RRC (IY + d), E
+#[case::fdcb_rrc_iyd_h(0x29f9, &[0xfd, 0xcb, 0x05, 0x0C], &["decode_fdcb", "rot[y] (IY + d)", "RRC", "H"])] // RRC (IY + d), H
+#[case::fdcb_rrc_iyd_l(0x29f9, &[0xfd, 0xcb, 0x05, 0x0D], &["decode_fdcb", "rot[y] (IY + d)", "RRC", "L"])] // RRC (IY + d), L
+#[case::fdcb_rrc_iyd(0x29f9, &[0xfd, 0xcb, 0x15, 0x0E], &["decode_fdcb", "rot[y] (IY + d)", "RRC"])] // RRC (IY + d)
+#[case::fdcb_rrc_iyd_a(0x29f9, &[0xfd, 0xcb, 0x15, 0x0F], &["decode_fdcb", "rot[y] (IY + d)", "RRC", "A"])] // RRC (IY + d), A
+#[case::fdcb_rl_iyd_b(0x29f9, &[0xfd, 0xcb, 0x05, 0x10], &["decode_fdcb", "rot[y] (IY + d)", "RL", "B"])] // RL (IY + d), B
+#[case::fdcb_rl_iyd_c(0x29f9, &[0xfd, 0xcb, 0x05, 0x11], &["decode_fdcb", "rot[y] (IY + d)", "RL", "C"])] // RL (IY + d), C
+#[case::fdcb_rl_iyd_d(0x29f9, &[0xfd, 0xcb, 0x05, 0x12], &["decode_fdcb", "rot[y] (IY + d)", "RL", "D"])] // RL (IY + d), D
+#[case::fdcb_rl_iyd_e(0x29f9, &[0xfd, 0xcb, 0x05, 0x13], &["decode_fdcb", "rot[y] (IY + d)", "RL", "E"])] // RL (IY + d), E
+#[case::fdcb_rl_iyd_h(0x29f9, &[0xfd, 0xcb, 0x05, 0x14], &["decode_fdcb", "rot[y] (IY + d)", "RL", "H"])] // RL (IY + d), H
+#[case::fdcb_rl_iyd_l(0x29f9, &[0xfd, 0xcb, 0x05, 0x15], &["decode_fdcb", "rot[y] (IY + d)", "RL", "L"])] // RL (IY + d), L
+#[case::fdcb_rl_iyd(0x29f9, &[0xfd, 0xcb, 0x15, 0x16], &["decode_fdcb", "rot[y] (IY + d)", "RL"])] // RL (IY + d)
+#[case::fdcb_rl_iyd_a(0x29f9, &[0xfd, 0xcb, 0x15, 0x17], &["decode_fdcb", "rot[y] (IY + d)", "RL", "A"])] // RL (IY + d), A
+#[case::fdcb_rr_iyd_b(0x29f9, &[0xfd, 0xcb, 0x05, 0x18], &["decode_fdcb", "rot[y] (IY + d)", "RR", "B"])] // RR (IY + d), B
+#[case::fdcb_rr_iyd_c(0x29f9, &[0xfd, 0xcb, 0x05, 0x19], &["decode_fdcb", "rot[y] (IY + d)", "RR", "C"])] // RR (IY + d), C
+#[case::fdcb_rr_iyd_d(0x29f9, &[0xfd, 0xcb, 0x05, 0x1A], &["decode_fdcb", "rot[y] (IY + d)", "RR", "D"])] // RR (IY + d), D
+#[case::fdcb_rr_iyd_e(0x29f9, &[0xfd, 0xcb, 0x05, 0x1B], &["decode_fdcb", "rot[y] (IY + d)", "RR", "E"])] // RR (IY + d), E
+#[case::fdcb_rr_iyd_h(0x29f9, &[0xfd, 0xcb, 0x05, 0x1C], &["decode_fdcb", "rot[y] (IY + d)", "RR", "H"])] // RR (IY + d), H
+#[case::fdcb_rr_iyd_l(0x29f9, &[0xfd, 0xcb, 0x05, 0x1D], &["decode_fdcb", "rot[y] (IY + d)", "RR", "L"])] // RR (IY + d), L
+#[case::fdcb_rr_iyd(0x29f9, &[0xfd, 0xcb, 0x15, 0x1E], &["decode_fdcb", "rot[y] (IY + d)", "RR"])] // RR (IY + d)
+#[case::fdcb_rr_iyd_a(0x29f9, &[0xfd, 0xcb, 0x15, 0x1F], &["decode_fdcb", "rot[y] (IY + d)", "RR", "A"])] // RR (IY + d), A
+#[case::fdcb_sla_iyd_b(0x29f9, &[0xfd, 0xcb, 0x05, 0x20], &["decode_fdcb", "rot[y] (IY + d)", "SLA", "B"])] // SLA (IY + d), B
+#[case::fdcb_sla_iyd_c(0x29f9, &[0xfd, 0xcb, 0x05, 0x21], &["decode_fdcb", "rot[y] (IY + d)", "SLA", "C"])] // SLA (IY + d), C
+#[case::fdcb_sla_iyd_d(0x29f9, &[0xfd, 0xcb, 0x05, 0x22], &["decode_fdcb", "rot[y] (IY + d)", "SLA", "D"])] // SLA (IY + d), D
+#[case::fdcb_sla_iyd_e(0x29f9, &[0xfd, 0xcb, 0x05, 0x23], &["decode_fdcb", "rot[y] (IY + d)", "SLA", "E"])] // SLA (IY + d), E
+#[case::fdcb_sla_iyd_h(0x29f9, &[0xfd, 0xcb, 0x05, 0x24], &["decode_fdcb", "rot[y] (IY + d)", "SLA", "H"])] // SLA (IY + d), H
+#[case::fdcb_sla_iyd_l(0x29f9, &[0xfd, 0xcb, 0x05, 0x25], &["decode_fdcb", "rot[y] (IY + d)", "SLA", "L"])] // SLA (IY + d), L
+#[case::fdcb_sla_iyd(0x29f9, &[0xfd, 0xcb, 0x15, 0x26], &["decode_fdcb", "rot[y] (IY + d)", "SLA"])] // SLA (IY + d)
+#[case::fdcb_sla_iyd_a(0x29f9, &[0xfd, 0xcb, 0x15, 0x27], &["decode_fdcb", "rot[y] (IY + d)", "SLA", "A"])] // SLA (IY + d), A
+#[case::fdcb_sra_iyd_b(0x29f9, &[0xfd, 0xcb, 0x05, 0x28], &["decode_fdcb", "rot[y] (IY + d)", "SRA", "B"])] // SRA (IY + d), B
+#[case::fdcb_sra_iyd_c(0x29f9, &[0xfd, 0xcb, 0x05, 0x29], &["decode_fdcb", "rot[y] (IY + d)", "SRA", "C"])] // SRA (IY + d), C
+#[case::fdcb_sra_iyd_d(0x29f9, &[0xfd, 0xcb, 0x05, 0x2A], &["decode_fdcb", "rot[y] (IY + d)", "SRA", "D"])] // SRA (IY + d), D
+#[case::fdcb_sra_iyd_e(0x29f9, &[0xfd, 0xcb, 0x05, 0x2B], &["decode_fdcb", "rot[y] (IY + d)", "SRA", "E"])] // SRA (IY + d), E
+#[case::fdcb_sra_iyd_h(0x29f9, &[0xfd, 0xcb, 0x05, 0x2C], &["decode_fdcb", "rot[y] (IY + d)", "SRA", "H"])] // SRA (IY + d), H
+#[case::fdcb_sra_iyd_l(0x29f9, &[0xfd, 0xcb, 0x05, 0x2D], &["decode_fdcb", "rot[y] (IY + d)", "SRA", "L"])] // SRA (IY + d), L
+#[case::fdcb_sra_iyd(0x29f9, &[0xfd, 0xcb, 0x15, 0x2E], &["decode_fdcb", "rot[y] (IY + d)", "SRA"])] // SRA (IY + d)
+#[case::fdcb_sra_iyd_a(0x29f9, &[0xfd, 0xcb, 0x15, 0x2F], &["decode_fdcb", "rot[y] (IY + d)", "SRA", "A"])] // SRA (IY + d), A
+#[case::fdcb_sll_iyd_b(0x29f9, &[0xfd, 0xcb, 0x05, 0x30], &["decode_fdcb", "rot[y] (IY + d)", "SLL", "B"])] // SLL (IY + d), B
+#[case::fdcb_sll_iyd_c(0x29f9, &[0xfd, 0xcb, 0x05, 0x31], &["decode_fdcb", "rot[y] (IY + d)", "SLL", "C"])] // SLL (IY + d), C
+#[case::fdcb_sll_iyd_d(0x29f9, &[0xfd, 0xcb, 0x05, 0x32], &["decode_fdcb", "rot[y] (IY + d)", "SLL", "D"])] // SLL (IY + d), D
+#[case::fdcb_sll_iyd_e(0x29f9, &[0xfd, 0xcb, 0x05, 0x33], &["decode_fdcb", "rot[y] (IY + d)", "SLL", "E"])] // SLL (IY + d), E
+#[case::fdcb_sll_iyd_h(0x29f9, &[0xfd, 0xcb, 0x05, 0x34], &["decode_fdcb", "rot[y] (IY + d)", "SLL", "H"])] // SLL (IY + d), H
+#[case::fdcb_sll_iyd_l(0x29f9, &[0xfd, 0xcb, 0x05, 0x35], &["decode_fdcb", "rot[y] (IY + d)", "SLL", "L"])] // SLL (IY + d), L
+#[case::fdcb_sll_iyd(0x29f9, &[0xfd, 0xcb, 0x15, 0x36], &["decode_fdcb", "rot[y] (IY + d)", "SLL"])] // SLL (IY + d)
+#[case::fdcb_sll_iyd_a(0x29f9, &[0xfd, 0xcb, 0x15, 0x37], &["decode_fdcb", "rot[y] (IY + d)", "SLL", "A"])] // SLL (IY + d), A
+#[case::fdcb_srl_iyd_b(0x29f9, &[0xfd, 0xcb, 0x05, 0x38], &["decode_fdcb", "rot[y] (IY + d)", "SRL", "B"])] // SRL (IY + d), B
+#[case::fdcb_srl_iyd_c(0x29f9, &[0xfd, 0xcb, 0x05, 0x39], &["decode_fdcb", "rot[y] (IY + d)", "SRL", "C"])] // SRL (IY + d), C
+#[case::fdcb_srl_iyd_d(0x29f9, &[0xfd, 0xcb, 0x05, 0x3A], &["decode_fdcb", "rot[y] (IY + d)", "SRL", "D"])] // SRL (IY + d), D
+#[case::fdcb_srl_iyd_e(0x29f9, &[0xfd, 0xcb, 0x05, 0x3B], &["decode_fdcb", "rot[y] (IY + d)", "SRL", "E"])] // SRL (IY + d), E
+#[case::fdcb_srl_iyd_h(0x29f9, &[0xfd, 0xcb, 0x05, 0x3C], &["decode_fdcb", "rot[y] (IY + d)", "SRL", "H"])] // SRL (IY + d), H
+#[case::fdcb_srl_iyd_l(0x29f9, &[0xfd, 0xcb, 0x05, 0x3D], &["decode_fdcb", "rot[y] (IY + d)", "SRL", "L"])] // SRL (IY + d), L
+#[case::fdcb_srl_iyd(0x29f9, &[0xfd, 0xcb, 0x15, 0x3E], &["decode_fdcb", "rot[y] (IY + d)", "SRL"])] // SRL (IY + d)
+#[case::fdcb_srl_iyd_a(0x29f9, &[0xfd, 0xcb, 0x15, 0x3F], &["decode_fdcb", "rot[y] (IY + d)", "SRL", "A"])] // SRL (IY + d), A
+// BITS ARE IN RANGES
+#[case::fdcb_res_0_iyd_b(0x29f9, &[0xfd, 0xcb, 0x05, 0x80], &["decode_fdcb", "RES y, (IY + d)", "B"])] // RES 0, (IY + d), B
+#[case::fdcb_res_0_iyd_c(0x29f9, &[0xfd, 0xcb, 0x05, 0x81], &["decode_fdcb", "RES y, (IY + d)", "C"])] // RES 0, (IY + d), C
+#[case::fdcb_res_0_iyd_d(0x29f9, &[0xfd, 0xcb, 0x05, 0x82], &["decode_fdcb", "RES y, (IY + d)", "D"])] // RES 0, (IY + d), D
+#[case::fdcb_res_0_iyd_e(0x29f9, &[0xfd, 0xcb, 0x05, 0x83], &["decode_fdcb", "RES y, (IY + d)", "E"])] // RES 0, (IY + d), E
+#[case::fdcb_res_0_iyd_h(0x29f9, &[0xfd, 0xcb, 0x15, 0x84], &["decode_fdcb", "RES y, (IY + d)", "H"])] // RES 0, (IY + d), H
+#[case::fdcb_res_0_iyd_l(0x29f9, &[0xfd, 0xcb, 0x15, 0x85], &["decode_fdcb", "RES y, (IY + d)", "L"])] // RES 0, (IY + d), L
+#[case::fdcb_res_0_iyd(0x29f9, &[0xfd, 0xcb, 0x05, 0x86], &["decode_fdcb", "RES y, (IY + d)"])] // RES 0, (IY + d)
+#[case::fdcb_res_0_iyd_a(0x29f9, &[0xfd, 0xcb, 0x05, 0x87], &["decode_fdcb", "RES y, (IY + d)", "A"])] // RES 0, (IY + d), A
+#[case::fdcb_res_1_iyd_b(0x29f9, &[0xfd, 0xcb, 0x05, 0x88], &["decode_fdcb", "RES y, (IY + d)", "B"])] // RES 1, (IY + d), B
+#[case::fdcb_res_1_iyd_c(0x29f9, &[0xfd, 0xcb, 0x05, 0x89], &["decode_fdcb", "RES y, (IY + d)", "C"])] // RES 1, (IY + d), C
+#[case::fdcb_res_1_iyd_d(0x29f9, &[0xfd, 0xcb, 0x05, 0x8A], &["decode_fdcb", "RES y, (IY + d)", "D"])] // RES 1, (IY + d), D
+#[case::fdcb_res_1_iyd_e(0x29f9, &[0xfd, 0xcb, 0x05, 0x8B], &["decode_fdcb", "RES y, (IY + d)", "E"])] // RES 1, (IY + d), E
+#[case::fdcb_res_1_iyd_h(0x29f9, &[0xfd, 0xcb, 0x05, 0x8C], &["decode_fdcb", "RES y, (IY + d)", "H"])] // RES 1, (IY + d), H
+#[case::fdcb_res_1_iyd_l(0x29f9, &[0xfd, 0xcb, 0x05, 0x8D], &["decode_fdcb", "RES y, (IY + d)", "L"])] // RES 1, (IY + d), L
+#[case::fdcb_res_1_iyd(0x29f9, &[0xfd, 0xcb, 0x05, 0x8E], &["decode_fdcb", "RES y, (IY + d)"])] // RES 1, (IY + d)
+#[case::fdcb_res_1_iyd_a(0x29f9, &[0xfd, 0xcb, 0x15, 0x8F], &["decode_fdcb", "RES y, (IY + d)", "A"])] // RES 1,( IY + d), A
+#[case::fdcb_res_2_iyd_b(0x29f9, &[0xfd, 0xcb, 0x05, 0x90], &["decode_fdcb", "RES y, (IY + d)", "B"])] // RES 2, (IY + d), B
+#[case::fdcb_res_2_iyd_c(0x29f9, &[0xfd, 0xcb, 0x05, 0x91], &["decode_fdcb", "RES y, (IY + d)", "C"])] // RES 2, (IY + d), C
+#[case::fdcb_res_2_iyd_d(0x29f9, &[0xfd, 0xcb, 0x05, 0x92], &["decode_fdcb", "RES y, (IY + d)", "D"])] // RES 2, (IY + d), D
+#[case::fdcb_res_2_iyd_e(0x29f9, &[0xfd, 0xcb, 0x05, 0x93], &["decode_fdcb", "RES y, (IY + d)", "E"])] // RES 2, (IY + d), E
+#[case::fdcb_res_2_iyd_h(0x29f9, &[0xfd, 0xcb, 0x05, 0x94], &["decode_fdcb", "RES y, (IY + d)", "H"])] // RES 2, (IY + d), H
+#[case::fdcb_res_2_iyd_l(0x29f9, &[0xfd, 0xcb, 0x05, 0x95], &["decode_fdcb", "RES y, (IY + d)", "L"])] // RES 2, (IY + d), L
+#[case::fdcb_res_2_iyd(0x29f9, &[0xfd, 0xcb, 0x05, 0x96], &["decode_fdcb", "RES y, (IY + d)"])] // RES 2, (IY + d)
+#[case::fdcb_res_2_iyd_a(0x29f9, &[0xfd, 0xcb, 0x05, 0x97], &["decode_fdcb", "RES y, (IY + d)", "A"])] // RES 2, (IY + d), A
+#[case::fdcb_res_3_iyd_b(0x29f9, &[0xfd, 0xcb, 0x05, 0x98], &["decode_fdcb", "RES y, (IY + d)", "B"])] // RES 3, (IY + d), B
+#[case::fdcb_res_3_iyd_c(0x29f9, &[0xfd, 0xcb, 0x05, 0x99], &["decode_fdcb", "RES y, (IY + d)", "C"])] // RES 3, (IY + d), C
+#[case::fdcb_res_3_iyd_d(0x29f9, &[0xfd, 0xcb, 0x05, 0x9A], &["decode_fdcb", "RES y, (IY + d)", "D"])] // RES 3, (IY + d), D
+#[case::fdcb_res_3_iyd_e(0x29f9, &[0xfd, 0xcb, 0x05, 0x9B], &["decode_fdcb", "RES y, (IY + d)", "E"])] // RES 3, (IY + d), E
+#[case::fdcb_res_3_iyd_h(0x29f9, &[0xfd, 0xcb, 0x05, 0x9C], &["decode_fdcb", "RES y, (IY + d)", "H"])] // RES 3, (IY + d), H
+#[case::fdcb_res_3_iyd_l(0x29f9, &[0xfd, 0xcb, 0x05, 0x9D], &["decode_fdcb", "RES y, (IY + d)", "L"])] // RES 3, (IY + d), L
+#[case::fdcb_res_3_iyd(0x29f9, &[0xfd, 0xcb, 0x05, 0x9E], &["decode_fdcb", "RES y, (IY + d)"])] // RES 3, (IY + d)
+#[case::fdcb_res_3_iyd_a(0x29f9, &[0xfd, 0xcb, 0x15, 0x9F], &["decode_fdcb", "RES y, (IY + d)", "A"])] // RES 3, (IY + d)
+#[case::fdcb_res_4_iyd_b(0x29f9, &[0xfd, 0xcb, 0x05, 0xA0], &["decode_fdcb", "RES y, (IY + d)", "B"])] // RES 4, (IY + d), B
+#[case::fdcb_res_4_iyd_c(0x29f9, &[0xfd, 0xcb, 0x05, 0xA1], &["decode_fdcb", "RES y, (IY + d)", "C"])] // RES 4, (IY + d), C
+#[case::fdcb_res_4_iyd_d(0x29f9, &[0xfd, 0xcb, 0x05, 0xA2], &["decode_fdcb", "RES y, (IY + d)", "D"])] // RES 4, (IY + d), D
+#[case::fdcb_res_4_iyd_e(0x29f9, &[0xfd, 0xcb, 0x05, 0xA3], &["decode_fdcb", "RES y, (IY + d)", "E"])] // RES 4, (IY + d), E
+#[case::fdcb_res_4_iyd_h(0x29f9, &[0xfd, 0xcb, 0x05, 0xA4], &["decode_fdcb", "RES y, (IY + d)", "H"])] // RES 4, (IY + d), H
+#[case::fdcb_res_4_iyd_l(0x29f9, &[0xfd, 0xcb, 0x05, 0xA5], &["decode_fdcb", "RES y, (IY + d)", "L"])] // RES 4, (IY + d), L
+#[case::fdcb_res_4_iyd(0x29f9, &[0xfd, 0xcb, 0x05, 0xA6], &["decode_fdcb", "RES y, (IY + d)"])] // RES 4, (IY + d)
+#[case::fdcb_res_4_iyd_a(0x29f9, &[0xfd, 0xcb, 0x05, 0xA7], &["decode_fdcb", "RES y, (IY + d)", "A"])] // RES 4, (IY + d), A
+#[case::fdcb_res_5_iyd_b(0x29f9, &[0xfd, 0xcb, 0x05, 0xA8], &["decode_fdcb", "RES y, (IY + d)", "B"])] // RES 5, (IY + d), B
+#[case::fdcb_res_5_iyd_c(0x29f9, &[0xfd, 0xcb, 0x05, 0xA9], &["decode_fdcb", "RES y, (IY + d)", "C"])] // RES 5, (IY + d), C
+#[case::fdcb_res_5_iyd_d(0x29f9, &[0xfd, 0xcb, 0x05, 0xAA], &["decode_fdcb", "RES y, (IY + d)", "D"])] // RES 5, (IY + d), D
+#[case::fdcb_res_5_iyd_e(0x29f9, &[0xfd, 0xcb, 0x05, 0xAB], &["decode_fdcb", "RES y, (IY + d)", "E"])] // RES 5, (IY + d), E
+#[case::fdcb_res_5_iyd_h(0x29f9, &[0xfd, 0xcb, 0x05, 0xAC], &["decode_fdcb", "RES y, (IY + d)", "H"])] // RES 5, (IY + d), H
+#[case::fdcb_res_5_iyd_l(0x29f9, &[0xfd, 0xcb, 0x05, 0xAD], &["decode_fdcb", "RES y, (IY + d)", "L"])] // RES 5, (IY + d), L
+#[case::fdcb_res_5_iyd(0x29f9, &[0xfd, 0xcb, 0x05, 0xAE], &["decode_fdcb", "RES y, (IY + d)"])] // RES 5, (IY + d)
+#[case::fdcb_res_5_iyd_a(0x29f9, &[0xfd, 0xcb, 0x05, 0xAF], &["decode_fdcb", "RES y, (IY + d)", "A"])] // RES 5, (IY + d), A
+#[case::fdcb_res_6_iyd_b(0x29f9, &[0xfd, 0xcb, 0x05, 0xB0], &["decode_fdcb", "RES y, (IY + d)", "B"])] // RES 6, (IY + d), B
+#[case::fdcb_res_6_iyd_c(0x29f9, &[0xfd, 0xcb, 0x05, 0xB1], &["decode_fdcb", "RES y, (IY + d)", "C"])] // RES 6, (IY + d), C
+#[case::fdcb_res_6_iyd_d(0x29f9, &[0xfd, 0xcb, 0x05, 0xB2], &["decode_fdcb", "RES y, (IY + d)", "D"])] // RES 6, (IY + d), D
+#[case::fdcb_res_6_iyd_e(0x29f9, &[0xfd, 0xcb, 0x05, 0xB3], &["decode_fdcb", "RES y, (IY + d)", "E"])] // RES 6, (IY + d), E
+#[case::fdcb_res_6_iyd_h(0x29f9, &[0xfd, 0xcb, 0x05, 0xB4], &["decode_fdcb", "RES y, (IY + d)", "H"])] // RES 6, (IY + d), H
+#[case::fdcb_res_6_iyd_l(0x29f9, &[0xfd, 0xcb, 0x05, 0xB5], &["decode_fdcb", "RES y, (IY + d)", "L"])] // RES 6, (IY + d), L
+#[case::fdcb_res_6_iyd(0x29f9, &[0xfd, 0xcb, 0x05, 0xB6], &["decode_fdcb", "RES y, (IY + d)"])] // RES 6, (IY + d)
+#[case::fdcb_res_6_iyd_a(0x29f9, &[0xfd, 0xcb, 0x05, 0xB7], &["decode_fdcb", "RES y, (IY + d)", "A"])] // RES 6, (IY + d), A
+#[case::fdcb_res_7_iyd_b(0x29f9, &[0xfd, 0xcb, 0x05, 0xB8], &["decode_fdcb", "RES y, (IY + d)", "B"])] // RES 7, (IY + d), B
+#[case::fdcb_res_7_iyd_c(0x29f9, &[0xfd, 0xcb, 0x05, 0xB9], &["decode_fdcb", "RES y, (IY + d)", "C"])] // RES 7, (IY + d), C
+#[case::fdcb_res_7_iyd_d(0x29f9, &[0xfd, 0xcb, 0x05, 0xBA], &["decode_fdcb", "RES y, (IY + d)", "D"])] // RES 7, (IY + d), D
+#[case::fdcb_res_7_iyd_e(0x29f9, &[0xfd, 0xcb, 0x05, 0xBB], &["decode_fdcb", "RES y, (IY + d)", "E"])] // RES 7, (IY + d), E
+#[case::fdcb_res_7_iyd_h(0x29f9, &[0xfd, 0xcb, 0x05, 0xBC], &["decode_fdcb", "RES y, (IY + d)", "H"])] // RES 7, (IY + d), H
+#[case::fdcb_res_7_iyd_l(0x29f9, &[0xfd, 0xcb, 0x05, 0xBD], &["decode_fdcb", "RES y, (IY + d)", "L"])] // RES 7, (IY + d), L
+#[case::fdcb_res_7_iyd(0x29f9, &[0xfd, 0xcb, 0x05, 0xBE], &["decode_fdcb", "RES y, (IY + d)"])] // RES 7, (IY + d)
+#[case::fdcb_res_7_iyd_a(0x29f9, &[0xfd, 0xcb, 0x05, 0xBF], &["decode_fdcb", "RES y, (IY + d)", "A"])] // RES 7, (IY + d), A
+#[case::fdcb_set_0_iyd_b(0x29f9, &[0xfd, 0xcb, 0x05, 0xC0], &["decode_fdcb", "SET y, (IY + d)", "B"])] // SET 0, (IY + d), B
+#[case::fdcb_set_0_iyd_c(0x29f9, &[0xfd, 0xcb, 0x05, 0xC1], &["decode_fdcb", "SET y, (IY + d)", "C"])] // SET 0, (IY + d), C
+#[case::fdcb_set_0_iyd_d(0x29f9, &[0xfd, 0xcb, 0x05, 0xC2], &["decode_fdcb", "SET y, (IY + d)", "D"])] // SET 0, (IY + d), D
+#[case::fdcb_set_0_iyd_e(0x29f9, &[0xfd, 0xcb, 0x05, 0xC3], &["decode_fdcb", "SET y, (IY + d)", "E"])] // SET 0, (IY + d), E
+#[case::fdcb_set_0_iyd_h(0x29f9, &[0xfd, 0xcb, 0x05, 0xC4], &["decode_fdcb", "SET y, (IY + d)", "H"])] // SET 0, (IY + d), H
+#[case::fdcb_set_0_iyd_l(0x29f9, &[0xfd, 0xcb, 0x05, 0xC5], &["decode_fdcb", "SET y, (IY + d)", "L"])] // SET 0, (IY + d), L
+#[case::fdcb_set_0_iyd(0x29f9, &[0xfd, 0xcb, 0x05, 0xC6], &["decode_fdcb", "SET y, (IY + d)"])] // SET 0, (IY + d)
+#[case::fdcb_set_0_iyd_a(0x29f9, &[0xfd, 0xcb, 0x05, 0xC7], &["decode_fdcb", "SET y, (IY + d)", "A"])] // SET 0, (IY + d), A
+#[case::fdcb_set_1_iyd_b(0x29f9, &[0xfd, 0xcb, 0x05, 0xC8], &["decode_fdcb", "SET y, (IY + d)", "B"])] // SET 1, (IY + d), B
+#[case::fdcb_set_1_iyd_c(0x29f9, &[0xfd, 0xcb, 0x05, 0xC9], &["decode_fdcb", "SET y, (IY + d)", "C"])] // SET 1, (IY + d), C
+#[case::fdcb_set_1_iyd_d(0x29f9, &[0xfd, 0xcb, 0x05, 0xCA], &["decode_fdcb", "SET y, (IY + d)", "D"])] // SET 1, (IY + d), D
+#[case::fdcb_set_1_iyd_e(0x29f9, &[0xfd, 0xcb, 0x05, 0xCB], &["decode_fdcb", "SET y, (IY + d)", "E"])] // SET 1, (IY + d), E
+#[case::fdcb_set_1_iyd_h(0x29f9, &[0xfd, 0xcb, 0x05, 0xCC], &["decode_fdcb", "SET y, (IY + d)", "H"])] // SET 1, (IY + d), H
+#[case::fdcb_set_1_iyd_l(0x29f9, &[0xfd, 0xcb, 0x05, 0xCD], &["decode_fdcb", "SET y, (IY + d)", "L"])] // SET 1, (IY + d), L
+#[case::fdcb_set_1_iyd(0x29f9, &[0xfd, 0xcb, 0x05, 0xCE], &["decode_fdcb", "SET y, (IY + d)"])] // SET 1, (IY + d)
+#[case::fdcb_set_1_iyd_a(0x29f9, &[0xfd, 0xcb, 0x15, 0xCF], &["decode_fdcb", "SET y, (IY + d)", "A"])] // SET 1, (IY + d), A
+#[case::fdcb_set_2_iyd_b(0x29f9, &[0xfd, 0xcb, 0x05, 0xD0], &["decode_fdcb", "SET y, (IY + d)", "B"])] // SET 2, (IY + d), B
+#[case::fdcb_set_2_iyd_c(0x29f9, &[0xfd, 0xcb, 0x05, 0xD1], &["decode_fdcb", "SET y, (IY + d)", "C"])] // SET 2, (IY + d), C
+#[case::fdcb_set_2_iyd_d(0x29f9, &[0xfd, 0xcb, 0x05, 0xD2], &["decode_fdcb", "SET y, (IY + d)", "D"])] // SET 2, (IY + d), D
+#[case::fdcb_set_2_iyd_e(0x29f9, &[0xfd, 0xcb, 0x05, 0xD3], &["decode_fdcb", "SET y, (IY + d)", "E"])] // SET 2, (IY + d), E
+#[case::fdcb_set_2_iyd_h(0x29f9, &[0xfd, 0xcb, 0x05, 0xD4], &["decode_fdcb", "SET y, (IY + d)", "H"])] // SET 2, (IY + d), H
+#[case::fdcb_set_2_iyd_l(0x29f9, &[0xfd, 0xcb, 0x05, 0xD5], &["decode_fdcb", "SET y, (IY + d)", "L"])] // SET 2, (IY + d), L
+#[case::fdcb_set_2_iyd(0x29f9, &[0xfd, 0xcb, 0x05, 0xD6], &["decode_fdcb", "SET y, (IY + d)"])] // SET 2, (IY + d)
+#[case::fdcb_set_2_iyd_a(0x29f9, &[0xfd, 0xcb, 0x05, 0xD7], &["decode_fdcb", "SET y, (IY + d)", "A"])] // SET 2, (IY + d), A
+#[case::fdcb_set_3_iyd_b(0x29f9, &[0xfd, 0xcb, 0x05, 0xD8], &["decode_fdcb", "SET y, (IY + d)", "B"])] // SET 3, (IY + d), B
+#[case::fdcb_set_3_iyd_c(0x29f9, &[0xfd, 0xcb, 0x05, 0xD9], &["decode_fdcb", "SET y, (IY + d)", "C"])] // SET 3, (IY + d), C
+#[case::fdcb_set_3_iyd_d(0x29f9, &[0xfd, 0xcb, 0x05, 0xDA], &["decode_fdcb", "SET y, (IY + d)", "D"])] // SET 3, (IY + d), D
+#[case::fdcb_set_3_iyd_e(0x29f9, &[0xfd, 0xcb, 0x05, 0xDB], &["decode_fdcb", "SET y, (IY + d)", "E"])] // SET 3, (IY + d), E
+#[case::fdcb_set_3_iyd_h(0x29f9, &[0xfd, 0xcb, 0x05, 0xDC], &["decode_fdcb", "SET y, (IY + d)", "H"])] // SET 3, (IY + d), H
+#[case::fdcb_set_3_iyd_l(0x29f9, &[0xfd, 0xcb, 0x05, 0xDD], &["decode_fdcb", "SET y, (IY + d)", "L"])] // SET 3, (IY + d), L
+#[case::fdcb_set_3_iyd(0x29f9, &[0xfd, 0xcb, 0x05, 0xDE], &["decode_fdcb", "SET y, (IY + d)"])] // SET 3, (IY + d)
+#[case::fdcb_set_3_iyd_a(0x29f9, &[0xfd, 0xcb, 0x15, 0xDF], &["decode_fdcb", "SET y, (IY + d)", "A"])] // SET 3, (IY + d), A
+#[case::fdcb_set_4_iyd_b(0x29f9, &[0xfd, 0xcb, 0x05, 0xE0], &["decode_fdcb", "SET y, (IY + d)", "B"])] // SET 4, (IY + d), B
+#[case::fdcb_set_4_iyd_c(0x29f9, &[0xfd, 0xcb, 0x05, 0xE1], &["decode_fdcb", "SET y, (IY + d)", "C"])] // SET 4, (IY + d), C
+#[case::fdcb_set_4_iyd_d(0x29f9, &[0xfd, 0xcb, 0x05, 0xE2], &["decode_fdcb", "SET y, (IY + d)", "D"])] // SET 4, (IY + d), D
+#[case::fdcb_set_4_iyd_e(0x29f9, &[0xfd, 0xcb, 0x05, 0xE3], &["decode_fdcb", "SET y, (IY + d)", "E"])] // SET 4, (IY + d), E
+#[case::fdcb_set_4_iyd_h(0x29f9, &[0xfd, 0xcb, 0x05, 0xE4], &["decode_fdcb", "SET y, (IY + d)", "H"])] // SET 4, (IY + d), H
+#[case::fdcb_set_4_iyd_l(0x29f9, &[0xfd, 0xcb, 0x05, 0xE5], &["decode_fdcb", "SET y, (IY + d)", "L"])] // SET 4, (IY + d), L
+#[case::fdcb_set_4_iyd(0x29f9, &[0xfd, 0xcb, 0x05, 0xE6], &["decode_fdcb", "SET y, (IY + d)"])] // SET 4, (IY + d)
+#[case::fdcb_set_4_iyd_a(0x29f9, &[0xfd, 0xcb, 0x05, 0xE7], &["decode_fdcb", "SET y, (IY + d)", "A"])] // SET 4, (IY + d), A
+#[case::fdcb_set_5_iyd_b(0x29f9, &[0xfd, 0xcb, 0x05, 0xE8], &["decode_fdcb", "SET y, (IY + d)", "B"])] // SET 5, (IY + d), B
+#[case::fdcb_set_5_iyd_c(0x29f9, &[0xfd, 0xcb, 0x05, 0xE9], &["decode_fdcb", "SET y, (IY + d)", "C"])] // SET 5, (IY + d), C
+#[case::fdcb_set_5_iyd_d(0x29f9, &[0xfd, 0xcb, 0x05, 0xEA], &["decode_fdcb", "SET y, (IY + d)", "D"])] // SET 5, (IY + d), D
+#[case::fdcb_set_5_iyd_e(0x29f9, &[0xfd, 0xcb, 0x05, 0xEB], &["decode_fdcb", "SET y, (IY + d)", "E"])] // SET 5, (IY + d), E
+#[case::fdcb_set_5_iyd_h(0x29f9, &[0xfd, 0xcb, 0x05, 0xEC], &["decode_fdcb", "SET y, (IY + d)", "H"])] // SET 5, (IY + d), H
+#[case::fdcb_set_5_iyd_l(0x29f9, &[0xfd, 0xcb, 0x05, 0xED], &["decode_fdcb", "SET y, (IY + d)", "L"])] // SET 5, (IY + d), L
+#[case::fdcb_set_5_iyd(0x29f9, &[0xfd, 0xcb, 0x05, 0xEE], &["decode_fdcb", "SET y, (IY + d)"])] // SET 5, (IY + d)
+#[case::fdcb_set_5_iyd_a(0x29f9, &[0xfd, 0xcb, 0x05, 0xEF], &["decode_fdcb", "SET y, (IY + d)", "A"])] // SET 5, (IY + d), A
+#[case::fdcb_set_6_iyd_b(0x29f9, &[0xfd, 0xcb, 0x05, 0xF0], &["decode_fdcb", "SET y, (IY + d)", "B"])] // SET 6, (IY + d), B
+#[case::fdcb_set_6_iyd_c(0x29f9, &[0xfd, 0xcb, 0x05, 0xF1], &["decode_fdcb", "SET y, (IY + d)", "C"])] // SET 6, (IY + d), C
+#[case::fdcb_set_6_iyd_d(0x29f9, &[0xfd, 0xcb, 0x05, 0xF2], &["decode_fdcb", "SET y, (IY + d)", "D"])] // SET 6, (IY + d), D
+#[case::fdcb_set_6_iyd_e(0x29f9, &[0xfd, 0xcb, 0x05, 0xF3], &["decode_fdcb", "SET y, (IY + d)", "E"])] // SET 6, (IY + d), E
+#[case::fdcb_set_6_iyd_h(0x29f9, &[0xfd, 0xcb, 0x05, 0xF4], &["decode_fdcb", "SET y, (IY + d)", "H"])] // SET 6, (IY + d), H
+#[case::fdcb_set_6_iyd_l(0x29f9, &[0xfd, 0xcb, 0x05, 0xF5], &["decode_fdcb", "SET y, (IY + d)", "L"])] // SET 6, (IY + d), L
+#[case::fdcb_set_6_iyd(0x29f9, &[0xfd, 0xcb, 0x05, 0xF6], &["decode_fdcb", "SET y, (IY + d)"])] // SET 6, (IY + d)
+#[case::fdcb_set_6_iyd_a(0x29f9, &[0xfd, 0xcb, 0x05, 0xF7], &["decode_fdcb", "SET y, (IY + d)", "A"])] // SET 6, (IY + d), A
+#[case::fdcb_set_7_iyd_b(0x29f9, &[0xfd, 0xcb, 0x05, 0xF8], &["decode_fdcb", "SET y, (IY + d)", "B"])] // SET 7, (IY + d), B
+#[case::fdcb_set_7_iyd_c(0x29f9, &[0xfd, 0xcb, 0x05, 0xF9], &["decode_fdcb", "SET y, (IY + d)", "C"])] // SET 7, (IY + d), C
+#[case::fdcb_set_7_iyd_d(0x29f9, &[0xfd, 0xcb, 0x05, 0xFA], &["decode_fdcb", "SET y, (IY + d)", "D"])] // SET 7, (IY + d), D
+#[case::fdcb_set_7_iyd_e(0x29f9, &[0xfd, 0xcb, 0x05, 0xFB], &["decode_fdcb", "SET y, (IY + d)", "E"])] // SET 7, (IY + d), E
+#[case::fdcb_set_7_iyd_h(0x29f9, &[0xfd, 0xcb, 0x05, 0xFC], &["decode_fdcb", "SET y, (IY + d)", "H"])] // SET 7, (IY + d), H
+#[case::fdcb_set_7_iyd_l(0x29f9, &[0xfd, 0xcb, 0x05, 0xFD], &["decode_fdcb", "SET y, (IY + d)", "L"])] // SET 7, (IY + d), L
+#[case::fdcb_set_7_iyd(0x29f9, &[0xfd, 0xcb, 0x05, 0xFE], &["decode_fdcb", "SET y, (IY + d)"])] // SET 7, (IY + d)
+#[case::fdcb_set_7_iyd_a(0x29f9, &[0xfd, 0xcb, 0x05, 0xFF], &["decode_fdcb", "SET y, (IY + d)", "A"])] // SET 7, (IY + d), A
 fn test_opcode(
     #[case] starting_pc: u16,
     #[case] memory_contents: &[u8],
@@ -908,7 +1366,11 @@ fn test_opcode(
     // zip logs and cpu logs
 
     for (expected, actual) in expected_logs.iter().zip(cpu.test_callback.0.iter().rev()) {
-        assert_eq!(expected, actual);
+        assert_eq!(
+            expected, actual,
+            "Log mismatch. Expected log: {:?}, Actual log: {:?}",
+            expected, actual
+        );
     }
 }
 
@@ -920,6 +1382,23 @@ fn test_opcode(
 #[case(0x29f9, &[0xed], 0xAC..=0xAF, &[], &["decode_ed", "NONI"])]
 #[case(0x29f9, &[0xed], 0xB4..=0xB7, &[], &["decode_ed", "NONI"])]
 #[case(0x29f9, &[0xed], 0xBC..=0xBF, &[], &["decode_ed", "NONI"])]
+#[case::ddbc_bit_0_ixd(0x29f9, &[0xdd, 0xcb, 0x05], 0x40..=0x47, &[0x00], &["decode_ddcb", "BIT y, (IX + d)"])] // BIT 0, (IX + d)
+#[case::ddbc_bit_1_ixd(0x29f9, &[0xdd, 0xcb, 0x05], 0x48..=0x4F, &[0x00], &["decode_ddcb", "BIT y, (IX + d)"])] // BIT 1, (IX + d)
+#[case::ddbc_bit_2_ixd(0x29f9, &[0xdd, 0xcb, 0x05], 0x50..=0x57, &[0x00], &["decode_ddcb", "BIT y, (IX + d)"])] // BIT 2, (IX + d)
+#[case::ddbc_bit_3_ixd(0x29f9, &[0xdd, 0xcb, 0x05], 0x58..=0x5F, &[0x00], &["decode_ddcb", "BIT y, (IX + d)"])] // BIT 3, (IX + d)
+#[case::ddbc_bit_4_ixd(0x29f9, &[0xdd, 0xcb, 0x05], 0x60..=0x67, &[0x00], &["decode_ddcb", "BIT y, (IX + d)"])] // BIT 4, (IX + d)
+#[case::ddbc_bit_5_ixd(0x29f9, &[0xdd, 0xcb, 0x05], 0x68..=0x6F, &[0x00], &["decode_ddcb", "BIT y, (IX + d)"])] // BIT 5, (IX + d)
+#[case::ddbc_bit_6_ixd(0x29f9, &[0xdd, 0xcb, 0x05], 0x70..=0x77, &[0x00], &["decode_ddcb", "BIT y, (IX + d)"])] // BIT 6, (IX + d)
+#[case::ddbc_bit_7_ixd(0x29f9, &[0xdd, 0xcb, 0x05], 0x78..=0x7F, &[0x00], &["decode_ddcb", "BIT y, (IX + d)"])] // BIT 7, (IX + d)
+#[case::fdcb_bit_0_iyd(0x29f9, &[0xfd, 0xcb, 0x05], 0x40..=0x47, &[0x00], &["decode_fdcb", "BIT y, (IY + d)"])] // BIT 0, (IY + d)
+#[case::fdcb_bit_1_iyd(0x29f9, &[0xfd, 0xcb, 0x05], 0x48..=0x4F, &[0x00], &["decode_fdcb", "BIT y, (IY + d)"])] // BIT 1, (IY + d)
+#[case::fdcb_bit_2_iyd(0x29f9, &[0xfd, 0xcb, 0x05], 0x50..=0x57, &[0x00], &["decode_fdcb", "BIT y, (IY + d)"])] // BIT 2, (IY + d)
+#[case::fdcb_bit_3_iyd(0x29f9, &[0xfd, 0xcb, 0x05], 0x58..=0x5F, &[0x00], &["decode_fdcb", "BIT y, (IY + d)"])] // BIT 3, (IY + d)
+#[case::fdcb_bit_4_iyd(0x29f9, &[0xfd, 0xcb, 0x05], 0x60..=0x67, &[0x00], &["decode_fdcb", "BIT y, (IY + d)"])] // BIT 4, (IY + d)
+#[case::fdcb_bit_5_iyd(0x29f9, &[0xfd, 0xcb, 0x05], 0x68..=0x6F, &[0x00], &["decode_fdcb", "BIT y, (IY + d)"])] // BIT 5, (IY + d)
+#[case::fdcb_bit_6_iyd(0x29f9, &[0xfd, 0xcb, 0x05], 0x70..=0x77, &[0x00], &["decode_fdcb", "BIT y, (IY + d)"])] // BIT 6, (IY + d)
+#[case::fdcb_bit_7_iyd(0x29f9, &[0xfd, 0xcb, 0x05], 0x78..=0x7F, &[0x00], &["decode_fdcb", "BIT y, (IY + d)"])] // BIT 7, (IY + d)
+
 fn test_opcode_range(
     #[case] starting_pc: u16,
     #[case] prefixes: &[u8],
