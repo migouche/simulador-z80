@@ -331,9 +331,9 @@ impl IODevice for LcdDisplay {
         if (port & 0xFF) == (self.port & 0xFF) {
             let ch = data as char;
             if ch == '\n' || (ch >= ' ' && ch <= '~') {
-                 self.display_buffer.push(ch);
+                self.display_buffer.push(ch);
             } else {
-                 self.display_buffer.push('.');
+                self.display_buffer.push('.');
             }
             true
         } else {
@@ -362,26 +362,27 @@ impl DeviceWithUi for LcdDisplay {
             .min_width(300.0)
             .show(ctx, |ui| {
                 ui.label("Sent from CPU:");
-                
+
                 let text: String = self.display_buffer.iter().collect();
-                egui::ScrollArea::vertical().max_height(200.0).show(ui, |ui| {
-                    ui.add(
-                        egui::TextEdit::multiline(&mut text.as_str())
-                            .font(egui::TextStyle::Monospace)
-                            .desired_width(f32::INFINITY)
-                            .interactive(false), // Read-only
-                    );
-                });
-                
+                egui::ScrollArea::vertical()
+                    .max_height(200.0)
+                    .show(ui, |ui| {
+                        ui.add(
+                            egui::TextEdit::multiline(&mut text.as_str())
+                                .font(egui::TextStyle::Monospace)
+                                .desired_width(f32::INFINITY)
+                                .interactive(false), // Read-only
+                        );
+                    });
+
                 if ui.button("Clear").clicked() {
                     self.display_buffer.clear();
                     self.input_index = 0; // Reset input too maybe?
                 }
-                
+
                 ui.separator();
                 ui.label(format!("Input Index: {}", self.input_index));
             });
         self.is_open = open;
     }
 }
-

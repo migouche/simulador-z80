@@ -11,11 +11,11 @@ mod tests {
             DEFS 2, 0xAA
         ";
         let (bytes, _, _, _) = assemble(code).unwrap();
-        
+
         let total_len = 0x100 + 5 + 2;
         assert_eq!(bytes.len(), total_len);
-        assert_eq!(&bytes[0x100..0x100+5], &[0, 0, 0, 0, 0]);
-        assert_eq!(&bytes[0x100+5..], &[0xAA, 0xAA]);
+        assert_eq!(&bytes[0x100..0x100 + 5], &[0, 0, 0, 0, 0]);
+        assert_eq!(&bytes[0x100 + 5..], &[0xAA, 0xAA]);
     }
 
     #[test]
@@ -40,7 +40,7 @@ mod tests {
             OTDR
         ";
         let (bytes, _, _, _) = assemble(code).unwrap();
-        
+
         let expected = vec![
             0xED, 0xA0, // LDI
             0xED, 0xB0, // LDIR
@@ -57,9 +57,9 @@ mod tests {
             0xED, 0xA3, // OUTI
             0xED, 0xB3, // OTIR
             0xED, 0xAB, // OUTD
-            0xED, 0xBB  // OTDR
+            0xED, 0xBB, // OTDR
         ];
-        
+
         assert_eq!(bytes, expected);
     }
 }

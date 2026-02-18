@@ -122,44 +122,44 @@ pub fn assemble(
                 // If it's a DB string -> String(len)
                 // If it's a DB multiple bytes -> Array(len)
                 // If it's a DS -> Array(len)
-                
+
                 if let Token::Identifier(mnemonic) = &tokens[0] {
-                     match mnemonic.as_str() {
+                    match mnemonic.as_str() {
                         "DB" | "DEFB" => {
                             // Check if operands contain a string literal
-                             if tokens.len() > 1 {
-                                 // Simple check for string literal as first operand
-                                 // But parsing operands is better. 
-                                 // Since parse_instruction succeeded, we know operands are valid structure.
-                                 // Let's assume passed bytes.len() is correct size.
-                                 
-                                 // If instruction size > 1, it's either string or array of bytes.
-                                 if bytes.len() > 1 {
-                                     // Check if it is a string literal
-                                     // parse_operands again? It's cheap enough here.
-                                     if let Ok(ops) = parse_operands(&tokens[1..]) {
-                                         if ops.len() == 1 {
-                                             if let Operand::StringLiteral(_) = ops[0] {
-                                                 sym.kind = SymbolType::String(bytes.len());
-                                             } else {
-                                                 sym.kind = SymbolType::Array(bytes.len());
-                                             }
-                                         } else {
-                                              // Multiple operands: DB 1, 2, 3
-                                              sym.kind = SymbolType::Array(bytes.len()); 
-                                         }
-                                     } 
-                                 } else {
-                                     // Single byte, keep as Byte
-                                     sym.kind = SymbolType::Byte;
-                                 }
-                             }
-                        },
+                            if tokens.len() > 1 {
+                                // Simple check for string literal as first operand
+                                // But parsing operands is better.
+                                // Since parse_instruction succeeded, we know operands are valid structure.
+                                // Let's assume passed bytes.len() is correct size.
+
+                                // If instruction size > 1, it's either string or array of bytes.
+                                if bytes.len() > 1 {
+                                    // Check if it is a string literal
+                                    // parse_operands again? It's cheap enough here.
+                                    if let Ok(ops) = parse_operands(&tokens[1..]) {
+                                        if ops.len() == 1 {
+                                            if let Operand::StringLiteral(_) = ops[0] {
+                                                sym.kind = SymbolType::String(bytes.len());
+                                            } else {
+                                                sym.kind = SymbolType::Array(bytes.len());
+                                            }
+                                        } else {
+                                            // Multiple operands: DB 1, 2, 3
+                                            sym.kind = SymbolType::Array(bytes.len());
+                                        }
+                                    }
+                                } else {
+                                    // Single byte, keep as Byte
+                                    sym.kind = SymbolType::Byte;
+                                }
+                            }
+                        }
                         "DS" | "DEFS" => {
                             sym.kind = SymbolType::Array(bytes.len());
-                        },
+                        }
                         _ => {}
-                     }
+                    }
                 }
             }
         }

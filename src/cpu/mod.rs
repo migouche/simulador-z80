@@ -1638,7 +1638,6 @@ impl Z80A {
                         self.set_register_pair(RegisterPair::DE, hl);
                         self.set_register_pair(RegisterPair::HL, de);
                     }
-                    // TODO: will do interrupts later
                     6 => {
                         test_log!(self, "DI");
                         self.iff1 = false;

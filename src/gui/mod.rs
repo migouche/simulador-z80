@@ -1089,7 +1089,7 @@ impl eframe::App for Z80App {
                                     let label_resp = ui.label(*name);
                                     label_resp.context_menu(|ui| {
                                         ui.label(egui::RichText::new("Display Format").strong());
-                                        
+
                                         // "Default" implies removing the override
                                         if ui.button("Default").clicked() {
                                             self.symbol_display_prefs.remove(*name);
@@ -1140,8 +1140,8 @@ impl eframe::App for Z80App {
                                                     let s: String = bytes.iter()
                                                         .map(|&b| if b >= 32 && b <= 126 { b as char } else { '.' })
                                                         .collect();
-                                                    
-                                                    // If we hit a null or length is long, check full content for tooltip
+
+                                                        // If we hit a null or length is long, check full content for tooltip
                                                     if len > 20 || bytes.len() < len.min(20) {
                                                         // Read full content for tooltip
                                                         let mut full_bytes = Vec::new();
@@ -1195,27 +1195,27 @@ impl eframe::App for Z80App {
                                                 SymbolType::Word => 2,
                                                 _ => 1,
                                             };
-                                            
+
                                             let max_scan_len = if len > 1 { len } else { 40 };
                                             let display_limit = max_scan_len.min(40);
-                                            
+
                                             let mut bytes = Vec::new();
                                             for i in 0..display_limit {
                                                 let b = self.memory.borrow().read(addr.wrapping_add(i as u16));
                                                 if b == 0 { break; }
                                                 bytes.push(b);
                                             }
-                                            
+
                                             let s: String = bytes.iter()
                                                 .map(|&b| if b >= 32 && b <= 126 { b as char } else { '.' })
                                                 .collect();
 
                                             // Determine if we need to show truncation or tooltip with full content
                                             // bytes.len() is the effective string length (stopped at null or limit)
-                                            
+
                                             // If we stopped at the display limit (40) but allocated size is larger, it might be truncated.
                                             let truncated_visual = bytes.len() == 40 && max_scan_len > 40;
-                                            
+
                                             // Read full string for tooltip only if visually truncated
                                             let mut full_s = s.clone();
                                             if truncated_visual {
@@ -1258,7 +1258,6 @@ impl eframe::App for Z80App {
                                                      full_bytes.push(self.memory.borrow().read(addr.wrapping_add(i as u16)));
                                                  }
                                                  let full_hex: Vec<String> = full_bytes.iter().map(|b| format!("{:02X}", b)).collect();
-                                                
                                                 ui.monospace(format!("[{}...]", hex_str.join(" ")))
                                                     .on_hover_text(format!("Length: {}\nFull: [{}]", len, full_hex.join(" ")));
                                             } else {
@@ -1296,7 +1295,6 @@ impl eframe::App for Z80App {
                                                          let high = self.memory.borrow().read(addr.wrapping_add(offset + 1));
                                                          full_words.push(format!("{:04X}", (low as u16) | ((high as u16) << 8)));
                                                      }
-                                                    
                                                     ui.monospace(format!("[{}...]", words.join(" ")))
                                                         .on_hover_text(format!("Length: {} bytes\nFull: [{}]", len, full_words.join(" ")));
                                                 } else {
@@ -1598,7 +1596,7 @@ impl eframe::App for Z80App {
                     match &mut modal_type {
                         ModalType::AddDevice(dev_type, port_text) => {
                             use crate::components::devices::{
-                                GenericInterruptDevice, Keypad, SevenSegmentDisplay, LcdDisplay,
+                                GenericInterruptDevice, Keypad, LcdDisplay, SevenSegmentDisplay,
                             };
                             ui.label("Enter Port Number (Hex):");
                             ui.text_edit_singleline(port_text);
@@ -1621,9 +1619,9 @@ impl eframe::App for Z80App {
                                                 DeviceType::SevenSegment => Rc::new(RefCell::new(
                                                     SevenSegmentDisplay::new(port),
                                                 )),
-                                                DeviceType::LcdDisplay => Rc::new(RefCell::new(
-                                                    LcdDisplay::new(port),
-                                                )),
+                                                DeviceType::LcdDisplay => {
+                                                    Rc::new(RefCell::new(LcdDisplay::new(port)))
+                                                }
                                                 DeviceType::GenericInterrupt => Rc::new(
                                                     RefCell::new(GenericInterruptDevice::new(port)),
                                                 ),
