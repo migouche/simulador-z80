@@ -112,7 +112,7 @@ END:
                 HALT
         "#;
 
-    let (_cpu, memory, symbols) = run_until_halt(code, 100000);
+    let (_, memory, symbols) = run_until_halt(code, 100000);
 
     // Check Result
     let result_sym = symbols.get("RESULT").expect("Label RESULT not found");

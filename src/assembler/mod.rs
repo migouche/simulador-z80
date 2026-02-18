@@ -397,13 +397,12 @@ fn resolve_immediate(
     match op {
         Operand::Immediate(n) => Ok(*n),
         Operand::Label(s) => {
-            if is_dry_run {
+            if let Some(val) = labels.get(s) {
+                Ok(*val)
+            } else if is_dry_run {
                 Ok(0)
             } else {
-                labels
-                    .get(s)
-                    .cloned()
-                    .ok_or_else(|| format!("Label not found: {}", s))
+                Err(format!("Label not found: {}", s))
             }
         }
         _ => Err("Not an immediate".to_string()),
@@ -418,13 +417,12 @@ fn resolve_indirect(
     match op {
         Operand::IndirectImmediate(n) => Ok(*n),
         Operand::IndirectLabel(s) => {
-            if is_dry_run {
+            if let Some(val) = labels.get(s) {
+                Ok(*val)
+            } else if is_dry_run {
                 Ok(0)
             } else {
-                labels
-                    .get(s)
-                    .cloned()
-                    .ok_or_else(|| format!("Label not found: {}", s))
+                Err(format!("Label not found: {}", s))
             }
         }
         _ => Err("Not an indirect address".to_string()),
@@ -563,10 +561,38 @@ fn parse_instruction(
             Ok(bytes)
         }
 
+        "DS" | "DEFS" => {
+            if operands.is_empty() {
+                return Err("DS requires at least one operand (count)".to_string());
+            }
+
+            let count = resolve_immediate(&operands[0], labels, is_dry_run)?;
+
+            let fill_value = if operands.len() >= 2 {
+                (resolve_immediate(&operands[1], labels, is_dry_run)? & 0xFF) as u8
+            } else {
+                0
+            };
+
+            Ok(vec![fill_value; count as usize])
+        }
+
         "LDI" => Ok(vec![0xED, 0xA0]),
         "LDIR" => Ok(vec![0xED, 0xB0]),
+        "LDD" => Ok(vec![0xED, 0xA8]),
+        "LDDR" => Ok(vec![0xED, 0xB8]),
         "CPI" => Ok(vec![0xED, 0xA1]),
         "CPIR" => Ok(vec![0xED, 0xB1]),
+        "CPD" => Ok(vec![0xED, 0xA9]),
+        "CPDR" => Ok(vec![0xED, 0xB9]),
+        "INI" => Ok(vec![0xED, 0xA2]),
+        "INIR" => Ok(vec![0xED, 0xB2]),
+        "IND" => Ok(vec![0xED, 0xAA]),
+        "INDR" => Ok(vec![0xED, 0xBA]),
+        "OUTI" => Ok(vec![0xED, 0xA3]),
+        "OTIR" => Ok(vec![0xED, 0xB3]),
+        "OUTD" => Ok(vec![0xED, 0xAB]),
+        "OTDR" => Ok(vec![0xED, 0xBB]),
 
         "RLC" => encode_rot_shift(0x00, &operands),
         "RRC" => encode_rot_shift(0x08, &operands),

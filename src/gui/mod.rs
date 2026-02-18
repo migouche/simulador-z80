@@ -50,6 +50,7 @@ enum HeaderAction {
 enum DeviceType {
     Keypad,
     SevenSegment,
+    LcdDisplay,
     GenericInterrupt,
     NmiTrigger,
 }
@@ -753,6 +754,17 @@ impl eframe::App for Z80App {
                         ui.close();
                     }
                     if ui
+                        .button("Add LCD Display")
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
+                        .clicked()
+                    {
+                        self.pending_modal = Some(ModalType::AddDevice(
+                            DeviceType::LcdDisplay,
+                            "3".to_string(), // Default port 3
+                        ));
+                        ui.close();
+                    }
+                    if ui
                         .button("Add Interrupt Controller")
                         .on_hover_cursor(egui::CursorIcon::PointingHand)
                         .clicked()
@@ -1366,7 +1378,7 @@ impl eframe::App for Z80App {
                     match &mut modal_type {
                         ModalType::AddDevice(dev_type, port_text) => {
                             use crate::components::devices::{
-                                GenericInterruptDevice, Keypad, SevenSegmentDisplay,
+                                GenericInterruptDevice, Keypad, SevenSegmentDisplay, LcdDisplay,
                             };
                             ui.label("Enter Port Number (Hex):");
                             ui.text_edit_singleline(port_text);
@@ -1388,6 +1400,9 @@ impl eframe::App for Z80App {
                                                 }
                                                 DeviceType::SevenSegment => Rc::new(RefCell::new(
                                                     SevenSegmentDisplay::new(port),
+                                                )),
+                                                DeviceType::LcdDisplay => Rc::new(RefCell::new(
+                                                    LcdDisplay::new(port),
                                                 )),
                                                 DeviceType::GenericInterrupt => Rc::new(
                                                     RefCell::new(GenericInterruptDevice::new(port)),
