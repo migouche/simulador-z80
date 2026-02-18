@@ -62,6 +62,14 @@ enum ModalType {
     AddDevice(DeviceType, String),
 }
 
+#[derive(Clone, Copy, PartialEq, serde::Deserialize, serde::Serialize)]
+enum SymbolDisplayFormat {
+    Default,
+    String,
+    HexBytes,
+    HexWords,
+}
+
 #[derive(serde::Deserialize, serde::Serialize, Clone)]
 pub struct EditorTab {
     pub path: Option<PathBuf>,
@@ -90,6 +98,10 @@ pub struct Z80App {
     address_to_line: HashMap<u16, usize>,
     #[serde(skip)]
     line_to_address: HashMap<usize, u16>,
+
+    #[serde(default)]
+    symbol_display_prefs: HashMap<String, SymbolDisplayFormat>,
+
     #[serde(skip)]
     is_running: bool,
     #[serde(skip)]
@@ -606,6 +618,7 @@ impl Default for Z80App {
             symbol_table: HashMap::new(),
             address_to_line: HashMap::new(),
             line_to_address: HashMap::new(),
+            symbol_display_prefs: HashMap::new(),
             is_running: false,
             pending_modal: None,
             loaded_file_name: "Untitled".to_string(),
@@ -1069,22 +1082,229 @@ impl eframe::App for Z80App {
 
                                     let addr = symbol.address;
 
-                                    ui.label(*name);
+                                    // Determine display format
+                                    let format = self.symbol_display_prefs.get(*name).cloned().unwrap_or(SymbolDisplayFormat::Default);
+
+                                    // Context menu for format selection
+                                    let label_resp = ui.label(*name);
+                                    label_resp.context_menu(|ui| {
+                                        ui.label(egui::RichText::new("Display Format").strong());
+                                        
+                                        // "Default" implies removing the override
+                                        if ui.button("Default").clicked() {
+                                            self.symbol_display_prefs.remove(*name);
+                                            ui.close();
+                                        }
+
+                                        // Always offer String and Array/Hex options regardless of defined type, as requested
+                                        if ui.button("String").clicked() {
+                                            self.symbol_display_prefs.insert(name.to_string(), SymbolDisplayFormat::String);
+                                            ui.close();
+                                        }
+                                        if ui.button("Hex Bytes").clicked() {
+                                            self.symbol_display_prefs.insert(name.to_string(), SymbolDisplayFormat::HexBytes);
+                                            ui.close();
+                                        }
+                                        if ui.button("Hex Words").clicked() {
+                                            self.symbol_display_prefs.insert(name.to_string(), SymbolDisplayFormat::HexWords);
+                                            ui.close();
+                                        }
+                                    });
+
                                     ui.monospace(format!("0x{:04X}", addr));
 
-                                    match symbol.kind {
-                                        SymbolType::Byte => {
-                                            let val = self.memory.borrow().read(addr);
-                                            ui.monospace(format!("0x{:02X}", val));
+                                    // Render based on format
+                                    match format {
+                                        SymbolDisplayFormat::Default => {
+                                            match symbol.kind {
+                                                SymbolType::Byte => {
+                                                    let val = self.memory.borrow().read(addr);
+                                                    ui.monospace(format!("0x{:02X}", val));
+                                                }
+                                                SymbolType::Word => {
+                                                    let low = self.memory.borrow().read(addr);
+                                                    let high = self.memory.borrow().read(addr.wrapping_add(1));
+                                                    let val = (low as u16) | ((high as u16) << 8);
+                                                    ui.monospace(format!("0x{:04X}", val));
+                                                }
+                                                SymbolType::String(len) => {
+                                                    // Default String render
+                                                    let mut bytes = Vec::new();
+                                                    // Read at most 20 chars for preview, but check for null terminator
+                                                    let display_len = len.min(20);
+                                                    for i in 0..display_len {
+                                                        let b = self.memory.borrow().read(addr.wrapping_add(i as u16));
+                                                        if b == 0 { break; }
+                                                        bytes.push(b);
+                                                    }
+                                                    let s: String = bytes.iter()
+                                                        .map(|&b| if b >= 32 && b <= 126 { b as char } else { '.' })
+                                                        .collect();
+                                                    
+                                                    // If we hit a null or length is long, check full content for tooltip
+                                                    if len > 20 || bytes.len() < len.min(20) {
+                                                        // Read full content for tooltip
+                                                        let mut full_bytes = Vec::new();
+                                                        for i in 0..len {
+                                                            let b = self.memory.borrow().read(addr.wrapping_add(i as u16));
+                                                            if b == 0 { break; }
+                                                            full_bytes.push(b);
+                                                        }
+                                                        let full_s: String = full_bytes.iter()
+                                                            .map(|&b| if b >= 32 && b <= 126 { b as char } else { '.' })
+                                                            .collect();
+
+                                                        if bytes.len() < full_bytes.len() {
+                                                             ui.monospace(format!("\"{}\"...", s))
+                                                                .on_hover_text(format!("Length: {}\nFull: \"{}\"", len, full_s));
+                                                        } else {
+                                                             ui.monospace(format!("\"{}\"", s));
+                                                        }
+                                                    } else {
+                                                        ui.monospace(format!("\"{}\"", s));
+                                                    }
+                                                }
+                                                SymbolType::Array(len) => {
+                                                    // Default Array render (Hex Bytes)
+                                                    let mut bytes = Vec::new();
+                                                    let display_len = len.min(8);
+                                                    for i in 0..display_len {
+                                                        bytes.push(self.memory.borrow().read(addr.wrapping_add(i as u16)));
+                                                    }
+                                                    let hex_str: Vec<String> = bytes.iter().map(|b| format!("{:02X}", b)).collect();
+                                                    if len > 8 {
+                                                        // Read full content for tooltip
+                                                        let mut full_bytes = Vec::new();
+                                                        for i in 0..len {
+                                                            full_bytes.push(self.memory.borrow().read(addr.wrapping_add(i as u16)));
+                                                        }
+                                                        let full_hex: Vec<String> = full_bytes.iter().map(|b| format!("{:02X}", b)).collect();
+
+                                                        ui.monospace(format!("[{}...]", hex_str.join(" ")))
+                                                            .on_hover_text(format!("Length: {}\nFull: [{}]", len, full_hex.join(" ")));
+                                                    } else {
+                                                        ui.monospace(format!("[{}]", hex_str.join(" ")));
+                                                    }
+                                                }
+                                                _ => { ui.label(""); }
+                                            }
+                                        },
+                                        SymbolDisplayFormat::String => {
+                                            let len = match symbol.kind {
+                                                SymbolType::String(l) | SymbolType::Array(l) => l,
+                                                SymbolType::Word => 2,
+                                                _ => 1,
+                                            };
+                                            
+                                            let max_scan_len = if len > 1 { len } else { 40 };
+                                            let display_limit = max_scan_len.min(40);
+                                            
+                                            let mut bytes = Vec::new();
+                                            for i in 0..display_limit {
+                                                let b = self.memory.borrow().read(addr.wrapping_add(i as u16));
+                                                if b == 0 { break; }
+                                                bytes.push(b);
+                                            }
+                                            
+                                            let s: String = bytes.iter()
+                                                .map(|&b| if b >= 32 && b <= 126 { b as char } else { '.' })
+                                                .collect();
+
+                                            // Determine if we need to show truncation or tooltip with full content
+                                            // bytes.len() is the effective string length (stopped at null or limit)
+                                            
+                                            // If we stopped at the display limit (40) but allocated size is larger, it might be truncated.
+                                            let truncated_visual = bytes.len() == 40 && max_scan_len > 40;
+                                            
+                                            // Read full string for tooltip only if visually truncated
+                                            let mut full_s = s.clone();
+                                            if truncated_visual {
+                                                 let mut full_bytes = Vec::new();
+                                                 // Scan up to max_scan_len (which is allocated length)
+                                                 for i in 0..max_scan_len {
+                                                     let b = self.memory.borrow().read(addr.wrapping_add(i as u16));
+                                                     if b == 0 { break; }
+                                                     full_bytes.push(b);
+                                                 }
+                                                 full_s = full_bytes.iter()
+                                                    .map(|&b| if b >= 32 && b <= 126 { b as char } else { '.' })
+                                                    .collect();
+                                            }
+
+                                            if truncated_visual {
+                                                ui.monospace(format!("\"{}\"...", s))
+                                                    .on_hover_text(format!("Allocated: {}\nString: \"{}\"", len, full_s));
+                                            } else {
+                                                // Not truncated visually, so 's' is the full string (or at least as much as fits in allocated)
+                                                ui.monospace(format!("\"{}\"", s))
+                                                    .on_hover_text(format!("Allocated: {}\nString: \"{}\"", len, s));
+                                            }
+                                        },
+                                        SymbolDisplayFormat::HexBytes => {
+                                            let len = match symbol.kind {
+                                                SymbolType::String(l) | SymbolType::Array(l) => l,
+                                                SymbolType::Word => 2,
+                                                _ => 1,
+                                            };
+                                            let mut bytes = Vec::new();
+                                            let display_len = len.min(8).max(1); // At least 1 byte
+                                            for i in 0..display_len {
+                                                bytes.push(self.memory.borrow().read(addr.wrapping_add(i as u16)));
+                                            }
+                                            let hex_str: Vec<String> = bytes.iter().map(|b| format!("{:02X}", b)).collect();
+                                            if len > 8 {
+                                                 let mut full_bytes = Vec::new();
+                                                 for i in 0..len {
+                                                     full_bytes.push(self.memory.borrow().read(addr.wrapping_add(i as u16)));
+                                                 }
+                                                 let full_hex: Vec<String> = full_bytes.iter().map(|b| format!("{:02X}", b)).collect();
+                                                
+                                                ui.monospace(format!("[{}...]", hex_str.join(" ")))
+                                                    .on_hover_text(format!("Length: {}\nFull: [{}]", len, full_hex.join(" ")));
+                                            } else {
+                                                ui.monospace(format!("[{}]", hex_str.join(" ")))
+                                                    .on_hover_text(format!("Length: {}\nFull: [{}]", len, hex_str.join(" ")));
+                                            }
+                                        },
+                                        SymbolDisplayFormat::HexWords => {
+                                            let len = match symbol.kind {
+                                                SymbolType::String(l) | SymbolType::Array(l) => l,
+                                                SymbolType::Word => 2,
+                                                _ => 1,
+                                            };
+                                            // If length is odd, maybe show up to last even?
+                                            let word_count = len / 2;
+                                            if word_count == 0 {
+                                                 // Fallback for single byte if forced?
+                                                 let val = self.memory.borrow().read(addr);
+                                                 ui.monospace(format!("[00{:02X}:inv]", val))
+                                                    .on_hover_text("Odd length, cannot display as words correctly");
+                                            } else {
+                                                let mut words = Vec::new();
+                                                let display_count = word_count.min(4);
+                                                for i in 0..display_count {
+                                                    let offset = (i * 2) as u16;
+                                                    let low = self.memory.borrow().read(addr.wrapping_add(offset));
+                                                    let high = self.memory.borrow().read(addr.wrapping_add(offset + 1));
+                                                    words.push(format!("{:04X}", (low as u16) | ((high as u16) << 8)));
+                                                }
+                                                if word_count > 4 {
+                                                     let mut full_words = Vec::new();
+                                                     for i in 0..word_count {
+                                                         let offset = (i * 2) as u16;
+                                                         let low = self.memory.borrow().read(addr.wrapping_add(offset));
+                                                         let high = self.memory.borrow().read(addr.wrapping_add(offset + 1));
+                                                         full_words.push(format!("{:04X}", (low as u16) | ((high as u16) << 8)));
+                                                     }
+                                                    
+                                                    ui.monospace(format!("[{}...]", words.join(" ")))
+                                                        .on_hover_text(format!("Length: {} bytes\nFull: [{}]", len, full_words.join(" ")));
+                                                } else {
+                                                    ui.monospace(format!("[{}]", words.join(" ")))
+                                                        .on_hover_text(format!("Length: {} bytes\nFull: [{}]", len, words.join(" ")));
+                                                }
+                                            }
                                         }
-                                        SymbolType::Word => {
-                                            let low = self.memory.borrow().read(addr);
-                                            let high =
-                                                self.memory.borrow().read(addr.wrapping_add(1));
-                                            let val = (low as u16) | ((high as u16) << 8);
-                                            ui.monospace(format!("0x{:04X}", val));
-                                        }
-                                        _ => {}
                                     }
                                     ui.end_row();
                                 }

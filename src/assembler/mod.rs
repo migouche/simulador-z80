@@ -30,9 +30,11 @@ pub enum Operand {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SymbolType {
-    Label, // Code label
-    Byte,  // DB/DEFB
-    Word,  // DW/DEFW
+    Label,         // Code label
+    Byte,          // DB/DEFB (single byte)
+    Word,          // DW/DEFW (single word)
+    String(usize), // Length
+    Array(usize),  // Length (for DS or multi-byte DB)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -72,12 +74,15 @@ pub fn assemble(
             continue;
         }
 
+        let mut current_label: Option<String> = None;
+
         // Label Def
         if tokens.len() >= 2 {
             if let (Token::Identifier(name), Token::Colon) = (&tokens[0], &tokens[1]) {
                 if labels.contains_key(name) {
                     return Err(format!("Line {}: Duplicate label '{}'", line_idx + 1, name));
                 }
+                current_label = Some(name.clone());
 
                 // Determine symbol type based on what follows
                 let mut sym_kind = SymbolType::Label;
@@ -86,6 +91,7 @@ pub fn assemble(
                         match next_mnemonic.as_str() {
                             "DB" | "DEFB" => sym_kind = SymbolType::Byte,
                             "DW" | "DEFW" => sym_kind = SymbolType::Word,
+                            "DS" | "DEFS" => sym_kind = SymbolType::Array(0),
                             _ => {}
                         }
                     }
@@ -108,6 +114,55 @@ pub fn assemble(
 
         let bytes = parse_instruction(&tokens, current_pc, &HashMap::new(), true)
             .map_err(|e| format!("Line {}: {}", line_idx + 1, e))?;
+
+        // Update symbol kind with size if applicable
+        if let Some(label) = current_label {
+            if let Some(sym) = labels.get_mut(&label) {
+                // Check if it was identified as Byte or Array or Word
+                // If it's a DB string -> String(len)
+                // If it's a DB multiple bytes -> Array(len)
+                // If it's a DS -> Array(len)
+                
+                if let Token::Identifier(mnemonic) = &tokens[0] {
+                     match mnemonic.as_str() {
+                        "DB" | "DEFB" => {
+                            // Check if operands contain a string literal
+                             if tokens.len() > 1 {
+                                 // Simple check for string literal as first operand
+                                 // But parsing operands is better. 
+                                 // Since parse_instruction succeeded, we know operands are valid structure.
+                                 // Let's assume passed bytes.len() is correct size.
+                                 
+                                 // If instruction size > 1, it's either string or array of bytes.
+                                 if bytes.len() > 1 {
+                                     // Check if it is a string literal
+                                     // parse_operands again? It's cheap enough here.
+                                     if let Ok(ops) = parse_operands(&tokens[1..]) {
+                                         if ops.len() == 1 {
+                                             if let Operand::StringLiteral(_) = ops[0] {
+                                                 sym.kind = SymbolType::String(bytes.len());
+                                             } else {
+                                                 sym.kind = SymbolType::Array(bytes.len());
+                                             }
+                                         } else {
+                                              // Multiple operands: DB 1, 2, 3
+                                              sym.kind = SymbolType::Array(bytes.len()); 
+                                         }
+                                     } 
+                                 } else {
+                                     // Single byte, keep as Byte
+                                     sym.kind = SymbolType::Byte;
+                                 }
+                             }
+                        },
+                        "DS" | "DEFS" => {
+                            sym.kind = SymbolType::Array(bytes.len());
+                        },
+                        _ => {}
+                     }
+                }
+            }
+        }
 
         instructions.push((line_idx, current_pc, tokens));
         current_pc += bytes.len() as u16;

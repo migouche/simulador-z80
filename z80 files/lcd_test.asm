@@ -27,11 +27,9 @@
     
     HALT
 
-MSG_OUT:
-    DB "Hello Output!"  ; 13 bytes including space
+MSG_OUT:  DB "Hello Output!"  ; 13 bytes including space
 
     ; Padding to align input buffer
     DS 5 
 
-INPUT_BUF:
-    DS 20              ; Reserve space for input
+INPUT_BUF: DS 20              ; Reserve space for input
