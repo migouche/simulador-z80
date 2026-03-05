@@ -177,7 +177,7 @@ pub mod alu_op {
         let (final_sum, carry2) = intermediate_sum.overflowing_add(if carry_in { 1 } else { 0 });
         let carry_out = carry1 || carry2;
 
-        let h = ((a & 0x0F) + (b & 0x0F) + if carry_in { 1 } else { 0 }) > 0x0F;
+        let h = ((a ^ b ^ final_sum) & 0x10) != 0;
         let z = final_sum == 0;
         let s = (final_sum & 0x80) != 0;
         let pv = ((a ^ final_sum) & (b ^ final_sum) & 0x80) != 0;

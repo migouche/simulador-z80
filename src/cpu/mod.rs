@@ -649,7 +649,7 @@ impl Z80A {
         match self.interrupt_mode {
             0 => {
                 let opcode = self.ack_interrupt();
-                self.execute_instruction(opcode);
+                self.decode(opcode);
             }
             1 => {
                 self.ack_interrupt(); // Acknowledge interrupt to clear the line
@@ -2329,10 +2329,6 @@ impl Z80A {
         }
     }
 
-    fn execute_instruction(&mut self, opcode: u8) {
-        self.decode(opcode);
-    }
-
     // register ops
 
     fn ld(&mut self, dest: AddressingMode, src: AddressingMode) {
@@ -2488,7 +2484,7 @@ impl SyncronousComponent for Z80A {
         }
         */
         let opcode = self.fetch();
-        self.execute_instruction(opcode);
+        self.decode(opcode);
 
         // Handle Delayed Interrupt Enable (EI)
         if self.iff_delay_count > 0 {
