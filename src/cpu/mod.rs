@@ -522,16 +522,32 @@ impl Z80A {
         self.pc
     }
 
+    pub fn set_pc(&mut self, val: u16) {
+        self.pc = val;
+    }
+
     pub fn get_sp(&self) -> u16 {
         self.sp
+    }
+
+    pub fn set_sp(&mut self, val: u16) {
+        self.sp = val;
     }
 
     pub fn get_ix(&self) -> u16 {
         self.ix
     }
 
+    pub fn set_ix(&mut self, val: u16) {
+        self.ix = val;
+    }
+
     pub fn get_iy(&self) -> u16 {
         self.iy
+    }
+
+    pub fn set_iy(&mut self, val: u16) {
+        self.iy = val;
     }
 
     pub fn is_halted(&self) -> bool {
@@ -691,7 +707,7 @@ impl Z80A {
         self.active_general = 1 - self.active_general;
     }
 
-    fn set_register(&mut self, reg: GPR, value: u8) {
+    pub fn set_register(&mut self, reg: GPR, value: u8) {
         match reg {
             GPR::A => self.af_registers[self.active_af].a = value,
             GPR::F => self.af_registers[self.active_af].f = value,
@@ -701,6 +717,54 @@ impl Z80A {
             GPR::E => self.general_registers[self.active_general].e = value,
             GPR::H => self.general_registers[self.active_general].h = value,
             GPR::L => self.general_registers[self.active_general].l = value,
+        }
+    }
+
+    pub fn get_shadow_register(&self, reg: GPR) -> u8 {
+        match reg {
+            GPR::A => self.af_registers[1 - self.active_af].a,
+            GPR::F => self.af_registers[1 - self.active_af].f,
+            GPR::B => self.general_registers[1 - self.active_general].b,
+            GPR::C => self.general_registers[1 - self.active_general].c,
+            GPR::D => self.general_registers[1 - self.active_general].d,
+            GPR::E => self.general_registers[1 - self.active_general].e,
+            GPR::H => self.general_registers[1 - self.active_general].h,
+            GPR::L => self.general_registers[1 - self.active_general].l,
+        }
+    }
+
+    pub fn set_shadow_register(&mut self, reg: GPR, value: u8) {
+        match reg {
+            GPR::A => self.af_registers[1 - self.active_af].a = value,
+            GPR::F => self.af_registers[1 - self.active_af].f = value,
+            GPR::B => self.general_registers[1 - self.active_general].b = value,
+            GPR::C => self.general_registers[1 - self.active_general].c = value,
+            GPR::D => self.general_registers[1 - self.active_general].d = value,
+            GPR::E => self.general_registers[1 - self.active_general].e = value,
+            GPR::H => self.general_registers[1 - self.active_general].h = value,
+            GPR::L => self.general_registers[1 - self.active_general].l = value,
+        }
+    }
+
+    pub fn get_shadow_register_pair(&self, pair: RegisterPair) -> u16 {
+        match pair {
+            RegisterPair::AF => {
+                let regs = &self.af_registers[1 - self.active_af];
+                ((regs.a as u16) << 8) | (regs.f as u16)
+            }
+            RegisterPair::BC => {
+                let regs = &self.general_registers[1 - self.active_general];
+                ((regs.b as u16) << 8) | (regs.c as u16)
+            }
+            RegisterPair::DE => {
+                let regs = &self.general_registers[1 - self.active_general];
+                ((regs.d as u16) << 8) | (regs.e as u16)
+            }
+            RegisterPair::HL => {
+                let regs = &self.general_registers[1 - self.active_general];
+                ((regs.h as u16) << 8) | (regs.l as u16)
+            }
+            RegisterPair::SP => self.sp,
         }
     }
 
