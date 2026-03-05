@@ -250,3 +250,131 @@ SUB_B:
         "Expected SP to be back to 0x2000 after all stack operations"
     );
 }
+
+#[test]
+fn test_registers() {
+    let code = r#"
+ORG 0000h
+
+START:
+    ; 1. Set Flags first
+    SCF             ; Set Carry Flag (C=1)
+    AND $00         ; This sets the Zero Flag (Z=1), H Flag (H=1), and Parity flag (P/V=1) and clears Carry (C=0)
+    
+    ; 2. Load Main Registers (LD does NOT change flags)
+    LD A, $11
+    LD B, $22
+    LD C, $33
+    LD D, $44
+    LD E, $55
+    LD H, $66
+    LD L, $77
+
+    ; 3. Swap to Shadows
+    EX AF, AF'      ; Main AF ($11 + Flags) moves to Shadow
+    EXX             ; Main BC, DE, HL move to Shadow
+
+    ; 4. Load "New" Main Values (while in shadow mode)
+    LD A, $88
+    LD B, $99
+    LD C, $AA
+    LD D, $BB
+    LD E, $CC
+    LD H, $DD
+    LD L, $EE
+
+    ; 5. Index and Stack (independent of swaps)
+    LD IX, $1234
+    LD IY, $5678
+    LD SP, $F0F0
+
+    ; 6. Swap back
+    ; This puts the $11 set back into Main, and the $88 set into Shadow
+    EX AF, AF'
+    EXX
+
+    HALT
+"#;
+
+    let (cpu, _, _) = run_until_halt(code, 5000);
+    assert_eq!(
+        cpu.get_register(GPR::A),
+        0x11,
+        "Expected A to be 0x11, but got {:02X}",
+        cpu.get_register(GPR::A)
+    );
+    assert_eq!(
+        cpu.get_register(GPR::F),
+        0x54,
+        "Expected F to be 0x54 (Z and H flags set) but got {:02X}",
+        cpu.get_register(GPR::F)
+    );
+    assert_eq!(
+        cpu.get_register_pair(RegisterPair::BC),
+        0x2233,
+        "Expected BC to be 0x2233, but got {:04X}",
+        cpu.get_register_pair(RegisterPair::BC)
+    );
+    assert_eq!(
+        cpu.get_register_pair(RegisterPair::DE),
+        0x4455,
+        "Expected DE to be 0x4455, but got {:04X}",
+        cpu.get_register_pair(RegisterPair::DE)
+    );
+    assert_eq!(
+        cpu.get_register_pair(RegisterPair::HL),
+        0x6677,
+        "Expected HL to be 0x6677, but got {:04X}",
+        cpu.get_register_pair(RegisterPair::HL)
+    );
+    assert_eq!(
+        cpu.get_ix(),
+        0x1234,
+        "Expected IX to be 0x1234, but got {:04X}",
+        cpu.get_ix()
+    );
+    assert_eq!(
+        cpu.get_iy(),
+        0x5678,
+        "Expected IY to be 0x5678, but got {:04X}",
+        cpu.get_iy()
+    );
+    assert_eq!(
+        cpu.get_sp(),
+        0xF0F0,
+        "Expected SP to be 0xF0F0, but got {:04X}",
+        cpu.get_sp()
+    );
+
+    // Check Shadow Registers
+    assert_eq!(
+        cpu.get_shadow_register(GPR::A),
+        0x88,
+        "Expected Shadow A to be 0x88, but got {:02X}",
+        cpu.get_shadow_register(GPR::A)
+    );
+    assert_eq!(
+        cpu.get_shadow_register(GPR::F),
+        0x00,
+        "Expected Shadow F to be 0x00, but got {:02X}",
+        cpu.get_shadow_register(GPR::F)
+    );
+    assert_eq!(
+        cpu.get_shadow_register_pair(RegisterPair::BC),
+        0x99AA,
+        "Expected Shadow BC to be 0x99AA, but got {:04X}",
+        cpu.get_shadow_register_pair(RegisterPair::BC)
+    );
+    assert_eq!(
+        cpu.get_shadow_register_pair(RegisterPair::DE),
+        0xBBCC,
+        "Expected Shadow DE to be 0xBBCC, but got {:04X}",
+        cpu.get_shadow_register_pair(RegisterPair::DE)
+    );
+    assert_eq!(
+        cpu.get_shadow_register_pair(RegisterPair::HL),
+        0xDDEE,
+        "Expected Shadow HL to be 0xDDEE, but got {:04X}",
+        cpu.get_shadow_register_pair(RegisterPair::HL)
+    );
+}

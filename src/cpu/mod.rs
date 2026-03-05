@@ -746,6 +746,28 @@ impl Z80A {
         }
     }
 
+    pub fn get_shadow_register_pair(&self, pair: RegisterPair) -> u16 {
+        match pair {
+            RegisterPair::AF => {
+                let regs = &self.af_registers[1 - self.active_af];
+                ((regs.a as u16) << 8) | (regs.f as u16)
+            }
+            RegisterPair::BC => {
+                let regs = &self.general_registers[1 - self.active_general];
+                ((regs.b as u16) << 8) | (regs.c as u16)
+            }
+            RegisterPair::DE => {
+                let regs = &self.general_registers[1 - self.active_general];
+                ((regs.d as u16) << 8) | (regs.e as u16)
+            }
+            RegisterPair::HL => {
+                let regs = &self.general_registers[1 - self.active_general];
+                ((regs.h as u16) << 8) | (regs.l as u16)
+            }
+            RegisterPair::SP => self.sp,
+        }
+    }
+
     pub fn get_register(&self, reg: GPR) -> u8 {
         match reg {
             GPR::A => self.af_registers[self.active_af].a,
