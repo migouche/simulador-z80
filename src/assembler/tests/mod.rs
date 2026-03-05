@@ -501,7 +501,8 @@ fn test_extensive_error_coverage() {
     asm_err("ADD A, B, C"); // Too many ops
 
     // Binary ALU
-    asm_err("SUB A, B"); // SUB takes 1 operand (SUB B implies A-B)
+    // SUB A, B is valid Z80 assembly (alias for SUB B)
+    assert_eq!(asm("SUB A, B"), vec![0x90]);
     asm_err("SUB SP"); // Invalid ALU reg
 
     // -- Jump/Call/Ret Errors --
