@@ -125,6 +125,11 @@ pub struct Z80App {
     examples_receiver: Option<Receiver<Vec<String>>>,
 
     recent_files: Vec<PathBuf>,
+
+    #[serde(skip)]
+    show_memory_viewer: bool,
+    #[serde(skip)]
+    memory_viewer_start: String,
 }
 #[cfg(not(target_arch = "wasm32"))]
 pub fn run() -> eframe::Result<()> {
@@ -630,6 +635,8 @@ impl Default for Z80App {
             examples_list: Vec::new(),
             #[cfg(target_arch = "wasm32")]
             examples_receiver: Some(examples_receiver),
+            show_memory_viewer: false,
+            memory_viewer_start: "0000".to_string(),
         }
     }
 }
@@ -816,6 +823,17 @@ impl eframe::App for Z80App {
                 .response
                 .on_hover_cursor(egui::CursorIcon::PointingHand);
 
+                ui.menu_button("Memory", |ui| {
+                    if ui
+                        .checkbox(&mut self.show_memory_viewer, "Memory Viewer Window")
+                        .changed()
+                    {
+                        ui.close();
+                    }
+                })
+                .response
+                .on_hover_cursor(egui::CursorIcon::PointingHand);
+
                 #[cfg(target_arch = "wasm32")]
                 ui.menu_button("Examples", |ui| {
                     if self.examples_list.is_empty() {
@@ -934,80 +952,133 @@ impl eframe::App for Z80App {
                 ui.heading("Registers");
                 ui.separator();
 
-                let reg_a = self.cpu.get_register(GPR::A);
-                let reg_f = self.cpu.get_register(GPR::F);
-                let reg_b = self.cpu.get_register(GPR::B);
-                let reg_c = self.cpu.get_register(GPR::C);
-                let reg_d = self.cpu.get_register(GPR::D);
-                let reg_e = self.cpu.get_register(GPR::E);
-                let reg_h = self.cpu.get_register(GPR::H);
-                let reg_l = self.cpu.get_register(GPR::L);
-
-                let pc = self.cpu.get_pc();
-                let sp = self.cpu.get_sp();
-                let ix = self.cpu.get_ix();
-                let iy = self.cpu.get_iy();
+                let can_edit = !self.is_running || self.cpu.is_halted();
 
                 egui::Grid::new("regs_grid")
                     .striped(true)
-                    .spacing([20.0, 8.0])
+                    .spacing([10.0, 8.0])
                     .show(ui, |ui| {
+                        macro_rules! edit_16 {
+                            ($name:expr, $getter:expr, $setter:expr) => {
+                                ui.label($name);
+                                let val = $getter;
+                                let id = egui::Id::new($name);
+                                let mut s = ui.data_mut(|d| {
+                                    d.get_temp_mut_or_insert_with(id, || format!("{:04X}", val))
+                                        .clone()
+                                });
+                                let resp = ui.add_enabled(
+                                    can_edit,
+                                    egui::TextEdit::singleline(&mut s)
+                                        .desired_width(45.0)
+                                        .font(egui::TextStyle::Monospace),
+                                );
+                                if resp.changed() {
+                                    if let Ok(v) = u16::from_str_radix(s.trim(), 16) {
+                                        $setter(v);
+                                    }
+                                    ui.data_mut(|d| d.insert_temp(id, s));
+                                } else if !resp.has_focus() {
+                                    ui.data_mut(|d| d.insert_temp(id, format!("{:04X}", val)));
+                                }
+                            };
+                        }
+
+                        macro_rules! edit_8 {
+                            ($name:expr, $id:expr, $getter:expr, $setter:expr) => {
+                                ui.label($name);
+                                let val = $getter;
+                                let id = egui::Id::new($id);
+                                let mut s = ui.data_mut(|d| {
+                                    d.get_temp_mut_or_insert_with(id, || format!("{:02X}", val))
+                                        .clone()
+                                });
+                                let resp = ui.add_enabled(
+                                    can_edit,
+                                    egui::TextEdit::singleline(&mut s)
+                                        .desired_width(25.0)
+                                        .font(egui::TextStyle::Monospace),
+                                );
+                                if resp.changed() {
+                                    if let Ok(v) = u8::from_str_radix(s.trim(), 16) {
+                                        $setter(v);
+                                    }
+                                    ui.data_mut(|d| d.insert_temp(id, s));
+                                } else if !resp.has_focus() {
+                                    ui.data_mut(|d| d.insert_temp(id, format!("{:02X}", val)));
+                                }
+                            };
+                        }
+
+                        edit_16!("PC", self.cpu.get_pc(), |v| self.cpu.set_pc(v));
+                        ui.label("");
+                        ui.label("");
+                        ui.end_row();
+                        edit_16!("SP", self.cpu.get_sp(), |v| self.cpu.set_sp(v));
+                        ui.label("");
+                        ui.label("");
+                        ui.end_row();
+                        edit_16!("IX", self.cpu.get_ix(), |v| self.cpu.set_ix(v));
+                        ui.label("");
+                        ui.label("");
+                        ui.end_row();
+                        edit_16!("IY", self.cpu.get_iy(), |v| self.cpu.set_iy(v));
+                        ui.label("");
+                        ui.label("");
+                        ui.end_row();
+
+                        ui.separator();
+                        ui.separator();
+                        ui.separator();
+                        ui.separator();
+                        ui.end_row();
+
+                        let regs = [
+                            ("A", GPR::A),
+                            ("F", GPR::F),
+                            ("B", GPR::B),
+                            ("C", GPR::C),
+                            ("D", GPR::D),
+                            ("E", GPR::E),
+                            ("H", GPR::H),
+                            ("L", GPR::L),
+                        ];
+
+                        for (name, gpr) in regs {
+                            edit_8!(name, name, self.cpu.get_register(gpr), |v| self
+                                .cpu
+                                .set_register(gpr, v));
+                            let shadow_name = format!("{}'", name);
+                            edit_8!(
+                                shadow_name.clone(),
+                                shadow_name,
+                                self.cpu.get_shadow_register(gpr),
+                                |v| self.cpu.set_shadow_register(gpr, v)
+                            );
+                            ui.end_row();
+                        }
+
+                        ui.separator();
+                        ui.separator();
+                        ui.separator();
+                        ui.separator();
+                        ui.end_row();
+
                         let mono = |text: String| egui::RichText::new(text).monospace();
-
-                        ui.label("PC");
-                        ui.label(mono(format!("0x{:04X}", pc)));
-                        ui.end_row();
-                        ui.label("SP");
-                        ui.label(mono(format!("0x{:04X}", sp)));
-                        ui.end_row();
-                        ui.label("IX");
-                        ui.label(mono(format!("0x{:04X}", ix)));
-                        ui.end_row();
-                        ui.label("IY");
-                        ui.label(mono(format!("0x{:04X}", iy)));
-                        ui.end_row();
-
-                        ui.separator();
-                        ui.separator();
-                        ui.end_row();
-
-                        ui.label("A");
-                        ui.label(mono(format!("0x{:02X}", reg_a)));
-                        ui.end_row();
-                        ui.label("F");
-                        ui.label(mono(format!("0x{:02X}", reg_f)));
-                        ui.end_row();
-                        ui.label("B");
-                        ui.label(mono(format!("0x{:02X}", reg_b)));
-                        ui.end_row();
-                        ui.label("C");
-                        ui.label(mono(format!("0x{:02X}", reg_c)));
-                        ui.end_row();
-                        ui.label("D");
-                        ui.label(mono(format!("0x{:02X}", reg_d)));
-                        ui.end_row();
-                        ui.label("E");
-                        ui.label(mono(format!("0x{:02X}", reg_e)));
-                        ui.end_row();
-                        ui.label("H");
-                        ui.label(mono(format!("0x{:02X}", reg_h)));
-                        ui.end_row();
-                        ui.label("L");
-                        ui.label(mono(format!("0x{:02X}", reg_l)));
-                        ui.end_row();
-
-                        ui.separator();
-                        ui.separator();
-                        ui.end_row();
-
                         ui.label("IFF1");
                         ui.label(mono(format!("{}", self.cpu.get_iff1())));
+                        ui.label("");
+                        ui.label("");
                         ui.end_row();
                         ui.label("IFF2");
                         ui.label(mono(format!("{}", self.cpu.get_iff2())));
+                        ui.label("");
+                        ui.label("");
                         ui.end_row();
                         ui.label("IM");
                         ui.label(mono(format!("{}", self.cpu.get_interrupt_mode())));
+                        ui.label("");
+                        ui.label("");
                         ui.end_row();
                     });
 
@@ -1041,13 +1112,28 @@ impl eframe::App for Z80App {
 
                         // Drawn as a small badge
                         let text = egui::RichText::new(label).strong().color(text_color);
-                        egui::Frame::new()
+                        let frame_resp = egui::Frame::new()
                             .fill(color)
                             .corner_radius(4.0)
                             .inner_margin(4.0)
                             .show(ui, |ui| {
                                 ui.label(text);
                             });
+
+                        let interact_resp = ui.interact(
+                            frame_resp.response.rect,
+                            ui.id().with(label),
+                            egui::Sense::click(),
+                        );
+
+                        if can_edit {
+                            if interact_resp.hovered() {
+                                ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+                            }
+                            if interact_resp.clicked() {
+                                self.cpu.set_flag(!on, flag);
+                            }
+                        }
                     }
                 });
             });
@@ -1817,6 +1903,74 @@ impl eframe::App for Z80App {
                 // If halted, we still want to repaint/re-check because UI interaction (keypad)
                 // might change device state, which needs to be picked up by next tick.
             }
+        }
+
+        // Draw Memory Viewer Window
+        let mut show_mem = self.show_memory_viewer;
+        if show_mem {
+            egui::Window::new("Memory Viewer")
+                .open(&mut show_mem)
+                .resizable(true)
+                .default_width(500.0)
+                .default_height(400.0)
+                .show(ctx, |ui| {
+                    ui.horizontal(|ui| {
+                        ui.label("Start Address (Hex):");
+                        let response = ui.add(
+                            egui::TextEdit::singleline(&mut self.memory_viewer_start)
+                                .desired_width(60.0)
+                                .font(egui::TextStyle::Monospace),
+                        );
+                        if ui.button("Goto PC").clicked() {
+                            self.memory_viewer_start = format!("{:04X}", self.cpu.get_pc());
+                            response.request_focus();
+                        }
+                    });
+
+                    ui.separator();
+
+                    let start_addr =
+                        u16::from_str_radix(self.memory_viewer_start.trim(), 16).unwrap_or(0);
+
+                    // We render 16 rows of 16 bytes for a classic Hex Dump
+                    let rows = 16;
+
+                    egui::ScrollArea::vertical().show(ui, |ui| {
+                        egui::Grid::new("mem_dump_grid")
+                            .num_columns(3)
+                            .spacing([20.0, 4.0])
+                            .show(ui, |ui| {
+                                for r in 0..rows {
+                                    let row_addr = start_addr.wrapping_add((r * 16) as u16);
+
+                                    // Print Address
+                                    ui.monospace(format!("{:04X}", row_addr));
+
+                                    // Print Hex Bytes
+                                    let mut hex_str = String::new();
+                                    let mut ascii_str = String::new();
+
+                                    for c in 0..16 {
+                                        let addr = row_addr.wrapping_add(c);
+                                        let val = self.memory.borrow().read(addr);
+                                        hex_str.push_str(&format!("{:02X} ", val));
+
+                                        // Ascii representation
+                                        if val >= 32 && val <= 126 {
+                                            ascii_str.push(val as char);
+                                        } else {
+                                            ascii_str.push('.');
+                                        }
+                                    }
+
+                                    ui.monospace(hex_str);
+                                    ui.monospace(ascii_str);
+                                    ui.end_row();
+                                }
+                            });
+                    });
+                });
+            self.show_memory_viewer = show_mem;
         }
 
         // Draw separate windows for devices
