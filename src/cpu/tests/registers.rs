@@ -31,7 +31,6 @@ fn test_register_pair(#[case] reg: RegisterPair, #[case] value: u16) {
 }
 
 #[rstest]
-#[case(SystemRegister::PC, 0x9ABC)]
 #[case(SystemRegister::I, 0x12)]
 #[case(SystemRegister::R, 0x34)]
 fn test_system_register(#[case] reg: SystemRegister, #[case] value: u16) {

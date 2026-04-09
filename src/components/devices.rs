@@ -42,7 +42,7 @@ impl IODevice for SevenSegmentDisplay {
 
 impl DeviceWithUi for SevenSegmentDisplay {
     fn get_name(&self) -> String {
-        format!("Seven Segment Display (Port 0x{:02X})", self.port)
+        format!("Seven Segment Display (Port 0x{:02X})", self.get_port())
     }
 
     fn get_window_open_state(&self) -> bool {
@@ -59,11 +59,11 @@ impl DeviceWithUi for SevenSegmentDisplay {
             .open(&mut open)
             .show(ctx, |ui| {
                 ui.group(|ui| {
-                    ui.label(format!("Port: 0x{:02X}", self.port));
+                    ui.label(format!("Port: 0x{:02X}", self.get_port()));
                     ui.separator();
 
                     // Simple text representation of 7-segment
-                    let val = self.value;
+                    let val = self.get_value();
 
                     // Draw a big number
                     ui.vertical_centered(|ui| {
@@ -116,9 +116,9 @@ impl Keypad {
 impl IODevice for Keypad {
     fn read_in(&mut self, port: u16) -> Option<u8> {
         // Ignore upper 8 bits of port addressing for simple I/O decoding
-        if (port & 0xFF) == (self.port & 0xFF) {
+        if (port & 0xFF) == (self.get_port() & 0xFF) {
             self.interrupt_pending = false;
-            Some(self.current_key)
+            Some(self.get_last_key())
         } else {
             None
         }
@@ -141,7 +141,7 @@ impl IODevice for Keypad {
 
 impl DeviceWithUi for Keypad {
     fn get_name(&self) -> String {
-        format!("Keypad (Port 0x{:02X})", self.port)
+        format!("Keypad (Port 0x{:02X})", self.get_port())
     }
 
     fn get_window_open_state(&self) -> bool {
@@ -158,10 +158,10 @@ impl DeviceWithUi for Keypad {
             .open(&mut open)
             .show(ctx, |ui| {
                 ui.group(|ui| {
-                    ui.label(format!("Port: 0x{:02X}", self.port));
+                    ui.label(format!("Port: 0x{:02X}", self.get_port()));
                     ui.separator();
 
-                    ui.label(format!("Last Key: {:02X}", self.current_key));
+                    ui.label(format!("Last Key: {:02X}", self.get_last_key()));
 
                     egui::Grid::new("keypad_grid")
                         .spacing(egui::vec2(5.0, 5.0))
@@ -174,7 +174,7 @@ impl DeviceWithUi for Keypad {
                             ];
 
                             for row in keys {
-                                let mut row_iter = row.into_iter();
+                                let row_iter = row.into_iter();
                                 for (code, label) in row_iter {
                                     if ui
                                         .add(

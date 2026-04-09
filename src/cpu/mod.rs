@@ -265,7 +265,6 @@ pub enum Flag {
 
 #[derive(PartialEq, Clone, Copy, Debug)]
 enum SystemRegister {
-    PC,
     I,
     R,
 }
@@ -746,28 +745,6 @@ impl Z80A {
         }
     }
 
-    pub fn get_shadow_register_pair(&self, pair: RegisterPair) -> u16 {
-        match pair {
-            RegisterPair::AF => {
-                let regs = &self.af_registers[1 - self.active_af];
-                ((regs.a as u16) << 8) | (regs.f as u16)
-            }
-            RegisterPair::BC => {
-                let regs = &self.general_registers[1 - self.active_general];
-                ((regs.b as u16) << 8) | (regs.c as u16)
-            }
-            RegisterPair::DE => {
-                let regs = &self.general_registers[1 - self.active_general];
-                ((regs.d as u16) << 8) | (regs.e as u16)
-            }
-            RegisterPair::HL => {
-                let regs = &self.general_registers[1 - self.active_general];
-                ((regs.h as u16) << 8) | (regs.l as u16)
-            }
-            RegisterPair::SP => self.sp,
-        }
-    }
-
     pub fn get_register(&self, reg: GPR) -> u8 {
         match reg {
             GPR::A => self.af_registers[self.active_af].a,
@@ -872,7 +849,6 @@ impl Z80A {
 
     fn set_system_register(&mut self, reg: SystemRegister, value: u16) {
         match reg {
-            SystemRegister::PC => self.pc = value,
             SystemRegister::I => self.i = value as u8,
             SystemRegister::R => self.r = value as u8,
         }
@@ -880,7 +856,6 @@ impl Z80A {
 
     fn get_system_register(&self, reg: SystemRegister) -> u16 {
         match reg {
-            SystemRegister::PC => self.pc,
             SystemRegister::I => self.i as u16,
             SystemRegister::R => self.r as u16,
         }
@@ -2494,10 +2469,6 @@ impl Z80A {
         self.set_flag(a.count_ones() % 2 == 0, Flag::PV);
         self.set_flag((a & flags::X) == flags::X, Flag::X);
         self.set_flag((a & flags::Y) == flags::Y, Flag::Y);
-    }
-
-    fn jmp(&mut self, addr: u16) {
-        self.pc = addr;
     }
 }
 
