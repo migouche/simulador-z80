@@ -1,10 +1,5 @@
-use crate::cpu::Flag;
-use crate::cpu::GPR;
-use crate::cpu::RegisterPair;
 use crate::cpu::tests::setup_cpu;
 use crate::traits::SyncronousComponent;
-use std::cell::RefCell;
-use std::rc::Rc; // Import the trait for tick()
 
 #[test]
 fn test_nmi_basic() {

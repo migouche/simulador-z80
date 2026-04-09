@@ -1,6 +1,6 @@
 use crate::cpu::tests::setup_cpu;
-use crate::cpu::{Flag, GPR, RegisterPair, Z80A};
-use crate::traits::{MemoryMapper, SyncronousComponent};
+use crate::cpu::{Flag, GPR, RegisterPair};
+use crate::traits::SyncronousComponent;
 
 #[test]
 fn test_ldi() {

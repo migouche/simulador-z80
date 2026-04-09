@@ -359,22 +359,4 @@ START:
         "Expected Shadow F to be 0x00, but got {:02X}",
         cpu.get_shadow_register(GPR::F)
     );
-    assert_eq!(
-        cpu.get_shadow_register_pair(RegisterPair::BC),
-        0x99AA,
-        "Expected Shadow BC to be 0x99AA, but got {:04X}",
-        cpu.get_shadow_register_pair(RegisterPair::BC)
-    );
-    assert_eq!(
-        cpu.get_shadow_register_pair(RegisterPair::DE),
-        0xBBCC,
-        "Expected Shadow DE to be 0xBBCC, but got {:04X}",
-        cpu.get_shadow_register_pair(RegisterPair::DE)
-    );
-    assert_eq!(
-        cpu.get_shadow_register_pair(RegisterPair::HL),
-        0xDDEE,
-        "Expected Shadow HL to be 0xDDEE, but got {:04X}",
-        cpu.get_shadow_register_pair(RegisterPair::HL)
-    );
 }

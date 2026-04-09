@@ -916,6 +916,24 @@ impl eframe::App for Z80App {
 
                 ui.separator();
 
+                if ui
+                    .button("⚡ INT")
+                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                    .clicked()
+                {
+                    self.cpu.set_interrupt(true);
+                }
+
+                if ui
+                    .button("⚡ NMI")
+                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                    .clicked()
+                {
+                    self.cpu.nmi();
+                }
+
+                ui.separator();
+
                 if let Some(err) = &self.last_error {
                     ui.colored_label(egui::Color32::RED, format!("⚠ {}", err));
                 } else if self.cpu.is_halted() {
