@@ -27,7 +27,7 @@
   </g>
 
   <!-- LOGO: replace href with your actual raw GitHub URL -->
-  <image class="logo" href="https://raw.githubusercontent.com/migouche/simulador-z80/main/docs/jazz80.png"
+  <image class="logo" href="https://raw.githubusercontent.com/migouche/simulador-z80/refs/heads/master/docs/jazz80.png"
          x="30" y="30" width="120" height="120" preserveAspectRatio="xMidYMid meet" />
 
   <text text-anchor="middle" dominant-baseline="middle" x="500" y="35%" class="text" style="fill:#e0aaff;" stroke="#none" stroke-width="1">JAZZ80</text>
