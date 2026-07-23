@@ -1,10 +1,8 @@
 <div align="center">
 
-<div align="center" style="display: flex; align-items: center; justify-content: center; gap: 20px;">
-
-<img src="docs/jazz80.png" alt="JAZZ80 logo" width="220" />
-
-<h1 style="font-size: 2.5rem; font-weight: bold; color: #6a5acd;">JAZZ80</h1>
+<p align="center">
+  <img src="docs/banner.svg" alt="JAZZ80 banner" />
+</p>
 
 </div>
 
@@ -12,7 +10,7 @@
 
 A **Zilog Z80 CPU simulator, editor and debugger** written in Rust, built on top of [`egui`](https://github.com/emilk/egui) / [`eframe`](https://github.com/emilk/eframe). Write or load Z80 assembly, step through it instruction by instruction, and watch every register, flag and memory cell update in real time — as a native desktop app, or entirely in the browser via WebAssembly.
 
-![JAZZ80 screenshot](docs/ui.png)
+![JAZZ80 screenshot](docs/ui.png)   
 
 [![License: GPL v3](https://img.shields.io/github/license/migouche/simulador-z80?color=6a5acd)](https://github.com/migouche/simulador-z80/blob/master/LICENSE)
 [![Web demo](https://img.shields.io/badge/Web%20demo-Open%20app-6a5acd?logo=github&logoColor=white)](https://migouche.github.io/simulador-z80/)
