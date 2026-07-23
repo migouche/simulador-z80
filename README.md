@@ -1,24 +1,26 @@
 <div align="center">
 
-# 🎷 JAZZ80
+<div align="center" style="display: flex; align-items: center; justify-content: center; gap: 20px;">
+
+<img src="docs/jazz80.png" alt="JAZZ80 logo" width="220" />
+
+<h1 style="font-size: 2.5rem; font-weight: bold; color: #6a5acd;">JAZZ80</h1>
+
+</div>
+
 ### *Just Another Zilog Z80*
 
 A **Zilog Z80 CPU simulator, editor and debugger** written in Rust, built on top of [`egui`](https://github.com/emilk/egui) / [`eframe`](https://github.com/emilk/eframe). Write or load Z80 assembly, step through it instruction by instruction, and watch every register, flag and memory cell update in real time — as a native desktop app, or entirely in the browser via WebAssembly.
 
-<!-- Add a screenshot or GIF of the simulator here, e.g.: ![JAZZ80 screenshot](docs/screenshot.png) -->
-
 ![JAZZ80 screenshot](docs/ui.png)
 
-
-<div align="center">
-
 [![License: GPL v3](https://img.shields.io/github/license/migouche/simulador-z80?color=6a5acd)](https://github.com/migouche/simulador-z80/blob/master/LICENSE)
+[![Web demo](https://img.shields.io/badge/Web%20demo-Open%20app-6a5acd?logo=github&logoColor=white)](https://migouche.github.io/simulador-z80/)
 [![Latest release](https://img.shields.io/github/v/release/migouche/simulador-z80?sort=date&color=6a5acd)](https://github.com/migouche/simulador-z80/releases)
 [![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/migouche/49a8384882f617ed2ce5fb36bb2fa343/raw/coverage.json)](https://github.com/migouche/simulador-z80/actions)
 ![Rust edition](https://img.shields.io/badge/Rust-2024_edition-6a5acd?logo=rust&logoColor=white)
 ![GUI](https://img.shields.io/badge/GUI-egui%20%2F%20eframe-6a5acd)
 ![WebAssembly](https://img.shields.io/badge/Web-WebAssembly-6a5acd?logo=webassembly&logoColor=white)
-</div>
 
 </div>
 
@@ -41,18 +43,6 @@ JAZZ80 started life as a Bachelor's Thesis (*Trabajo de Fin de Grado*) at Univer
 - 🌐 **Runs anywhere** — a native desktop app on Windows/macOS/Linux, or a self-contained WebAssembly build that runs in any modern browser
 - 🧪 **Tested** — covered by an automated test suite (`rstest` + `egui_kittest`) with coverage tracked in CI
 
-## Milestones
-
-A quick look at how JAZZ80 got here — see the [Releases page](https://github.com/migouche/simulador-z80/releases) for the full changelog.
-
-| Version | Highlights |
-|---|---|
-| 0.1.x | Editor with syntax highlighting, breakpoints, file save/load, persistent state |
-| 0.2.0 | Full interrupt support — IM 0/1/2, NMIs, `IN`/`OUT`, block instructions |
-| 0.3.0 | WebAssembly target — runs entirely in the browser |
-| 0.4.0 | Complete official + undocumented instruction set |
-| 0.4.1 – 0.4.3 | Trait-based operand/addressing refactor, live memory view, register & shadow-register editing, one-click interrupt/NMI triggers |
-
 ## Getting Started
 
 ### Prerequisites
@@ -68,6 +58,7 @@ cargo run --release # release build is faster, but will take longer to compile
 ```
 
 ### Run in the browser
+
 The project is hosted on GitHub Pages at [https://migouche.github.io/simulador-z80/](https://migouche.github.io/simulador-z80/), but you can also run it locally.
 
 The web build uses [Trunk](https://trunkrs.dev/) to compile and bundle the app as WebAssembly:
